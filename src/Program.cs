@@ -1,19 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Discord.Net;
 using Discord.WebSocket;
 using Discord;
-using Dijon.Environment;
 using Discord.Commands;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Dijon.Models;
+using Dijon.Config;
 
 namespace Dijon
 {
@@ -27,18 +20,7 @@ namespace Dijon
 
         public async Task MainAsync(string[] args)
         {
-            var tokenVar = new EnvironmentVariable("DIJON_BOT_TOKEN");
-            var clientIdVar = new EnvironmentVariable("DIJON_CLIENT_ID");
-
-            if (!tokenVar.HasValue)
-            {
-                throw new NullReferenceException($"Required {nameof(tokenVar)} value is null or empty.");
-            }
-
-            if (!clientIdVar.HasValue)
-            {
-                throw new NullReferenceException($"Required {nameof(clientIdVar)} value is null or empty.");
-            }
+            BotConfig configuration = Configuration.ReadConfig();
 
             Client = new DiscordSocketClient();
             Commands = new CommandService(new CommandServiceConfig
@@ -48,7 +30,7 @@ namespace Dijon
             Service = new ServiceCollection().BuildServiceProvider();
 
             await InstallCommands();
-            await Client.LoginAsync(TokenType.Bot, tokenVar.Value);
+            await Client.LoginAsync(TokenType.Bot, configuration.botToken);
             await Client.StartAsync();
 
             await Task.Delay(-1);

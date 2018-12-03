@@ -9,6 +9,9 @@
 *.userosscache
 *.sln.docstates
 
+# Bot configuration file
+*.json
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
