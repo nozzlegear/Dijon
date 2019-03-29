@@ -6,4 +6,4 @@ RUN yarn install --frozen-lockfile --production false
 COPY . .
 RUN yarn build
 
-ENTRYPOINT ["yarn", "start"]
+CMD ["yarn", "start"]

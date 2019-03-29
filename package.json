@@ -15,6 +15,7 @@
 		"typescript": "^3.4.1"
 	},
 	"dependencies": {
+		"@nozzlegear/railway": "^2.0.0",
 		"discord.js": "^11.4.2",
 		"uws": "^100.0.1"
 	}

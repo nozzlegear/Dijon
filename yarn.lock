@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@nozzlegear/railway@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@nozzlegear/railway/-/railway-2.0.0.tgz#84fcd370e86b719d254038c940d3dcfa69089b9e"
+  integrity sha512-3321meBB3t2QA4j4vvFcFiu6QPVAhDTTPeL4YqLU6L1Zy5egG5UPzkjpy7pBNcYdWfTHz+E7Ur8UvVVqBrWGEw==
+
 "@types/node@^11.12.1":
   version "11.12.1"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-11.12.1.tgz#d90123f6c61fdf2f7cddd286ddae891586dd3488"
