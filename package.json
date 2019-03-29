@@ -16,6 +16,7 @@
 	},
 	"dependencies": {
 		"@nozzlegear/railway": "^2.0.0",
+		"davenport": "^2.8.2",
 		"discord.js": "^11.4.2",
 		"uws": "^100.0.1"
 	}

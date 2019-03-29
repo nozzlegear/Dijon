@@ -2,11 +2,13 @@ import { Client, RichEmbed } from "discord.js";
 import { formatDateTime } from "./utils/format-datetime";
 import { getEnvVar } from "./utils/env";
 import { parseCommand } from "./utils/parse-command";
+import { RosterDatabase } from "./database";
 
 const clientId = getEnvVar("DIJON_CLIENT_ID").get();
 const clientSecret = getEnvVar("DIJON_CLIENT_SECRET").get();
 const botUsername = getEnvVar("DIJON_BOT_USERNAME").get();
 const botToken = getEnvVar("DIJON_BOT_TOKEN").get();
+const couchHost = getEnvVar("COUCH_HOST").get();
 const client = new Client();
 
 client.on("ready", () => {
@@ -16,6 +18,7 @@ client.on("ready", () => {
 client.on("message", async msg => {
 	const botRegex = /^!dijon +/i;
 	const commandRegex = /^\w+/i;
+	const wordRegex = /^\w+/i;
 
 	if (!botRegex.test(msg.content)) {
 		return;
@@ -24,6 +27,7 @@ client.on("message", async msg => {
 	const withoutName = msg.content.replace(botRegex, "").trim();
 	const message = withoutName.replace(commandRegex, "").trim();
 	const [command] = commandRegex.exec(withoutName) || ["UNKNOWN"];
+	const db = new RosterDatabase(couchHost, "DEFAULT");
 
 	switch (parseCommand(command)) {
 		case "HELLO":
@@ -49,6 +53,35 @@ client.on("message", async msg => {
 				.setDescription(`${client.user.username} has been online since **${since}**.`);
 
 			await msg.channel.send(embed);
+			break;
+		}
+
+		case "LIST": {
+			const roster = await db.createDatabase().then(() => db.listMembers());
+			const embed = new RichEmbed()
+				.setColor("GREEN")
+				.setTitle("Team Roster")
+				.setDescription(roster.map(u => `${u.role}: ${u._id}`).join(". "));
+
+			await msg.channel.send(embed);
+
+			break;
+		}
+
+		case "ADD": {
+			const [username] = wordRegex.exec(message) || [null];
+
+			if (!username) {
+				await msg.channel.send("Error: you must enter a username. Example: `!dijon add username role`");
+				return;
+			}
+
+			const newUser = await db.createDatabase().then(() => db.createMember(username, "healer"));
+
+			await msg.channel.send(
+				`Created user ${newUser._id} with role ${newUser.role}! Use \`!dijon list\` to view all roster members.`
+			);
+
 			break;
 		}
 

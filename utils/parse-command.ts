@@ -13,6 +13,8 @@ export function parseCommand(command: string): Command {
 		case "BEARS":
 		case "DRUID":
 		case "UPTIME":
+		case "LIST":
+		case "ADD":
 			return input;
 
 		default:
