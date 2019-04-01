@@ -46,4 +46,11 @@ export class RosterDatabase {
 			_rev: result.rev
 		};
 	};
+
+	/**
+	 * Returns the name of the channel's default team.
+	 */
+	static getDefaultTeamName: (channelId: number | string) => Promise<string> = async channelId => {
+		return "DEFAULT";
+	};
 }

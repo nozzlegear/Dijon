@@ -1,14 +1,7 @@
-import { Client, RichEmbed } from "discord.js";
-import { formatDateTime } from "./utils/format-datetime";
-import { getEnvVar } from "./utils/env";
-import { parseCommand } from "./utils/parse-command";
-import { RosterDatabase } from "./database";
+import { Client } from "discord.js";
+import { DijonCommandParser } from "./parser";
+import { botToken } from "./constants";
 
-const clientId = getEnvVar("DIJON_CLIENT_ID").get();
-const clientSecret = getEnvVar("DIJON_CLIENT_SECRET").get();
-const botUsername = getEnvVar("DIJON_BOT_USERNAME").get();
-const botToken = getEnvVar("DIJON_BOT_TOKEN").get();
-const couchHost = getEnvVar("COUCH_HOST").get();
 const client = new Client();
 
 client.on("ready", () => {
@@ -25,90 +18,95 @@ client.on("message", async msg => {
 	}
 
 	const withoutName = msg.content.replace(botRegex, "").trim();
-	const message = withoutName.replace(commandRegex, "").trim();
-	const [command] = commandRegex.exec(withoutName) || ["UNKNOWN"];
-	const db = new RosterDatabase(couchHost, "DEFAULT");
+	const args = withoutName.split(" ");
+	const parser = new DijonCommandParser(msg);
+	const result = await parser.execute(args);
 
-	switch (parseCommand(command)) {
-		case "HELLO":
-			msg.channel.send("Hello world!");
-			break;
+	// const withoutName = msg.content.replace(botRegex, "").trim();
+	// const message = withoutName.replace(commandRegex, "").trim();
+	// const [command] = commandRegex.exec(withoutName) || ["UNKNOWN"];
+	// const db = new RosterDatabase(couchHost, "DEFAULT");
 
-		case "PING": {
-			const embed = new RichEmbed()
-				.setColor("GREEN")
-				.setTitle(":ping_pong: Pong!")
-				.setDescription(`:heartbeat: **${client.ping} ms** heartbeat latency.`);
+	// switch (parseCommand(command)) {
+	// 	case "HELLO":
+	// 		msg.channel.send("Hello world!");
+	// 		break;
 
-			await msg.channel.send(embed);
+	// 	case "PING": {
+	// 		const embed = new RichEmbed()
+	// 			.setColor("GREEN")
+	// 			.setTitle(":ping_pong: Pong!")
+	// 			.setDescription(`:heartbeat: **${client.ping} ms** heartbeat latency.`);
 
-			break;
-		}
+	// 		await msg.channel.send(embed);
 
-		case "UPTIME": {
-			const since = formatDateTime(Date.now() - client.uptime);
-			const embed = new RichEmbed()
-				.setColor("GREEN")
-				.setTitle(":stopwatch: Uptime")
-				.setDescription(`${client.user.username} has been online since **${since}**.`);
+	// 		break;
+	// 	}
 
-			await msg.channel.send(embed);
-			break;
-		}
+	// 	case "UPTIME": {
+	// 		const since = formatDateTime(Date.now() - client.uptime);
+	// 		const embed = new RichEmbed()
+	// 			.setColor("GREEN")
+	// 			.setTitle(":stopwatch: Uptime")
+	// 			.setDescription(`${client.user.username} has been online since **${since}**.`);
 
-		case "LIST": {
-			const roster = await db.createDatabase().then(() => db.listMembers());
-			const embed = new RichEmbed()
-				.setColor("GREEN")
-				.setTitle("Team Roster")
-				.setDescription(roster.map(u => `${u.role}: ${u._id}`).join(". "));
+	// 		await msg.channel.send(embed);
+	// 		break;
+	// 	}
 
-			await msg.channel.send(embed);
+	// 	case "LIST": {
+	// 		const roster = await db.createDatabase().then(() => db.listMembers());
+	// 		const embed = new RichEmbed()
+	// 			.setColor("GREEN")
+	// 			.setTitle("Team Roster")
+	// 			.setDescription(roster.map(u => `${u.role}: ${u._id}`).join(". "));
 
-			break;
-		}
+	// 		await msg.channel.send(embed);
 
-		case "ADD": {
-			const [username] = wordRegex.exec(message) || [null];
+	// 		break;
+	// 	}
 
-			if (!username) {
-				await msg.channel.send("Error: you must enter a username. Example: `!dijon add username role`");
-				return;
-			}
+	// 	case "ADD": {
+	// 		const [username] = wordRegex.exec(message) || [null];
 
-			const newUser = await db.createDatabase().then(() => db.createMember(username, "healer"));
+	// 		if (!username) {
+	// 			await msg.channel.send("Error: you must enter a username. Example: `!dijon add username role`");
+	// 			return;
+	// 		}
 
-			await msg.channel.send(
-				`Created user ${newUser._id} with role ${newUser.role}! Use \`!dijon list\` to view all roster members.`
-			);
+	// 		const newUser = await db.createDatabase().then(() => db.createMember(username, "healer"));
 
-			break;
-		}
+	// 		await msg.channel.send(
+	// 			`Created user ${newUser._id} with role ${newUser.role}! Use \`!dijon list\` to view all roster members.`
+	// 		);
 
-		case "BANG":
-			msg.channel.send("🍆").then(() => {
-				msg.react("💦");
-			});
-			break;
+	// 		break;
+	// 	}
 
-		case "BEAR_FORM":
-		case "BEAR":
-		case "BEARS":
-		case "DRUID": {
-			const embed = new RichEmbed()
-				.setColor("ORANGE")
-				.setImage("https://az.nozzlegear.com/images/share/2019-03-29.15.29.55.png")
-				.setTitle("Bears are for fite! 🐻");
+	// 	case "BANG":
+	// 		msg.channel.send("🍆").then(() => {
+	// 			msg.react("💦");
+	// 		});
+	// 		break;
 
-			await msg.channel.send(embed);
+	// 	case "BEAR_FORM":
+	// 	case "BEAR":
+	// 	case "BEARS":
+	// 	case "DRUID": {
+	// 		const embed = new RichEmbed()
+	// 			.setColor("ORANGE")
+	// 			.setImage("https://az.nozzlegear.com/images/share/2019-03-29.15.29.55.png")
+	// 			.setTitle("Bears are for fite! 🐻");
 
-			break;
-		}
+	// 		await msg.channel.send(embed);
 
-		case "UNKNOWN":
-			msg.channel.send(`Dijon-bot does not recognize the ${command} command.`);
-			break;
-	}
+	// 		break;
+	// 	}
+
+	// 	case "UNKNOWN":
+	// 		msg.channel.send(`Dijon-bot does not recognize the ${command} command.`);
+	// 		break;
+	// }
 });
 
 process.on("SIGINT", () => {
