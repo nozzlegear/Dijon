@@ -15,6 +15,7 @@
 		"typescript": "^3.4.1"
 	},
 	"dependencies": {
+		"@microsoft/ts-command-line": "^4.2.3",
 		"@nozzlegear/railway": "^2.0.0",
 		"davenport": "^2.8.2",
 		"discord.js": "^11.4.2",
