@@ -1,6 +1,9 @@
 import { Client } from "discord.js";
-import { DijonCommandParser } from "./parser";
+import * as parser from "./parser";
 import { botToken } from "./constants";
+import { parseCommand } from "./utils/parse-command";
+import { Option } from "@nozzlegear/railway";
+import { AddCommand } from "./commands/add";
 
 const client = new Client();
 
@@ -19,12 +22,23 @@ client.on("message", async msg => {
 
 	const withoutName = msg.content.replace(botRegex, "").trim();
 	const args = withoutName.split(" ");
-	const parser = new DijonCommandParser(msg);
-	const result = await parser.execute(args);
+	const [command] = commandRegex.exec(withoutName) || ["UNKNOWN"];
 
-	// const withoutName = msg.content.replace(botRegex, "").trim();
+	switch (parseCommand(command)) {
+		case "ADD":
+			const addCommand = new AddCommand("ADD");
+			await addCommand.execute(args, msg);
+			break;
+
+		default:
+			await msg.channel.send("Command not found.");
+			break;
+	}
+
+	// const parser = new DijonCommandParser(msg);
+	// const result = await parser.execute(args);
+
 	// const message = withoutName.replace(commandRegex, "").trim();
-	// const [command] = commandRegex.exec(withoutName) || ["UNKNOWN"];
 	// const db = new RosterDatabase(couchHost, "DEFAULT");
 
 	// switch (parseCommand(command)) {

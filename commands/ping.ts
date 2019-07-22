@@ -1,5 +1,5 @@
-import { CommandLineAction } from "@microsoft/ts-command-line";
 import { Message, RichEmbed } from "discord.js";
+import { CommandLineAction } from "@microsoft/ts-command-line";
 
 export class PingAction extends CommandLineAction {
 	constructor(private message: Message) {
