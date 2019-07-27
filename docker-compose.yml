@@ -1,19 +1,22 @@
 version: "3"
 services:
-    app:
+    dijon:
         build:
             context: .
             dockerfile: Dockerfile
         env_file: .env
         environment:
-            COUCH_HOST: "http://db:5984"
+            DIJON_SQL_CONNECTION_STRING: "Server=db;Database=master;User Id=sa;Password=a-BAD_passw0rd;"
         ports:
             - 3000:3000
         depends_on:
             - db
     db:
-        image: "couchdb"
+        image: "mcr.microsoft.com/mssql/server:2017-latest-ubuntu"
+        environment:
+            SA_PASSWORD: "a-BAD_passw0rd"
+            ACCEPT_EULA: "Y"
         ports:
-            - 3001:5984
+            - 3001:1433
         logging:
             driver: none

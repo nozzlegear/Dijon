@@ -1,9 +1,20 @@
-FROM node:10-alpine
+FROM fsharp:netcore
 WORKDIR /app
 
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --production false
-COPY . .
-RUN yarn build
+# Install paket
+COPY .paket .paket
+RUN mono .paket/paket.bootstrapper.exe
 
-CMD ["yarn", "start"]
+COPY Dijon.sln .
+COPY paket.lock .
+COPY paket.dependencies .
+COPY src/paket.references src/
+COPY src/Dijon.fsproj src/
+
+RUN dotnet restore
+
+COPY src/* src/
+
+RUN dotnet publish -c Release -o dist -r linux-x64
+
+ENTRYPOINT ["src/dist/Dijon"]
