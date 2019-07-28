@@ -64,7 +64,6 @@ module Bot =
         for m in guildMembers do printfn "Found member %s#%s in guild %A" m.Username m.Discriminator m.GuildId
 
         do! bot.database.BatchSetAsync guildMembers
-
         // TODO: the bot should look for members that may have left while it was offline and announce them to the configured channel
     }
 

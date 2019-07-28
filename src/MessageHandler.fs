@@ -4,11 +4,6 @@ open System
 open Discord.WebSocket
 
 type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) = 
-    let startsWith (a: string) (b: string) = a.StartsWith(b, StringComparison.OrdinalIgnoreCase)
-    let contains (a: string) (b: string) = a.Contains(b, StringComparison.OrdinalIgnoreCase)
-    let lower (a: string) = a.ToLower()
-    let trim (a: string) = a.Trim()
-    let stripFirstWord (a: string) = a.Substring (a.IndexOf " " + 1) 
     let randomSlanderResponse () = 
         [
             "https://tenor.com/view/palpatine-treason-star-wars-emperor-gif-8547403"
@@ -29,14 +24,15 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         |> Seq.head
 
     let (|ContainsSlander|_|) (a: string) = 
-        if contains a "#downwithdjur" || contains a "down with djur" || contains a ":downwithdjur:" 
+        if StringUtils.containsAny a ["#downwithdjur"; "down with djur"; ":downwithdjur:"]
         then Some ContainsSlander 
         else None
 
     let (|Mentioned|NotMentioned|) (msg: IMessage) = 
         let mentionString = sprintf "<@%i> " client.CurrentUser.Id
 
-        if startsWith msg.Content "!dijon " || startsWith msg.Content mentionString then Mentioned
+        if StringUtils.startsWithAny msg.Content ["!dijon"; mentionString]
+        then Mentioned
         else NotMentioned        
 
     let (|Ignore|Test|Goulash|Status|SetLogChannel|Slander|BadCommand|) (msg: IMessage) = 
@@ -46,7 +42,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | ContainsSlander -> Slander 
             | _ -> Ignore
         | Mentioned ->
-            match stripFirstWord msg.Content |> lower |> trim with 
+            match StringUtils.stripFirstWord msg.Content |> StringUtils.lower |> StringUtils.trim with 
             | "goulash"
             | "goulash recipe"
             | "recipe" -> Goulash
