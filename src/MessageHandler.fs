@@ -24,7 +24,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             "https://tenor.com/view/sheev-palpatine-emperor-chancellor-kill-him-now-gif-14424446"
             "https://tenor.com/view/anakin-glare-killing-young-jedi-gif-5770427"
             "https://tenor.com/view/legion-geth-mass-effect-shock-amazed-gif-8578526"
-            
+
         ] 
         |> Seq.sortBy (fun _ -> Guid.NewGuid())
         |> Seq.head
@@ -40,7 +40,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         if startsWith msg.Content "!dijon " || startsWith msg.Content mentionString then Mentioned
         else NotMentioned        
 
-    let (|Ignore|Test|Verify|Status|SetLogChannel|Slander|BadCommand|) (msg: IMessage) = 
+    let (|Ignore|Test|Goulash|Status|SetLogChannel|Slander|BadCommand|) (msg: IMessage) = 
         match msg with 
         | NotMentioned -> 
             match msg.Content with 
@@ -48,8 +48,10 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | _ -> Ignore
         | Mentioned ->
             match stripFirstWord msg.Content |> lower |> trim with 
+            | "goulash"
+            | "goulash recipe"
+            | "recipe" -> Goulash
             | "test" -> Test
-            | "verify" -> Verify
             | "status" -> Status
             | "set log channel" -> SetLogChannel
             | ContainsSlander -> Slander 
@@ -59,9 +61,16 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         printfn "Handling test message" 
     }
 
-    let handleVerifyMessage (msg: IMessage) = async {
-        printfn "Handling verify message"
-    }
+    let handleGoulashRecipe (msg: IMessage) = 
+        let embed = EmbedBuilder()
+        embed.Title <- "🤤 Sweet Goulash Recipe 🤤"
+        embed.Description <- "Here's the recipe for Djur's sweet goulash, the power food that fuels Team Tight Bois. **Highly** recommended by all those who've tried it, including Foxy, Jay and Patoosh."
+        embed.ImageUrl <- "https://cdn.discordapp.com/attachments/544538425437716491/544540300958236676/Screenshot_20190208-221800.png"
+        embed.Color <- Nullable Color.Teal
+
+        msg.Channel.SendMessageAsync("", false, embed.Build())
+        |> Async.AwaitTask
+        |> Async.Ignore
 
     let handleStatusMessage (msg: IMessage) = 
         let embed = EmbedBuilder()
@@ -100,7 +109,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             match msg with 
             | Ignore -> Async.Empty
             | Test -> handleTestMessage msg 
-            | Verify -> handleVerifyMessage msg 
+            | Goulash -> handleGoulashRecipe msg 
             | Status -> handleStatusMessage msg 
             | SetLogChannel -> handleSetLogChannelMessage msg 
             | BadCommand -> handleBadCommandMessage msg
