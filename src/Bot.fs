@@ -77,10 +77,6 @@ module Bot =
         // 3. !dijon status - prints out the bot's uptime and ping
         // 4. !dijon member log here - tells Dijon to record this channel as the one it should output member changes to
        
-        client.add_MessageReceived += (fun u -> async {
-            let t = SocketMessage()
-            ()
-        })
         client.add_MessageReceived += bot.messages.HandleMessage 
         client.add_UserLeft += (fun u -> async {()})
         client.add_UserJoined += (fun u -> async {()})
