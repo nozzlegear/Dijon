@@ -24,7 +24,6 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             "https://tenor.com/view/sheev-palpatine-emperor-chancellor-kill-him-now-gif-14424446"
             "https://tenor.com/view/anakin-glare-killing-young-jedi-gif-5770427"
             "https://tenor.com/view/legion-geth-mass-effect-shock-amazed-gif-8578526"
-
         ] 
         |> Seq.sortBy (fun _ -> Guid.NewGuid())
         |> Seq.head
@@ -57,9 +56,16 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | ContainsSlander -> Slander 
             | _ -> BadCommand
 
-    let handleTestMessage  (msg: IMessage) = async {
-        printfn "Handling test message" 
-    }
+    let handleTestMessage  (msg: IMessage) =
+        let weekAgo = DateTimeOffset.Now.AddDays -7.
+        let embed = EmbedBuilder()
+        embed.Title <- "A user has left the server."
+        embed.Description <- sprintf "User SomeNickname (Discord#0123) has left the server. They were first seen at %O." weekAgo
+        embed.Color <- Nullable Color.DarkOrange
+
+        msg.Channel.SendMessageAsync("", false, embed.Build())
+        |> Async.AwaitTask
+        |> Async.Ignore
 
     let handleGoulashRecipe (msg: IMessage) = 
         let embed = EmbedBuilder()
@@ -89,7 +95,6 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
     let handleBadCommandMessage (msg: IMessage) = Async.Empty
 
     let handleSlander (msg: IMessage) = 
-        // TODO: silence all dissidents
         match msg with 
         | Mentioned -> 
             let randomMsg = randomSlanderResponse () 
