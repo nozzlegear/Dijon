@@ -22,6 +22,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         ] 
         |> Seq.sortBy (fun _ -> Guid.NewGuid())
         |> Seq.head
+    let embedField title value = EmbedFieldBuilder().WithName(title).WithValue(value)
     let sendMessage (channel: IMessageChannel) msg = channel.SendMessageAsync msg |> Async.AwaitTask |> Async.Ignore
     let sendEmbed (channel: IMessageChannel) (embed: EmbedBuilder) = channel.SendMessageAsync("", false, embed.Build()) |> Async.AwaitTask |> Async.Ignore
     let react (msg: SocketUserMessage) emote = msg.AddReactionAsync emote |> Async.AwaitTask |> Async.Ignore
@@ -72,7 +73,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
 
     let handleGoulashRecipe (msg: IMessage) = 
         let embed = EmbedBuilder()
-        embed.Title <- "🤤 Sweet Goulash Recipe 🤤"
+        embed.Title <- "🤤 Sweet Goulash Recipe"
         embed.Description <- "Here's the recipe for Djur's sweet goulash, the power food that fuels Team Tight Bois. **Highly** recommended by all those who've tried it, including Foxy, Jay and Patoosh."
         embed.ImageUrl <- "https://cdn.discordapp.com/attachments/544538425437716491/544540300958236676/Screenshot_20190208-221800.png"
         embed.Color <- Nullable Color.Teal
@@ -95,10 +96,10 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                 logChannelId
                 |> Option.iter (fun logChannelId -> 
                     // Add a field to the embed with the log channel name
-                    let fieldBuilder = EmbedFieldBuilder()
-                    fieldBuilder.Name <- "Log Channel"
-                    fieldBuilder.Value <- sprintf "Membership logs for this server are sent to the <#%i> channel." logChannelId
-                    embed.Fields.Add fieldBuilder
+                    embed.Fields.AddRange [
+                        sprintf "Membership logs for this server are sent to the <#%i> channel." logChannelId
+                        |> embedField "Log Channel"
+                    ]
                 )
 
                 return! sendEmbed msg.Channel embed 
@@ -121,15 +122,14 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             sendMessage msg.Channel "Unable to set log channel in unknown channel type."
 
     let handleBadCommandMessage (msg: IMessage) =
-        let field title value = EmbedFieldBuilder().WithName(title).WithValue(value)
         let embed = EmbedBuilder()
         embed.Title <- "⚡ Dijon-bot Commands" 
         embed.Color <- Nullable Color.Blue
         embed.Fields.AddRange [
-            field "`status`" "Checks the status of Dijon-bot and reports which channel is used for logging membership changes."
-            field "`set logs here`" "Tells Dijon-bot to report membership changes to the current channel. Only one channel is supported per server."
-            field "`test`" "Sends a test membership change message to the current channel."
-            field "`goulash recipe`" "Sends Djur's world-renowned sweet goulash recipe, the food that powers Team Tight Bois."
+            embedField "`status`" "Checks the status of Dijon-bot and reports which channel is used for logging membership changes."
+            embedField "`set logs here`" "Tells Dijon-bot to report membership changes to the current channel. Only one channel is supported per server."
+            embedField "`test`" "Sends a test membership change message to the current channel."
+            embedField "`goulash recipe`" "Sends Djur's world-renowned sweet goulash recipe, the food that powers Team Tight Bois."
         ]
 
         sendEmbed msg.Channel embed
