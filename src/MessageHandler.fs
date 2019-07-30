@@ -3,7 +3,7 @@ open Discord
 open System
 open Discord.WebSocket
 
-type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) = 
+type MessagjeHandler(database: IDijonDatabase, client: DiscordSocketClient) = 
     let randomSlanderResponse () = 
         [
             "https://tenor.com/view/palpatine-treason-star-wars-emperor-gif-8547403"
@@ -22,6 +22,9 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         ] 
         |> Seq.sortBy (fun _ -> Guid.NewGuid())
         |> Seq.head
+    let sendMessage (channel: IMessageChannel) msg = channel.SendMessageAsync msg |> Async.AwaitTask |> Async.Ignore
+    let sendEmbed (channel: IMessageChannel) (embed: EmbedBuilder) = channel.SendMessageAsync("", false, embed.Build()) |> Async.AwaitTask |> Async.Ignore
+    let react (msg: SocketUserMessage) emote = msg.AddReactionAsync emote |> Async.AwaitTask |> Async.Ignore
 
     let (|ContainsSlander|_|) (a: string) = 
         if StringUtils.containsAny a ["#downwithdjur"; "down with djur"; ":downwithdjur:"]
@@ -62,12 +65,11 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         let weekAgo = DateTimeOffset.Now.AddDays -7.
         let embed = EmbedBuilder()
         embed.Title <- "A user has left the server."
-        embed.Description <- sprintf "User SomeNickname (Discord#0123) has left the server. They were first seen at %O." weekAgo
+        embed.Description <- sprintf "TestUser (Discord#0123) has left the server. They were first seen at %O." weekAgo
         embed.Color <- Nullable Color.DarkOrange
 
-        msg.Channel.SendMessageAsync("", false, embed.Build())
-        |> Async.AwaitTask
-        |> Async.Ignore
+        sendEmbed msg.Channel embed
+
 
     let handleGoulashRecipe (msg: IMessage) = 
         let embed = EmbedBuilder()
@@ -76,9 +78,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         embed.ImageUrl <- "https://cdn.discordapp.com/attachments/544538425437716491/544540300958236676/Screenshot_20190208-221800.png"
         embed.Color <- Nullable Color.Teal
 
-        msg.Channel.SendMessageAsync("", false, embed.Build())
-        |> Async.AwaitTask
-        |> Async.Ignore
+        sendEmbed msg.Channel embed 
 
     let handleStatusMessage (msg: IMessage) = 
         let embed = EmbedBuilder()
@@ -86,47 +86,32 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         embed.Description <- sprintf ":heartbeat: **%i ms** heartbeat latency." client.Latency
         embed.Color <- Nullable Color.Green
 
-        msg.Channel.SendMessageAsync("", false, embed.Build())
-        |> Async.AwaitTask
-        |> Async.Ignore
+        sendEmbed msg.Channel embed
 
     let handleSetLogChannelMessage (msg: IMessage) = 
         match msg.Channel with 
-        | :? ISocketPrivateChannel -> 
-            msg.Channel.SendMessageAsync "Unable to set log channel in a private message."
-            |> Async.AwaitTask
-            |> Async.Ignore
         | :? SocketGuildChannel as guildChannel -> 
             async {
                 let guildId = GuildId (int64 guildChannel.Guild.Id)
 
                 do! database.SetLogChannelForGuild guildId (int64 msg.Channel.Id)
-                do!
-                    msg.Channel.SendMessageAsync "Messages will be sent to this channel when a user leaves the server."
-                    |> Async.AwaitTask
-                    |> Async.Ignore
+                do! sendMessage msg.Channel "Messages will be sent to this channel when a user leaves the server."
             }
+        | :? ISocketPrivateChannel -> 
+            sendMessage msg.Channel "Unable to set log channel in a private message."
         | _ -> 
-            msg.Channel.SendMessageAsync "Unable to set log channel in unknown channel type."
-            |> Async.AwaitTask
-            |> Async.Ignore
+            sendMessage msg.Channel "Unable to set log channel in unknown channel type."
 
     let handleBadCommandMessage (msg: IMessage) = Async.Empty
 
     let handleSlander (msg: IMessage) = 
         match msg with 
         | Mentioned -> 
-            let randomMsg = randomSlanderResponse () 
-
-            msg.Channel.SendMessageAsync randomMsg
-            |> Async.AwaitTask 
-            |> Async.Ignore
+            randomSlanderResponse ()
+            |> sendMessage msg.Channel
         | NotMentioned -> 
-            let msg = msg :?> SocketUserMessage
-
-            msg.AddReactionAsync (Emoji "💔")
-            |> Async.AwaitTask
-            |> Async.Ignore
+            Emoji "💔"
+            |> react (msg :?> SocketUserMessage)
 
     interface IMessageHandler with 
         member x.HandleMessage msg = 
