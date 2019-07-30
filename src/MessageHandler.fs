@@ -65,14 +65,13 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | ContainsSlander -> Slander 
             | _ -> BadCommand
 
-    let handleTestMessage  (msg: IMessage) =
-        let weekAgo = DateTimeOffset.Now.AddDays -7.
-        let embed = EmbedBuilder()
-        embed.Title <- "A user has left the server."
-        embed.Description <- sprintf "TestUser (Discord#0123) has left the server. They were first seen at %O." weekAgo
-        embed.Color <- Nullable Color.DarkOrange
-
-        sendEmbed msg.Channel embed
+    let handleTestMessage (msg: IMessage) (send: IMessageChannel -> GuildUser -> Async<unit>) =
+        let fakeUser = {
+            Nickname = Some "TestUser"
+            UserName = "Discord"
+            Discriminator = "0000"
+        }
+        send msg.Channel fakeUser
 
     let handleGoulashRecipe (msg: IMessage) = 
         let ingredients = [
@@ -165,11 +164,23 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
 
     interface IMessageHandler with 
         member x.HandleMessage msg = 
+            let self = x :> IMessageHandler
+
             match msg with 
             | Ignore -> Async.Empty
-            | Test -> handleTestMessage msg 
+            | Test -> handleTestMessage msg self.SendUserLeftMessage 
             | Goulash -> handleGoulashRecipe msg 
             | Status -> handleStatusMessage msg 
             | SetLogChannel -> handleSetLogChannelMessage msg 
             | BadCommand -> handleBadCommandMessage msg
             | Slander -> handleSlander msg 
+
+        member x.SendUserLeftMessage channel user = 
+            let nickname = Option.defaultValue user.UserName user.Nickname
+            let message = sprintf "%s (%s#%s) has left the server." nickname user.UserName user.Discriminator
+            let embed = EmbedBuilder()
+            embed.Title <- "👋"
+            embed.Description <- message
+            embed.Color <- Nullable Color.DarkOrange
+            
+            sendEmbed channel embed 

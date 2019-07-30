@@ -4,6 +4,12 @@ open Discord.WebSocket
 
 type DiscordId = DiscordId of int64
 type GuildId = GuildId of int64
+type GuildUser = 
+    {
+        Nickname: string option 
+        UserName: string 
+        Discriminator: string
+    }
 
 type Member = 
     {
@@ -44,6 +50,7 @@ type IDijonDatabase =
 
 type IMessageHandler = 
     abstract member HandleMessage: IMessage -> Async<unit>
+    abstract member SendUserLeftMessage: IMessageChannel -> GuildUser -> Async<unit> 
 
 type BotConfig = 
     {
