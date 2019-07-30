@@ -120,7 +120,19 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         | _ -> 
             sendMessage msg.Channel "Unable to set log channel in unknown channel type."
 
-    let handleBadCommandMessage (msg: IMessage) = Async.Empty
+    let handleBadCommandMessage (msg: IMessage) =
+        let field title value = EmbedFieldBuilder().WithName(title).WithValue(value)
+        let embed = EmbedBuilder()
+        embed.Title <- "⚡ Dijon-bot Commands" 
+        embed.Color <- Nullable Color.Blue
+        embed.Fields.AddRange [
+            field "`status`" "Checks the status of Dijon-bot and reports which channel is used for logging membership changes."
+            field "`set logs here`" "Tells Dijon-bot to report membership changes to the current channel. Only one channel is supported per server."
+            field "`test`" "Sends a test membership change message to the current channel."
+            field "`goulash recipe`" "Sends Djur's world-renowned sweet goulash recipe, the food that powers Team Tight Bois."
+        ]
+
+        sendEmbed msg.Channel embed
 
     let handleSlander (msg: IMessage) = 
         match msg with 
