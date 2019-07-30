@@ -185,6 +185,7 @@ type DijonSqlDatabase (connStr: string) =
                         @guildId,
                         @channelId
                     )
+                ;
                 """
             let data = dict [
                 "guildId" => match guildId with GuildId g -> g
