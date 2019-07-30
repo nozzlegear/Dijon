@@ -70,7 +70,6 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
 
         sendEmbed msg.Channel embed
 
-
     let handleGoulashRecipe (msg: IMessage) = 
         let embed = EmbedBuilder()
         embed.Title <- "🤤 Sweet Goulash Recipe 🤤"
@@ -86,7 +85,26 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         embed.Description <- sprintf ":heartbeat: **%i ms** heartbeat latency." client.Latency
         embed.Color <- Nullable Color.Green
 
-        sendEmbed msg.Channel embed
+        // If this message was sent in a guild channel, report which channel it logs to
+        match msg.Channel with 
+        | :? SocketGuildChannel as guildChannel ->
+            let guildId = GuildId (int64 guildChannel.Guild.Id)
+            async {
+                let! logChannelId = database.GetLogChannelForGuild guildId 
+            
+                logChannelId
+                |> Option.iter (fun logChannel -> 
+                    // Add a field to the embed with the log channel name
+                    let fieldBuilder = EmbedFieldBuilder()
+                    fieldBuilder.Name <- "Log Channel"
+                    fieldBuilder.Value <- sprintf "Membership logs for this server are sent to the <#%i> channel." logChannel.Id
+                    embed.Fields.Add fieldBuilder
+                )
+
+                return! sendEmbed msg.Channel embed 
+            }
+        | _ -> 
+            sendEmbed msg.Channel embed
 
     let handleSetLogChannelMessage (msg: IMessage) = 
         match msg.Channel with 
