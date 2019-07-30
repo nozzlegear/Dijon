@@ -5,6 +5,8 @@ module Extensions =
     type Async with 
         static member Empty = async {()}
 
+        static member Wrap value = async { return value }
+
         /// <summary>
         /// Waits for the <see cref="computation" /> to complete, then calls the <see cref="fn" /> function.
         /// </summary>
