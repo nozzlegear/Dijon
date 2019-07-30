@@ -19,6 +19,9 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             "https://tenor.com/view/sheev-palpatine-emperor-chancellor-kill-him-now-gif-14424446"
             "https://tenor.com/view/anakin-glare-killing-young-jedi-gif-5770427"
             "https://tenor.com/view/legion-geth-mass-effect-shock-amazed-gif-8578526"
+            "https://tenor.com/view/futurama-bender-discrimination-funny-gif-5866137"
+            "https://tenor.com/view/mass-effect-harbinger-collectors-video-games-reapers-gif-14520191"
+            "https://tenor.com/view/youre-unbearably-naive-avengers-ultron-gif-10230820"
         ] 
         |> Seq.sortBy (fun _ -> Guid.NewGuid())
         |> Seq.head
