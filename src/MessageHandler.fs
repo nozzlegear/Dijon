@@ -3,7 +3,7 @@ open Discord
 open System
 open Discord.WebSocket
 
-type MessagjeHandler(database: IDijonDatabase, client: DiscordSocketClient) = 
+type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) = 
     let randomSlanderResponse () = 
         [
             "https://tenor.com/view/palpatine-treason-star-wars-emperor-gif-8547403"
