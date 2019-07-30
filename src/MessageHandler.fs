@@ -48,7 +48,13 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | "recipe" -> Goulash
             | "test" -> Test
             | "status" -> Status
-            | "set log channel" -> SetLogChannel
+            | "set logs"
+            | "log here"
+            | "logs here"
+            | "set logs here" 
+            | "set log channel"
+            | "set log channel here"
+            | "set channel" -> SetLogChannel
             | ContainsSlander -> Slander 
             | _ -> BadCommand
 
@@ -84,9 +90,26 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         |> Async.AwaitTask
         |> Async.Ignore
 
-    let handleSetLogChannelMessage (msg: IMessage) = async {
-        printfn "Handling set log channel message"
-    }
+    let handleSetLogChannelMessage (msg: IMessage) = 
+        match msg.Channel with 
+        | :? ISocketPrivateChannel -> 
+            msg.Channel.SendMessageAsync "Unable to set log channel in a private message."
+            |> Async.AwaitTask
+            |> Async.Ignore
+        | :? SocketGuildChannel as guildChannel -> 
+            async {
+                let guildId = GuildId (int64 guildChannel.Guild.Id)
+
+                do! database.SetLogChannelForGuild guildId (int64 msg.Channel.Id)
+                do!
+                    msg.Channel.SendMessageAsync "Messages will be sent to this channel when a user leaves the server."
+                    |> Async.AwaitTask
+                    |> Async.Ignore
+            }
+        | _ -> 
+            msg.Channel.SendMessageAsync "Unable to set log channel in unknown channel type."
+            |> Async.AwaitTask
+            |> Async.Ignore
 
     let handleBadCommandMessage (msg: IMessage) = Async.Empty
 
