@@ -14,7 +14,8 @@ type UniqueUser =
     static member FromMemberUpdate (m: MemberUpdate) = UniqueUser (DiscordId m.DiscordId, GuildId m.GuildId)    
 
 type DijonSqlDatabase (connStr: string) = 
-    let tableName = "DIJON_MEMBER_RECORDS"
+    let memberTableName = "DIJON_MEMBER_RECORDS"
+    let channelTableName = "DIJON_LOG_CHANNELS"
     let (=>) a b = a, box b
     let dispose (conn: IDisposable) = Async.Iter (fun _ -> conn.Dispose())
     let getDiscordId = function 
@@ -24,6 +25,10 @@ type DijonSqlDatabase (connStr: string) =
     let querySingle sql (data: SqlParams) = async {
         use conn = new SqlConnection(connStr)
         return! conn.QuerySingleAsync<_>(sql, data) |> Async.AwaitTask
+    }
+    let query sql (data: SqlParams) = async {
+        use conn = new SqlConnection(connStr)
+        return! conn.QueryAsync<_>(sql, data) |> Async.AwaitTask
     }
     let execute sql (data: SqlParams) = async {
         use conn = new SqlConnection(connStr)
@@ -50,7 +55,7 @@ type DijonSqlDatabase (connStr: string) =
             "discordId" => getDiscordId user 
             "guildId" => getGuildId user 
         ]
-        querySingle (sql tableName) data
+        querySingle (sql memberTableName) data
 
     let createUser (user: MemberUpdate) =
         let sql = 
@@ -79,7 +84,7 @@ type DijonSqlDatabase (connStr: string) =
             "discriminator" => user.Discriminator
             "nickname" => user.Nickname
         ]
-        execute (sql tableName) data
+        execute (sql memberTableName) data
 
     let mapReaderToUsers (reader: IDataReader): Member list = 
         // Get the index of each column that should be mapped to a property
@@ -113,7 +118,7 @@ type DijonSqlDatabase (connStr: string) =
                 """
             let data = dict ["id" => match guildId with GuildId i -> i]
 
-            executeReader (sql tableName) data
+            executeReader (sql memberTableName) data
             |> Async.Map mapReaderToUsers
 
         member x.BatchSetAsync members = 
@@ -147,12 +152,50 @@ type DijonSqlDatabase (connStr: string) =
                 "id" => updatedMember.DiscordId
             ]
 
-            executeReader (sql tableName) data
+            executeReader (sql memberTableName) data
             |> Async.Ignore
-            
+        
+        member x.GetLogChannelForGuild guildId = 
+            let sql = 
+                sprintf """
+                SELECT ChannelId FROM %s WHERE GuildId = @guildId
+                """
+            let data = dict [ "guildId" => match guildId with GuildId g -> g ]
+
+            query (sql channelTableName) data 
+            |> Async.Map Seq.tryHead
+
+        member x.SetLogChannelForGuild guildId channelId = 
+            let sql = 
+                sprintf """
+                MERGE %s as Target
+                USING (
+                    SELECT @guildId
+                ) AS Source (
+                    GuildId
+                ) ON (Target.GuildId = Source.GuildId)
+                WHEN MATCHED THEN
+                    UPDATE
+                    SET ChannelId = @channelId
+                WHEN NOT MATCHED THEN
+                    Insert (
+                        GuildId,
+                        ChannelId
+                    ) VALUES (
+                        @guildId,
+                        @channelId
+                    )
+                """
+            let data = dict [
+                "guildId" => match guildId with GuildId g -> g
+                "channelId" => channelId
+            ]
+
+            execute (sql channelTableName) data
+            |> Async.Ignore
 
         member x.ConfigureAsync () =
-            let sql = 
+            let memberSql = 
                 sprintf """
                 IF NOT EXISTS (SELECT * FROM sys.tables
                 WHERE name = N'%s' AND type = 'U')
@@ -169,6 +212,23 @@ type DijonSqlDatabase (connStr: string) =
                 )
                 END
                 """
-            execute (sql tableName tableName) (Map.empty)
+            let channelSql = 
+                sprintf """
+                IF NOT EXISTS (SELECT * FROM sys.tables
+                WHERE name = N'%s' AND type = 'U')
+
+                BEGIN
+                CREATE TABLE [dbo].[%s] (
+                    Id int identity(1,1) primary key,
+                    GuildId bigint not null index idx_guildid,
+                    ChannelId bigint not null
+                )
+                END
+                """
+            [
+                execute (memberSql memberTableName memberTableName) (Map.empty)
+                execute (channelSql channelTableName channelTableName) (Map.empty)
+            ]
+            |> Async.Parallel
             |> Async.Ignore
         
