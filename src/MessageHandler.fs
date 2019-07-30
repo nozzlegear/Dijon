@@ -78,9 +78,9 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         let ingredients = [
             "- 10oz wide egg noodles"
             "- 1lb ground beef"
-            "- 3/4cup light brown sugar"
+            "- 3/4 cup light brown sugar"
             "- 1 can (10.5oz) tomato soup"
-            "- 1/8cup ketchup"
+            "- 1/8 cup ketchup"
         ]
         let instructions = [
             "1. Brown the ground beef and boil/drain the noodles."
