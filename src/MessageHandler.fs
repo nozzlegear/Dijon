@@ -93,11 +93,11 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                 let! logChannelId = database.GetLogChannelForGuild guildId 
             
                 logChannelId
-                |> Option.iter (fun logChannel -> 
+                |> Option.iter (fun logChannelId -> 
                     // Add a field to the embed with the log channel name
                     let fieldBuilder = EmbedFieldBuilder()
                     fieldBuilder.Name <- "Log Channel"
-                    fieldBuilder.Value <- sprintf "Membership logs for this server are sent to the <#%i> channel." logChannel.Id
+                    fieldBuilder.Value <- sprintf "Membership logs for this server are sent to the <#%i> channel." logChannelId
                     embed.Fields.Add fieldBuilder
                 )
 
