@@ -42,3 +42,4 @@ module StringUtils =
     let lower (a: string) = a.ToLower()
     let trim (a: string) = a.Trim()
     let stripFirstWord (a: string) = a.Substring (a.IndexOf " " + 1) 
+    let newlineJoin (list: string seq) = System.String.Join(System.Environment.NewLine, list)

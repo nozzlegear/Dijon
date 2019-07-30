@@ -72,11 +72,28 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         sendEmbed msg.Channel embed
 
     let handleGoulashRecipe (msg: IMessage) = 
+        let ingredients = [
+            "- 10oz wide egg noodles"
+            "- 1lb ground beef"
+            "- 3/4cup light brown sugar"
+            "- 1 can (10.5oz) tomato soup"
+            "- 1/8cup ketchup"
+        ]
+        let instructions = [
+            "1. Brown the ground beef and boil/drain the noodles."
+            "2. Combine and mix t he beef, noodles, and the rest of the ingredients in one pot."
+            "3. Let the mixture rest for at least 30 minutes, ideally 60 minutes."
+            "4. Heat and serve with bread."
+        ]
         let embed = EmbedBuilder()
         embed.Title <- "🤤 Sweet Goulash Recipe"
-        embed.Description <- "Here's the recipe for Djur's sweet goulash, the power food that fuels Team Tight Bois. **Highly** recommended by all those who've tried it, including Foxy, Jay and Patoosh."
-        embed.ImageUrl <- "https://cdn.discordapp.com/attachments/544538425437716491/544540300958236676/Screenshot_20190208-221800.png"
         embed.Color <- Nullable Color.Teal
+        embed.Description <- "Here's the recipe for Djur's sweet goulash, the power food that fuels Team Tight Bois. **Highly** recommended by all those who've tried it, including Foxy, Jay and Patoosh."
+        embed.ThumbnailUrl <- "https://az.nozzlegear.com/images/share/2019-07-30.16.13.11.png"
+        embed.Fields.AddRange [
+            embedField "Ingredients" (StringUtils.newlineJoin ingredients)
+            embedField "Instructions" (StringUtils.newlineJoin instructions)
+        ]
 
         sendEmbed msg.Channel embed 
 
