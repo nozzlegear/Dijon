@@ -1,3 +1,7 @@
 ./temp-mono
 ./.dockerignore
 ./Dockerfile
+./paket-files
+./packages
+./src/bin
+./src/obj
