@@ -49,6 +49,7 @@ type UniqueUser =
     with 
     static member FromMember (m: Member) = UniqueUser (DiscordId m.DiscordId, GuildId m.GuildId)
     static member FromMemberUpdate (m: MemberUpdate) = UniqueUser (DiscordId m.DiscordId, GuildId m.GuildId)    
+    static member FromSocketGuildUser (m: SocketGuildUser) = UniqueUser (DiscordId <| int64 m.Id, GuildId <| int64 m.Guild.Id) 
 
 type IDijonDatabase = 
     abstract member ListAsync: GuildId -> Async<Member list>

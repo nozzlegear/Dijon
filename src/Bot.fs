@@ -54,12 +54,15 @@ module Bot =
                 |> GuildId
                 |> bot.database.GetLogChannelForGuild 
 
-            return! 
+            do! 
                 match logChannelId with 
                 | Some channelId -> 
                     let channel = user.Guild.GetTextChannel (uint64 channelId)
                     bot.messages.SendUserLeftMessage channel userData
                 | None -> Async.Empty
+            
+            // Delete the user so the app doesn't find it at next startup
+            do! bot.database.DeleteAsync (UniqueUser.FromSocketGuildUser user)
         }
 
     let private handleUserJoined (bot: BotConfig) (user: SocketGuildUser) = 
