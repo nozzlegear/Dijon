@@ -70,6 +70,9 @@ module Bot =
 
     let private handleUserUpdated (bot: BotConfig) (before: SocketGuildUser) (after: SocketGuildUser) = 
         bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
+    
+    let handleLeftGuild (bot: BotConfig) (guild: SocketGuild) = 
+        bot.database.UnsetLogChannelForGuild (GuildId <| int64 guild.Id)
 
     let Connect botToken = 
         let client = new DiscordSocketClient()
@@ -104,6 +107,7 @@ module Bot =
         client.add_MessageReceived += bot.messages.HandleMessage 
         client.add_UserLeft += handleUserLeft bot
         client.add_UserJoined += handleUserJoined bot
+        client.add_LeftGuild += handleLeftGuild bot
         client.add_GuildMemberUpdated ++= handleUserUpdated bot
 
         Async.Empty
