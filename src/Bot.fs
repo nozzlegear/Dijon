@@ -40,8 +40,27 @@ module Bot =
         listGuildUsers guild 
         |> Async.SeqMap MemberUpdate.FromGuildUser 
 
-    let private handleUserLeft (user: SocketGuildUser) = 
-        Async.Empty
+    let private handleUserLeft (bot: BotConfig) (user: SocketGuildUser) = 
+        let userData: GuildUser = {
+            AvatarUrl = user.GetDefaultAvatarUrl()
+            UserName = user.Username
+            Discriminator = user.Discriminator
+            Nickname = Option.ofObj user.Nickname
+        }    
+
+        async {
+            let! logChannelId = 
+                int64 user.Guild.Id
+                |> GuildId
+                |> bot.database.GetLogChannelForGuild 
+
+            return! 
+                match logChannelId with 
+                | Some channelId -> 
+                    let channel = user.Guild.GetTextChannel (uint64 channelId)
+                    bot.messages.SendUserLeftMessage channel userData
+                | None -> Async.Empty
+        }
 
     let private handleUserJoined (user: SocketGuildUser) = 
         Async.Empty
@@ -83,7 +102,7 @@ module Bot =
         let client = bot.client
 
         client.add_MessageReceived += bot.messages.HandleMessage 
-        client.add_UserLeft += handleUserLeft
+        client.add_UserLeft += handleUserLeft bot
         client.add_UserJoined += handleUserJoined
         client.add_GuildMemberUpdated ++= handleUserUpdated
 
