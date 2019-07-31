@@ -75,7 +75,6 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
 
         send msg.Channel fakeUser
 
-
     let handleGoulashRecipe (msg: IMessage) = 
         let ingredients = [
             "- 10oz wide egg noodles"
@@ -129,14 +128,19 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             sendEmbed msg.Channel embed
 
     let handleSetLogChannelMessage (msg: IMessage) = 
+        let djurId = uint64 204665846386262016L
+
         match msg.Channel with 
         | :? SocketGuildChannel as guildChannel -> 
-            async {
-                let guildId = GuildId (int64 guildChannel.Guild.Id)
+            if msg.Author.Id <> djurId then
+                sendMessage msg.Channel (sprintf "At the moment, only the Almighty <@%i> may set the log channel." djurId)
+            else 
+                async {
+                    let guildId = GuildId (int64 guildChannel.Guild.Id)
 
-                do! database.SetLogChannelForGuild guildId (int64 msg.Channel.Id)
-                do! sendMessage msg.Channel "Messages will be sent to this channel when a user leaves the server."
-            }
+                    do! database.SetLogChannelForGuild guildId (int64 msg.Channel.Id)
+                    do! sendMessage msg.Channel "Messages will be sent to this channel when a user leaves the server."
+                }
         | :? ISocketPrivateChannel -> 
             sendMessage msg.Channel "Unable to set log channel in a private message."
         | _ -> 
