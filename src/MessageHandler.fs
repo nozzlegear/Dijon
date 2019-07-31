@@ -72,7 +72,9 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             Discriminator = "0000"
             AvatarUrl = "https://placekitten.com/g/300/300"
         }
+
         send msg.Channel fakeUser
+
 
     let handleGoulashRecipe (msg: IMessage) = 
         let ingredients = [
@@ -112,15 +114,14 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             let guildId = GuildId (int64 guildChannel.Guild.Id)
             async {
                 let! logChannelId = database.GetLogChannelForGuild guildId 
-            
-                logChannelId
-                |> Option.iter (fun logChannelId -> 
-                    // Add a field to the embed with the log channel name
-                    embed.Fields.AddRange [
-                        sprintf "Membership logs for this server are sent to the <#%i> channel." logChannelId
-                        |> embedField "Log Channel"
-                    ]
-                )
+                let logChannelMessage = 
+                    logChannelId
+                    |> Option.map (sprintf "Membership logs for this server are sent to the <#%i> channel.")
+                    |> Option.defaultValue "Member logs are **not set up** for this server. Use `!dijon log here` to set the log channel."
+
+                embed.Fields.AddRange [
+                    embedField "Log Channel" logChannelMessage
+                ]
 
                 return! sendEmbed msg.Channel embed 
             }
