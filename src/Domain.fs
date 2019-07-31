@@ -9,6 +9,7 @@ type GuildUser =
         Nickname: string option 
         UserName: string 
         Discriminator: string
+        AvatarUrl: string
     }
 
 type Member = 

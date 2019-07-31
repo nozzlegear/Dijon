@@ -70,6 +70,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             Nickname = Some "TestUser"
             UserName = "Discord"
             Discriminator = "0000"
+            AvatarUrl = "https://placekitten.com/g/300/300"
         }
         send msg.Channel fakeUser
 
@@ -177,10 +178,11 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
 
         member x.SendUserLeftMessage channel user = 
             let nickname = Option.defaultValue user.UserName user.Nickname
-            let message = sprintf "%s (%s#%s) has left the server." nickname user.UserName user.Discriminator
+            let message = sprintf "**%s** (%s#%s) has left the server." nickname user.UserName user.Discriminator
             let embed = EmbedBuilder()
             embed.Title <- "👋"
             embed.Description <- message
             embed.Color <- Nullable Color.DarkOrange
+            embed.ThumbnailUrl <- user.AvatarUrl
             
             sendEmbed channel embed 
