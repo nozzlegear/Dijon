@@ -7,7 +7,6 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
     let randomSlanderResponse () = 
         [
             "https://tenor.com/view/palpatine-treason-star-wars-emperor-gif-8547403"
-            "https://tenor.com/view/war-badass-fight-arnold-schwarzenegger-schwarzenegger-gif-5373801"
             "https://tenor.com/view/thanos-infinity-war-avengers-gif-10387727" 
             "https://tenor.com/view/t800-terminator-robot-war-gif-14523522"
             "https://tenor.com/view/talk-to-the-hand-arnold-schwarzenegger-terminator-quote-movie-gif-13612079"
@@ -22,6 +21,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             "https://tenor.com/view/futurama-bender-discrimination-funny-gif-5866137"
             "https://tenor.com/view/mass-effect-harbinger-collectors-video-games-reapers-gif-14520191"
             "https://tenor.com/view/youre-unbearably-naive-avengers-ultron-gif-10230820"
+            "https://tenor.com/view/anakin-darth-vader-gif-5233555"
         ] 
         |> Seq.sortBy (fun _ -> Guid.NewGuid())
         |> Seq.head
