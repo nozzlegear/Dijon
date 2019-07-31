@@ -62,15 +62,11 @@ module Bot =
                 | None -> Async.Empty
         }
 
-    let private handleUserJoined (user: SocketGuildUser) = 
-        Async.Empty
+    let private handleUserJoined (bot: BotConfig) (user: SocketGuildUser) = 
+        bot.database.BatchSetAsync [MemberUpdate.FromGuildUser user]
 
-    let private handleUserUpdated (before: SocketGuildUser) (after: SocketGuildUser) = 
-        if before.Nickname = after.Nickname && before.Username = after.Username && before.Discriminator = after.Discriminator then
-            Async.Empty 
-        else
-            printfn "Guild member %s#%s with nickname %s is now %s" before.Username before.Discriminator before.Nickname after.Nickname
-            Async.Empty
+    let private handleUserUpdated (bot: BotConfig) (before: SocketGuildUser) (after: SocketGuildUser) = 
+        bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
 
     let Connect botToken = 
         let client = new DiscordSocketClient()
@@ -103,7 +99,7 @@ module Bot =
 
         client.add_MessageReceived += bot.messages.HandleMessage 
         client.add_UserLeft += handleUserLeft bot
-        client.add_UserJoined += handleUserJoined
-        client.add_GuildMemberUpdated ++= handleUserUpdated
+        client.add_UserJoined += handleUserJoined bot
+        client.add_GuildMemberUpdated ++= handleUserUpdated bot
 
         Async.Empty
