@@ -76,6 +76,7 @@ module Bot =
         async {
             do! client.LoginAsync(TokenType.Bot, botToken) |> Async.AwaitTask
             do! client.StartAsync() |> Async.AwaitTask
+            do! client.SetGameAsync "This Is Legal But We Question The Ethics" |> Async.AwaitTask
 
             return client 
         }
