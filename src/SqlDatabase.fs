@@ -200,6 +200,16 @@ type DijonSqlDatabase (connStr: string) =
             execute (sql channelTableName) data
             |> Async.Ignore
 
+        member x.UnsetLogChannelForGuild guildId = 
+            let sql = 
+                sprintf """
+                DELETE FROM %s WHERE GuildId = @guildId
+                """
+            let data = dict [ "guildId" => match guildId with GuildId g -> g ]
+
+            execute (sql channelTableName) data 
+            |> Async.Ignore
+
         member x.ConfigureAsync () =
             let memberSql = 
                 sprintf """

@@ -57,6 +57,7 @@ type IDijonDatabase =
     abstract member DeleteAsync: UniqueUser -> Async<unit>
     abstract member GetLogChannelForGuild: GuildId -> Async<int64 option>
     abstract member SetLogChannelForGuild: GuildId -> int64 -> Async<unit>
+    abstract member UnsetLogChannelForGuild: GuildId -> Async<unit>
     abstract member ConfigureAsync: unit -> Async<unit>
 
 type IMessageHandler = 
