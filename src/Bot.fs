@@ -42,7 +42,7 @@ module Bot =
 
     let private handleUserLeft (bot: BotConfig) (user: SocketGuildUser) = 
         let userData: GuildUser = {
-            AvatarUrl = user.GetDefaultAvatarUrl()
+            AvatarUrl = user.GetAvatarUrl()
             UserName = user.Username
             Discriminator = user.Discriminator
             Nickname = Option.ofObj user.Nickname
