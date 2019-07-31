@@ -6,13 +6,6 @@ open System.Data
 open System
 open System.Collections.Generic
 
-type SqlParams = IDictionary<string, obj>
-type UniqueUser = 
-    UniqueUser of DiscordId * GuildId
-    with 
-    static member FromMember (m: Member) = UniqueUser (DiscordId m.DiscordId, GuildId m.GuildId)
-    static member FromMemberUpdate (m: MemberUpdate) = UniqueUser (DiscordId m.DiscordId, GuildId m.GuildId)    
-
 type DijonSqlDatabase (connStr: string) = 
     let memberTableName = "DIJON_MEMBER_RECORDS"
     let channelTableName = "DIJON_LOG_CHANNELS"
@@ -85,6 +78,25 @@ type DijonSqlDatabase (connStr: string) =
             "nickname" => user.Nickname
         ]
         execute (sql memberTableName) data
+    
+    let updateUser (updatedMember: MemberUpdate) = 
+        let sql = 
+            sprintf """
+            UPDATE %s SET 
+            UserName = @username,
+            Discriminator = @disc,
+            Nickname = @nick
+            WHERE DiscordId = @id
+            """
+        let data = dict [
+            "username" => updatedMember.Username
+            "disc" => updatedMember.Discriminator
+            "nick" => updatedMember.Nickname
+            "id" => updatedMember.DiscordId
+        ]
+
+        executeReader (sql memberTableName) data
+        |> Async.Ignore
 
     let mapReaderToUsers (reader: IDataReader): Member list = 
         // Get the index of each column that should be mapped to a property
@@ -122,7 +134,6 @@ type DijonSqlDatabase (connStr: string) =
             |> Async.Map mapReaderToUsers
 
         member x.BatchSetAsync members = 
-            let self = x :> IDijonDatabase
             // Cheating for now until I can get a batch update in
             members
             |> Seq.map (fun m -> async {
@@ -131,28 +142,22 @@ type DijonSqlDatabase (connStr: string) =
                 if not userExists then 
                     do! createUser m |> Async.Ignore 
                 else 
-                    do! self.UpdateAsync m
+                    do! updateUser m 
             })
             |> Async.Parallel
             |> Async.Ignore
-
-        member x.UpdateAsync updatedMember = 
+        
+        member x.DeleteAsync user = 
             let sql = 
                 sprintf """
-                UPDATE %s SET 
-                UserName = @username,
-                Discriminator = @disc,
-                Nickname = @nick
-                WHERE DiscordId = @id
+                DELETE FROM %s WHERE GuildId = @guildId AND Discordid = @discordId
                 """
             let data = dict [
-                "username" => updatedMember.Username
-                "disc" => updatedMember.Discriminator
-                "nick" => updatedMember.Nickname
-                "id" => updatedMember.DiscordId
+                "guildId" => getGuildId user 
+                "discordId" => getDiscordId user 
             ]
 
-            executeReader (sql memberTableName) data
+            execute (sql memberTableName) data 
             |> Async.Ignore
         
         member x.GetLogChannelForGuild guildId = 

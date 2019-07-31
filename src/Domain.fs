@@ -1,9 +1,12 @@
 namespace Dijon
 open Discord
 open Discord.WebSocket
+open System.Collections.Generic
 
 type DiscordId = DiscordId of int64
 type GuildId = GuildId of int64
+type SqlParams = IDictionary<string, obj>
+    
 type GuildUser = 
     {
         Nickname: string option 
@@ -41,10 +44,16 @@ type MemberUpdate =
             Nickname = user.Nickname
         }
 
+type UniqueUser = 
+    UniqueUser of DiscordId * GuildId
+    with 
+    static member FromMember (m: Member) = UniqueUser (DiscordId m.DiscordId, GuildId m.GuildId)
+    static member FromMemberUpdate (m: MemberUpdate) = UniqueUser (DiscordId m.DiscordId, GuildId m.GuildId)    
+
 type IDijonDatabase = 
     abstract member ListAsync: GuildId -> Async<Member list>
     abstract member BatchSetAsync: MemberUpdate seq -> Async<unit>
-    abstract member UpdateAsync: MemberUpdate -> Async<unit>
+    abstract member DeleteAsync: UniqueUser -> Async<unit>
     abstract member GetLogChannelForGuild: GuildId -> Async<int64 option>
     abstract member SetLogChannelForGuild: GuildId -> int64 -> Async<unit>
     abstract member ConfigureAsync: unit -> Async<unit>
