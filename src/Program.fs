@@ -4,9 +4,14 @@ open System
 open Discord
 
 module Program = 
+    let requiredEnv key = 
+        match Environment.GetEnvironmentVariable key with 
+        | x when String.IsNullOrEmpty x -> failwithf "Required environment key %s was null or empty." key 
+        | x -> x 
+
     let initDatabase () = 
         let database = 
-            Environment.GetEnvironmentVariable "DIJON_SQL_CONNECTION_STRING"
+            requiredEnv "DIJON_SQL_CONNECTION_STRING"
             |> DijonSqlDatabase
             :> IDijonDatabase
 
@@ -21,7 +26,7 @@ module Program =
         }
     
     let initBot () = 
-        Environment.GetEnvironmentVariable "DIJON_BOT_TOKEN"
+        requiredEnv "DIJON_BOT_TOKEN"
         |> Bot.Connect 
 
     [<EntryPoint>]
