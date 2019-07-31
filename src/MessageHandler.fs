@@ -31,7 +31,8 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
     let react (msg: SocketUserMessage) emote = msg.AddReactionAsync emote |> Async.AwaitTask |> Async.Ignore
 
     let (|ContainsSlander|_|) (a: string) = 
-        if StringUtils.containsAny a ["#downwithdjur"; "down with djur"; ":downwithdjur:"]
+        let tdeDownWithDjurChannel = 561289801890791425L
+        if StringUtils.containsAny a ["#downwithdjur"; "down with djur"; ":downwithdjur:"; sprintf "<#%i>" tdeDownWithDjurChannel]
         then Some ContainsSlander 
         else None
 
