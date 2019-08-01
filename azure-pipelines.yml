@@ -15,3 +15,12 @@ variables:
 steps:
 - script: docker build -f Dockerfile -t $(imageName) .
   displayName: 'docker build'
+- task: Docker@0
+  displayName: 'Push an image'
+  inputs:
+    azureSubscription: 'Azure Subscription(a0234fb6-f139-42d0-b75c-2a108c6e00c5)'
+    azureContainerRegistry: '{"loginServer":"nozzlegear.azurecr.io", "id" : "/subscriptions/a0234fb6-f139-42d0-b75c-2a108c6e00c5/resourceGroups/Default-Web-WestUS/providers/Microsoft.ContainerRegistry/registries/nozzlegear"}'
+    action: 'Push an image'
+    imageName: 'dijon:$(Build.BuildId)'
+    includeLatestTag: true
+
