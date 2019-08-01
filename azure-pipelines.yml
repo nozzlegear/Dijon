@@ -11,15 +11,13 @@ pool:
 
 variables:
   imageName: 'dijon:$(build.buildId)'
+  dockerId: 'nozzlegear'
 
 steps:
-- script: docker build -t $(imageName) -t 'nozzlegear.azurecr.io/$(imageName)' .
+- script: docker build -t $(imageName) -t '$(dockerId).azurecr.io/$(imageName)' .
   displayName: 'Build container image'
-- task: Docker@0
-  displayName: 'Push container image'
-  inputs:
-    azureSubscription: 'Azure Subscription(a0234fb6-f139-42d0-b75c-2a108c6e00c5)'
-    azureContainerRegistry: '{"loginServer":"nozzlegear.azurecr.io", "id" : "/subscriptions/a0234fb6-f139-42d0-b75c-2a108c6e00c5/resourceGroups/Default-Web-WestUS/providers/Microsoft.ContainerRegistry/registries/nozzlegear"}'
-    action: 'Push an image'
-    imageName: '$(imageName)'
-    includeLatestTag: true
+- script: |
+    docker build -t $(dockerId).azurecr.io/$(imageName) .
+    docker login -u $(dockerId) -p $(acrPassword) $(dockerId).azurecr.io
+    docker push $(dockerId).azurecr.io/$(imageName)
+  displayName: 'Push container image to ACR'
