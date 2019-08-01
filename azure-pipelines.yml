@@ -18,6 +18,10 @@ steps:
   displayName: 'Build container image'
 - script: |
     docker build -t $(dockerId).azurecr.io/$(imageName) .
-    docker login -u $(dockerId) -p $(acrPassword) $(dockerId).azurecr.io
+    docker login -u $(dockerId) -p $(pswd) $(dockerId).azurecr.io
     docker push $(dockerId).azurecr.io/$(imageName)
   displayName: 'Push container image to ACR'
+  env:
+    # Do not pass the acrPassword variable directly to the login script. Instead, use an env variable.
+    # https://github.com/MicrosoftDocs/vsts-docs/issues/4113
+    pswd: $(acrPassword)
