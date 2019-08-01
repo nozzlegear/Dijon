@@ -14,7 +14,8 @@ variables:
 
 steps:
 - script: docker build -t $(imageName) -t 'nozzlegear.azurecr.io/$(imageName)' .
-- task: Docker@1
+  displayName: 'Build container image'
+- task: Docker@0
   displayName: 'Push container image'
   inputs:
     azureSubscription: 'Azure Subscription(a0234fb6-f139-42d0-b75c-2a108c6e00c5)'
