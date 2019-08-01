@@ -10,16 +10,18 @@ pool:
   vmImage: 'Ubuntu-16.04'
 
 variables:
-  imageName: 'dijon:$(build.buildId)'
   dockerId: 'nozzlegear'
+  imageName: 'dijon'
+  baseImageName: '$(dockerId).azurecr.io/$(imageName)'
+  latestImageName: '$(baseImageName):latest'
+  buildImageName: '$(baseImageName):$(build.buildId)'
 
 steps:
-- script: docker build -t $(imageName) -t '$(dockerId).azurecr.io/$(imageName)' .
+- script: docker build -t '$(latestImageName)' -t '$(buildImageName)'
   displayName: 'Build container image'
 - script: |
-    docker build -t $(dockerId).azurecr.io/$(imageName) .
     docker login -u $(dockerId) -p $pswd $(dockerId).azurecr.io
-    docker push $(dockerId).azurecr.io/$(imageName)
+    docker push $baseImageName
   displayName: 'Push container image to ACR'
   env:
     # Do not pass the acrPassword variable directly to the login script. Instead, use an env variable.
