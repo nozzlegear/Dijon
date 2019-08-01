@@ -331,3 +331,6 @@ ASALocalRun/
 
 # Ignore env files
 .env
+
+# VS Code Ionide junk
+.ionide
