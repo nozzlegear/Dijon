@@ -17,7 +17,7 @@ variables:
   buildImageName: '$(baseImageName):$(build.buildId)'
 
 steps:
-- script: docker build -t '$(latestImageName)' -t '$(buildImageName)'
+- script: docker build -t '$(latestImageName)' -t '$(buildImageName)' .
   displayName: 'Build container image'
 - script: |
     docker login -u $(dockerId) -p $pswd $(dockerId).azurecr.io
