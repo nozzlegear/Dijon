@@ -4,6 +4,7 @@ open System
 open Discord.WebSocket
 
 type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) = 
+    let djurId = uint64 204665846386262016L
     let randomSlanderResponse () = 
         [
             "https://tenor.com/view/palpatine-treason-star-wars-emperor-gif-8547403"
@@ -29,6 +30,10 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
     let sendMessage (channel: IMessageChannel) msg = channel.SendMessageAsync msg |> Async.AwaitTask |> Async.Ignore
     let sendEmbed (channel: IMessageChannel) (embed: EmbedBuilder) = channel.SendMessageAsync("", false, embed.Build()) |> Async.AwaitTask |> Async.Ignore
     let react (msg: SocketUserMessage) emote = msg.AddReactionAsync emote |> Async.AwaitTask |> Async.Ignore
+    let mutliReact (msg: SocketUserMessage) (emotes: IEmote seq) = 
+        emotes
+        |> Seq.map (fun e -> fun _ -> react msg e)
+        |> Async.Sequential
 
     let (|ContainsSlander|_|) (a: string) = 
         let tdeDownWithDjurChannel = 561289801890791425L
@@ -43,7 +48,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         then Mentioned
         else NotMentioned        
 
-    let (|Ignore|Test|Goulash|Status|SetLogChannel|Slander|BadCommand|) (msg: IMessage) = 
+    let parseCommand (msg: IMessage): Command = 
         match msg with 
         | NotMentioned -> 
             match msg.Content with 
@@ -53,6 +58,8 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             match StringUtils.stripFirstWord msg.Content |> StringUtils.lower |> StringUtils.trim with 
             | "goulash"
             | "goulash recipe"
+            | "scrapple"
+            | "scrapple recipe"
             | "recipe" -> Goulash
             | "test" -> Test
             | "status" -> Status
@@ -63,8 +70,19 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | "set log channel"
             | "set log channel here"
             | "set channel" -> SetLogChannel
+            | "help"
+            | "tutorial"
+            | "commands"
+            | "command" -> Help
+            | "hype"
+            | "hype me up"
+            | "hype squad" 
+            | "tell them how it is"
+            | "tell em how it is"
+            | "tell em"
+            | "tell them" -> Hype
             | ContainsSlander -> Slander 
-            | _ -> BadCommand
+            | _ -> Unknown
 
     let handleTestMessage (msg: IMessage) (send: IMessageChannel -> GuildUser -> Async<unit>) =
         let fakeUser = {
@@ -129,8 +147,6 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             sendEmbed msg.Channel embed
 
     let handleSetLogChannelMessage (msg: IMessage) = 
-        let djurId = uint64 204665846386262016L
-
         match msg.Channel with 
         | :? SocketGuildChannel as guildChannel -> 
             if msg.Author.Id <> djurId then
@@ -147,7 +163,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         | _ -> 
             sendMessage msg.Channel "Unable to set log channel in unknown channel type."
 
-    let handleBadCommandMessage (msg: IMessage) =
+    let handleHelpMessage (msg: IMessage) =
         let embed = EmbedBuilder()
         embed.Title <- "⚡ Dijon-bot Commands" 
         embed.Color <- Nullable Color.Blue
@@ -168,18 +184,39 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         | NotMentioned ->   
             Async.Empty
 
+    let handleHypeMessage (msg: IMessage) = 
+        let msg = msg :?> SocketUserMessage
+        if msg.Author.Id <> djurId then 
+            ["🇳"; "🇴"]
+            |> Seq.map Emoji
+            |> Seq.cast<IEmote>
+            |> mutliReact msg
+        else
+            let addReactions = fun _ -> 
+                ["👌"; "🎉"; "🙇‍♀️"]
+                |> Seq.map Emoji
+                |> Seq.cast<IEmote>
+                |> mutliReact msg
+            [
+                addReactions
+                fun _ -> sendMessage msg.Channel "Here's a glimpse into Djur's average day: https://www.youtube.com/watch?v=hyNu5i_6lKA"
+            ]
+            |> Async.Sequential
+
     interface IMessageHandler with 
         member x.HandleMessage msg = 
             let self = x :> IMessageHandler
 
-            match msg with 
-            | Ignore -> Async.Empty
+            match parseCommand msg with 
             | Test -> handleTestMessage msg self.SendUserLeftMessage 
             | Goulash -> handleGoulashRecipe msg 
             | Status -> handleStatusMessage msg 
             | SetLogChannel -> handleSetLogChannelMessage msg 
-            | BadCommand -> handleBadCommandMessage msg
             | Slander -> handleSlander msg 
+            | Help -> handleHelpMessage msg
+            | Hype -> handleHypeMessage msg
+            | Unknown
+            | Ignore -> Async.Empty
 
         member x.SendUserLeftMessage channel user = 
             let nickname = Option.defaultValue user.UserName user.Nickname

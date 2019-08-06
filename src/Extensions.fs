@@ -50,6 +50,15 @@ module Extensions =
                     return! iterate enumerator (Seq.concat [gathered; seq enumerator.Current])
             }
             iterate (collection.GetEnumerator()) []
+
+        /// <summary>
+        /// Iterates over a list of async computations, executing them sequentially.
+        /// </summary>
+        static member Sequential computations = async {
+            for fn in computations do
+                do! fn()
+        }
+
     
 module StringUtils = 
     let startsWith (a: string) (b: string) = a.StartsWith(b, System.StringComparison.OrdinalIgnoreCase)

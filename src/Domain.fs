@@ -6,6 +6,17 @@ open System.Collections.Generic
 type DiscordId = DiscordId of int64
 type GuildId = GuildId of int64
 type SqlParams = IDictionary<string, obj>
+
+type Command = 
+    | Ignore 
+    | Test
+    | Goulash 
+    | Status 
+    | SetLogChannel 
+    | Slander 
+    | Hype
+    | Help
+    | Unknown 
     
 type GuildUser = 
     {
