@@ -165,9 +165,8 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         | Mentioned -> 
             randomSlanderResponse ()
             |> sendMessage msg.Channel
-        | NotMentioned -> 
-            Emoji "💔"
-            |> react (msg :?> SocketUserMessage)
+        | NotMentioned ->   
+            Async.Empty
 
     interface IMessageHandler with 
         member x.HandleMessage msg = 
