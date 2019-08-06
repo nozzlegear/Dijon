@@ -203,6 +203,10 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             ]
             |> Async.Sequential
 
+    let handleUnknownMessage (msg: IMessage) = 
+        let msg = msg :?> SocketUserMessage
+        react msg (Emoji "\uD83E\uDD37")
+
     interface IMessageHandler with 
         member x.HandleMessage msg = 
             let self = x :> IMessageHandler
@@ -215,7 +219,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | Slander -> handleSlander msg 
             | Help -> handleHelpMessage msg
             | Hype -> handleHypeMessage msg
-            | Unknown
+            | Unknown -> handleUnknownMessage msg
             | Ignore -> Async.Empty
 
         member x.SendUserLeftMessage channel user = 
