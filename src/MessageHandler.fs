@@ -193,7 +193,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             |> mutliReact msg
         else
             let addReactions = fun _ -> 
-                ["👌"; "🎉"; "🙇‍♀️"]
+                ["👌"; "🎉"; "👏"]
                 |> Seq.map Emoji
                 |> Seq.cast<IEmote>
                 |> mutliReact msg
