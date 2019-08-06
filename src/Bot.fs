@@ -16,11 +16,10 @@ module Bot =
         let func = Func<'a, 'b, Task>(fun a b -> handler a b |> Async.StartAsTask :> Task)
         evt func
 
-    let private logEvent = Func<LogMessage, Task>(fun evt -> 
-        printfn "%s: %s" evt.Source evt.Message
-
-        Task.CompletedTask
-    )
+    let private handleLogMessage (logMessage: LogMessage) = async { 
+        let now = DateTimeOffset.UtcNow.ToString()
+        printfn "[%s] %s: %s" now logMessage.Source logMessage.Message
+    }
     
     let private enumerate (collection: IAsyncEnumerable<_ IReadOnlyCollection>) = 
         let cancellationToken = CancellationToken()
@@ -77,7 +76,7 @@ module Bot =
     let Connect botToken = 
         let client = new DiscordSocketClient()
 
-        client.add_Log logEvent
+        client.add_Log += handleLogMessage
 
         async {
             do! client.LoginAsync(TokenType.Bot, botToken) |> Async.AwaitTask
