@@ -89,7 +89,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             Nickname = Some "TestUser"
             UserName = "Discord"
             Discriminator = "0000"
-            AvatarUrl = "https://placekitten.com/g/300/300"
+            AvatarUrl = msg.Author.GetAvatarUrl(size = uint16 1024)
         }
 
         send msg.Channel fakeUser
