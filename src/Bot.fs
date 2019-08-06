@@ -20,20 +20,8 @@ module Bot =
         let now = DateTimeOffset.UtcNow.ToString()
         printfn "[%s] %s: %s" now logMessage.Source logMessage.Message
     }
-    
-    let private enumerate (collection: IAsyncEnumerable<_ IReadOnlyCollection>) = 
-        let cancellationToken = CancellationToken()
-        let rec iterate (enumerator: IAsyncEnumerator<_ IReadOnlyCollection>) (gathered: _ seq) = async {
-            let! shouldContinue = enumerator.MoveNext cancellationToken |> Async.AwaitTask
 
-            if not shouldContinue then 
-                return gathered
-            else
-                return! iterate enumerator (Seq.concat [gathered; seq enumerator.Current])
-        }
-        iterate (collection.GetEnumerator()) []
-
-    let private listGuildUsers (guild: Rest.RestGuild) = guild.GetUsersAsync() |> enumerate
+    let private listGuildUsers (guild: Rest.RestGuild) = guild.GetUsersAsync() |> Async.EnumerateCollection
 
     let private mapUsersToMembers (guild: Rest.RestGuild) =
         listGuildUsers guild 
