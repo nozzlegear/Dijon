@@ -55,8 +55,10 @@ module Bot =
     let private handleUserJoined (bot: BotConfig) (user: SocketGuildUser) = 
         bot.database.BatchSetAsync [MemberUpdate.FromGuildUser user]
 
-    let private handleUserUpdated (bot: BotConfig) (before: SocketGuildUser) (after: SocketGuildUser) = 
-        bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
+    let private handleUserUpdated (bot: BotConfig) (before: SocketGuildUser) (after: SocketGuildUser) =
+        // Temporarily disable the update handler, which is blocking and causing issues
+        Async.Empty
+//        bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
     
     let handleLeftGuild (bot: BotConfig) (guild: SocketGuild) = 
         bot.database.UnsetLogChannelForGuild (GuildId <| int64 guild.Id)
