@@ -180,8 +180,16 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         | Mentioned -> 
             randomSlanderResponse ()
             |> sendMessage msg.Channel
-        | NotMentioned ->   
-            Async.Empty
+        | NotMentioned ->
+            // React 1/3 times
+            match [1;2;3] |> Seq.randomItem with
+            | i when i = 1 ->
+                [ "😭"; "💔"; "🔪"; "😡" ]
+                |> Seq.randomItem
+                |> Emoji 
+                |> react (msg :?> SocketUserMessage)
+            | _ -> 
+                Async.Empty
 
     let handleHypeMessage (msg: IMessage) = 
         let msg = msg :?> SocketUserMessage
