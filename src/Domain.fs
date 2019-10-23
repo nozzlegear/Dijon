@@ -16,7 +16,8 @@ type Command =
     | Slander 
     | Hype
     | Help
-    | Unknown 
+    | Unknown
+    | AidAgainstSlander
     
 type GuildUser = 
     {

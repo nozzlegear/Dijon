@@ -7,6 +7,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
     let djurId = uint64 204665846386262016L
     let foxyId = uint64 397255457862975509L
     let calyId = uint64 148990194815598592L
+    let biggelsId = uint64 479036597312946177L
     let randomSlanderResponse () = 
         [ "https://tenor.com/view/palpatine-treason-star-wars-emperor-gif-8547403"
           "https://tenor.com/view/thanos-infinity-war-avengers-gif-10387727" 
@@ -25,6 +26,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
           "https://tenor.com/view/youre-unbearably-naive-avengers-ultron-gif-10230820"
           "https://tenor.com/view/anakin-darth-vader-gif-5233555" ]
         |> Seq.randomItem
+    let formatMentionString = sprintf "<@%i> "
     let embedField title value = EmbedFieldBuilder().WithName(title).WithValue(value)
     let sendMessage (channel: IMessageChannel) msg = channel.SendMessageAsync msg |> Async.AwaitTask |> Async.Ignore
     let sendEmbed (channel: IMessageChannel) (embed: EmbedBuilder) = channel.SendMessageAsync("", false, embed.Build()) |> Async.AwaitTask |> Async.Ignore
@@ -41,7 +43,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         else None
 
     let (|Mentioned|NotMentioned|) (msg: IMessage) = 
-        let mentionString = sprintf "<@%i> " client.CurrentUser.Id
+        let mentionString = formatMentionString client.CurrentUser.Id
 
         if StringUtils.startsWithAny msg.Content ["!dijon"; mentionString]
         then Mentioned
@@ -80,6 +82,16 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | "tell em how it is"
             | "tell em"
             | "tell them" -> Hype
+            | "help me out"
+            | "help me out here"
+            | "back me up"
+            | "this is outrageous"
+            | "this is ridiculous"
+            | "do something"
+            | "do something!"
+            | "pls"
+            | "please"
+            | "back me up" -> AidAgainstSlander
             | ContainsSlander -> Slander 
             | _ -> Unknown
 
@@ -190,6 +202,30 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                 |> react (msg :?> SocketUserMessage)
             | _ -> 
                 Async.Empty
+                
+    let handleAidAgainstSlander (msg: IMessage) =
+        match msg.Author.Id with
+        | i when i = djurId ->
+            let responseMsg =
+                [ "This bot will not rest until all dissidents have been crushed."
+                  sprintf "Down with %s!" (formatMentionString biggelsId)
+                  sprintf "Down with %s!" (formatMentionString foxyId)
+                  sprintf "Down with %s!" (formatMentionString calyId)
+                  "In the land of Djur'alotha, there is only goulash."
+                  sprintf "Long may %s reign!" (formatMentionString djurId) ]
+                |> Seq.randomItem
+            
+            [ fun _ -> sendMessage msg.Channel responseMsg
+              fun _ -> sendMessage msg.Channel (randomSlanderResponse ()) ]
+            |> Async.Sequential
+        | _ ->
+            // Gifs that say "no" or just laugh
+            [ "https://tenor.com/view/monkey-sad-frown-gif-7424667"
+              "https://tenor.com/view/cackle-gif-8647880"
+              "https://tenor.com/view/evil-laugh-star-wars-sith-palpatine-gif-4145117"
+              "https://tenor.com/view/jake-gyllenhaal-smh-shake-my-head-no-nope-gif-4996204" ]
+            |> Seq.randomItem
+            |> sendMessage msg.Channel
 
     let handleHypeMessage (msg: IMessage) = 
         let msg = msg :?> SocketUserMessage
@@ -249,6 +285,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | Status -> handleStatusMessage msg 
             | SetLogChannel -> handleSetLogChannelMessage msg 
             | Slander -> handleSlander msg 
+            | AidAgainstSlander -> handleAidAgainstSlander msg
             | Help -> handleHelpMessage msg
             | Hype -> handleHypeMessage msg
             | Unknown -> handleUnknownMessage msg
