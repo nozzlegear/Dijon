@@ -59,6 +59,10 @@ module Extensions =
                 do! fn()
         }
 
+module Seq = 
+    let randomItem list = 
+        Seq.sortBy (fun _ -> System.Guid.NewGuid()) list 
+        |> Seq.head
     
 module StringUtils = 
     let startsWith (a: string) (b: string) = a.StartsWith(b, System.StringComparison.OrdinalIgnoreCase)

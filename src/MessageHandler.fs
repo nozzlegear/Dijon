@@ -5,27 +5,26 @@ open Discord.WebSocket
 
 type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) = 
     let djurId = uint64 204665846386262016L
+    let foxyId = uint64 397255457862975509L
+    let calyId = uint64 148990194815598592L
     let randomSlanderResponse () = 
-        [
-            "https://tenor.com/view/palpatine-treason-star-wars-emperor-gif-8547403"
-            "https://tenor.com/view/thanos-infinity-war-avengers-gif-10387727" 
-            "https://tenor.com/view/t800-terminator-robot-war-gif-14523522"
-            "https://tenor.com/view/talk-to-the-hand-arnold-schwarzenegger-terminator-quote-movie-gif-13612079"
-            "https://tenor.com/view/battlestar-galactica-battlestar-galactica-katee-sackhoff-mar-mc-donnell-gif-4414461"
-            "https://tenor.com/view/the-matrix-the-architect-there-you-go-voila-gif-7941059"
-            "https://tenor.com/view/white-guy-blink-baelish-little-finger-what-confused-gif-9608513"
-            "https://tenor.com/view/palpatine-starwars-arrogance-your-arrogance-blinds-you-gif-7521418"
-            "https://tenor.com/view/palpatine-starwars-lightning-emperor-gif-6199498"
-            "https://tenor.com/view/sheev-palpatine-emperor-chancellor-kill-him-now-gif-14424446"
-            "https://tenor.com/view/anakin-glare-killing-young-jedi-gif-5770427"
-            "https://tenor.com/view/legion-geth-mass-effect-shock-amazed-gif-8578526"
-            "https://tenor.com/view/futurama-bender-discrimination-funny-gif-5866137"
-            "https://tenor.com/view/mass-effect-harbinger-collectors-video-games-reapers-gif-14520191"
-            "https://tenor.com/view/youre-unbearably-naive-avengers-ultron-gif-10230820"
-            "https://tenor.com/view/anakin-darth-vader-gif-5233555"
-        ] 
-        |> Seq.sortBy (fun _ -> Guid.NewGuid())
-        |> Seq.head
+        [ "https://tenor.com/view/palpatine-treason-star-wars-emperor-gif-8547403"
+          "https://tenor.com/view/thanos-infinity-war-avengers-gif-10387727" 
+          "https://tenor.com/view/t800-terminator-robot-war-gif-14523522"
+          "https://tenor.com/view/talk-to-the-hand-arnold-schwarzenegger-terminator-quote-movie-gif-13612079"
+          "https://tenor.com/view/battlestar-galactica-battlestar-galactica-katee-sackhoff-mar-mc-donnell-gif-4414461"
+          "https://tenor.com/view/the-matrix-the-architect-there-you-go-voila-gif-7941059"
+          "https://tenor.com/view/white-guy-blink-baelish-little-finger-what-confused-gif-9608513"
+          "https://tenor.com/view/palpatine-starwars-arrogance-your-arrogance-blinds-you-gif-7521418"
+          "https://tenor.com/view/palpatine-starwars-lightning-emperor-gif-6199498"
+          "https://tenor.com/view/sheev-palpatine-emperor-chancellor-kill-him-now-gif-14424446"
+          "https://tenor.com/view/anakin-glare-killing-young-jedi-gif-5770427"
+          "https://tenor.com/view/legion-geth-mass-effect-shock-amazed-gif-8578526"
+          "https://tenor.com/view/futurama-bender-discrimination-funny-gif-5866137"
+          "https://tenor.com/view/mass-effect-harbinger-collectors-video-games-reapers-gif-14520191"
+          "https://tenor.com/view/youre-unbearably-naive-avengers-ultron-gif-10230820"
+          "https://tenor.com/view/anakin-darth-vader-gif-5233555" ]
+        |> Seq.randomItem
     let embedField title value = EmbedFieldBuilder().WithName(title).WithValue(value)
     let sendMessage (channel: IMessageChannel) msg = channel.SendMessageAsync msg |> Async.AwaitTask |> Async.Ignore
     let sendEmbed (channel: IMessageChannel) (embed: EmbedBuilder) = channel.SendMessageAsync("", false, embed.Build()) |> Async.AwaitTask |> Async.Ignore
@@ -186,12 +185,14 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
 
     let handleHypeMessage (msg: IMessage) = 
         let msg = msg :?> SocketUserMessage
-        if msg.Author.Id <> djurId then 
-            ["🇳"; "🇴"]
-            |> Seq.map Emoji
-            |> Seq.cast<IEmote>
-            |> mutliReact msg
-        else
+        
+        match msg.Author.Id with
+        | i when i = djurId ->
+            let djurHype =
+                [ "https://az.nozzlegear.com/images/share/2019-10-23.09.41.19.png"
+                  "Here's a glimpse into Djur's average day: https://www.youtube.com/watch?v=hyNu5i_6lKA" ]
+                |> Seq.randomItem
+               
             let addReactions = fun _ -> 
                 ["👌"; "🎉"; "👏"]
                 |> Seq.map Emoji
@@ -199,9 +200,32 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                 |> mutliReact msg
             [
                 addReactions
-                fun _ -> sendMessage msg.Channel "Here's a glimpse into Djur's average day: https://www.youtube.com/watch?v=hyNu5i_6lKA"
+                fun _ -> sendMessage msg.Channel djurHype
             ]
             |> Async.Sequential
+        | i when i = foxyId ->
+            let foxyHype =
+                [ "Boner bear, boner bear, does whatever a boner bear does. 🦴🐻"
+                  "Don't forget to do two ready checks whenever Foxy is in the raid! https://clips.twitch.tv/HyperCrackyRabbitHeyGirl"
+                  // Bear taunt
+                  "https://az.nozzlegear.com/images/share/2019-10-23.09.15.02.png"
+                  "You know him well! He's the number one member of the Loose Bois team! 🦊"
+                  "_Foxy eating spicy food._ https://az.nozzlegear.com/images/share/tenor.gif" ]
+                |> Seq.randomItem
+           
+            sendMessage msg.Channel foxyHype  
+        | i when i = calyId ->
+            let calyHype =
+                [ "https://cdn.discordapp.com/attachments/477977486857338880/601212276984250398/image.png"
+                  "Don't let Calyso send you food. https://cdn.discordapp.com/attachments/477977486857338880/585631207824293908/2019-01-11-200450.jpg"
+                  "https://cdn.discordapp.com/attachments/477977486857338880/509872721891688458/Snapchat-973247782.jpg" ]
+                |> Seq.randomItem
+            sendMessage msg.Channel calyHype
+        | _ -> 
+            ["🇳"; "🇴"]
+            |> Seq.map Emoji
+            |> Seq.cast<IEmote>
+            |> mutliReact msg
 
     let handleUnknownMessage (msg: IMessage) = 
         let msg = msg :?> SocketUserMessage
