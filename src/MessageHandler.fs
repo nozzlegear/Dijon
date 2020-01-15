@@ -38,9 +38,35 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
 
     let (|ContainsSlander|_|) (a: string) = 
         let tdeDownWithDjurChannel = 561289801890791425L
-        if StringUtils.containsAny a ["#downwithdjur"; "down with djur"; ":downwithdjur:"; sprintf "<#%i>" tdeDownWithDjurChannel]
-        then Some ContainsSlander 
-        else None
+        let slanderMessages = 
+            [ "#downwithdjur" 
+              "down with djur"
+              ":downwithdjur:"
+              sprintf "<#%i>" tdeDownWithDjurChannel ]
+
+        if StringUtils.containsAny a slanderMessages then
+            Some ContainsSlander 
+        else
+            None
+
+    let (|AsksWhereFoxyIs|_|) (a: string) = 
+        let whereIsFoxyMessages = 
+            [ "where is foxy"
+              "where's foxy"
+              "wheres foxy"
+              "donde esta foxy"
+              "is foxy in dalaran"
+              "is foxy in dal"
+              "is foxy in moonglade"
+              "where's foxy at"
+              "can't find foxy"
+              "cant find foxy" ]
+
+        if StringUtils.containsAny a whereIsFoxyMessages then 
+            Some AsksWhereFoxyIs
+        else 
+            None 
+
 
     let (|Mentioned|NotMentioned|) (msg: IMessage) = 
         let mentionString = formatMentionString client.CurrentUser.Id
@@ -53,8 +79,12 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         match msg with 
         | NotMentioned -> 
             match msg.Content with 
-            | ContainsSlander -> Slander 
-            | _ -> Ignore
+            | ContainsSlander -> 
+                Slander 
+            | AsksWhereFoxyIs -> 
+                FoxyLocation
+            | _ -> 
+                Ignore
         | Mentioned ->
             match StringUtils.stripFirstWord msg.Content |> StringUtils.lower |> StringUtils.trim with 
             | "goulash"
@@ -93,6 +123,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | "please"
             | "back me up" -> AidAgainstSlander
             | ContainsSlander -> Slander 
+            | AsksWhereFoxyIs -> FoxyLocation
             | _ -> Unknown
 
     let handleTestMessage (msg: IMessage) (send: IMessageChannel -> GuildUser -> Async<unit>) =
@@ -202,6 +233,22 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                 |> react (msg :?> SocketUserMessage)
             | _ -> 
                 Async.Empty
+
+    let handleFoxyLocation (msg : IMessage) = 
+        match msg with 
+        | Mentioned -> 
+            // Send the Twitch clip embed
+            let twitchClipMsg = "Schrodinger's Foxy: he exists in both Dalaran and Moonglade, but you never know which until you pull a boss: https://clips.twitch.tv/HyperCrackyRabbitHeyGirl"
+            sendMessage msg.Channel twitchClipMsg
+        | NotMentioned -> 
+            // Send a message 1/3 times
+            match [1;2;3;] |> Seq.randomItem with 
+            | i when i = 1 -> 
+                let twitchClipMsg = "Foxy is _always_ in Dalaran! https://clips.twitch.tv/HyperCrackyRabbitHeyGirl"
+                sendMessage msg.Channel twitchClipMsg
+            | _ -> 
+                Async.Empty
+            
                 
     let handleAidAgainstSlander (msg: IMessage) =
         match msg.Author.Id with
@@ -288,6 +335,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | AidAgainstSlander -> handleAidAgainstSlander msg
             | Help -> handleHelpMessage msg
             | Hype -> handleHypeMessage msg
+            | FoxyLocation -> handleFoxyLocation msg
             | Unknown -> handleUnknownMessage msg
             | Ignore -> Async.Empty
 

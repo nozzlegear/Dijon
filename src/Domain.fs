@@ -18,6 +18,7 @@ type Command =
     | Help
     | Unknown
     | AidAgainstSlander
+    | FoxyLocation
     
 type GuildUser = 
     {
