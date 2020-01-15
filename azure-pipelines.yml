@@ -17,6 +17,8 @@ variables:
   buildImageName: '$(baseImageName):$(build.buildId)'
 
 steps:
+- script: docker --version
+  displayName: 'Print Docker version'
 - script: docker build -t '$(latestImageName)' -t '$(buildImageName)' .
   displayName: 'Build container image'
 - script: |
