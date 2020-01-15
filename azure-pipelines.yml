@@ -20,6 +20,7 @@ steps:
 - task: DockerInstaller@0
   inputs:
     dockerVersion: '19.03.5'
+  displayName: 'Install Docker 19.03.5'
 - script: docker --version
   displayName: 'Print Docker version'
 - script: docker build -t '$(latestImageName)' -t '$(buildImageName)' .
