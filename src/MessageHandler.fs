@@ -361,8 +361,8 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                         
                         builder.Build()
                     | Ok affixes ->
-                        builder.Color <- Nullable Color.Gold
-                        builder.Title <- affixes.title
+                        builder.Color <- Nullable Color.Green
+                        builder.Title <- sprintf "This week's Mythic+ affixes: %s" affixes.title
                         
                         affixes.affix_details
                         |> List.map (fun affix -> embedField affix.name affix.description)
