@@ -1,6 +1,7 @@
 namespace Dijon 
 open Discord
 open System
+open System.Net.Http
 open Discord.WebSocket
 
 type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) = 
@@ -28,7 +29,8 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         |> Seq.randomItem
     let formatMentionString = sprintf "<@%i> "
     let embedField title value = EmbedFieldBuilder().WithName(title).WithValue(value)
-    let sendMessage (channel: IMessageChannel) msg = channel.SendMessageAsync msg |> Async.AwaitTask |> Async.Ignore
+    let sendEditableMessage (channel : IMessageChannel) msg = channel.SendMessageAsync msg |> Async.AwaitTask
+    let sendMessage (channel: IMessageChannel) msg = sendEditableMessage channel msg |> Async.Ignore
     let sendEmbed (channel: IMessageChannel) (embed: EmbedBuilder) = channel.SendMessageAsync("", false, embed.Build()) |> Async.AwaitTask |> Async.Ignore
     let react (msg: SocketUserMessage) emote = msg.AddReactionAsync emote |> Async.AwaitTask |> Async.Ignore
     let mutliReact (msg: SocketUserMessage) (emotes: IEmote seq) = 
@@ -67,7 +69,6 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         else 
             None 
 
-
     let (|Mentioned|NotMentioned|) (msg: IMessage) = 
         let mentionString = formatMentionString client.CurrentUser.Id
 
@@ -101,6 +102,9 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | "set log channel"
             | "set log channel here"
             | "set channel" -> SetLogChannel
+            | "affix"
+            | "what are the affixes"
+            | "affixes" -> GetAffix
             | "help"
             | "tutorial"
             | "commands"
@@ -210,6 +214,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         embed.Title <- "⚡ Dijon-bot Commands" 
         embed.Color <- Nullable Color.Blue
         embed.Fields.AddRange [
+            embedField "`affixes`" "Fetches this week's Mythic+ dungeon affixes and displays them alongside a description of each."
             embedField "`status`" "Checks the status of Dijon-bot and reports which channel is used for logging membership changes."
             embedField "`set logs here`" "Tells Dijon-bot to report membership changes to the current channel. Only one channel is supported per server."
             embedField "`test`" "Sends a test membership change message to the current channel."
@@ -317,6 +322,58 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             |> Seq.map Emoji
             |> Seq.cast<IEmote>
             |> mutliReact msg
+            
+    let handleGetAffixMessage (msg : IMessage) =
+        let listAffixes () : Async<Result<RaiderIo.ListAffixesResponse, string>> =
+            async {
+                use client = new HttpClient()
+                use req = new HttpRequestMessage()
+                req.Method <- HttpMethod.Get
+                req.RequestUri <- Uri "https://raider.io/api/v1/mythic-plus/affixes?region=us"
+                
+                let! result =
+                    client.SendAsync req
+                    |> Async.AwaitTask
+                    
+                if not result.IsSuccessStatusCode then
+                    let msg = sprintf "Failed to list affixes. Raider.io returned %i %s." (int result.StatusCode) result.ReasonPhrase
+                    return Error msg
+                else
+                    let! content =
+                        result.Content.ReadAsStringAsync()
+                        |> Async.AwaitTask
+                    return Thoth.Json.Net.Decode.fromString RaiderIo.ListAffixesResponse.Decoder content
+            }
+        
+        async {
+            let! editable = sendEditableMessage msg.Channel "Fetching affixes, please wait..."
+            let! affixList = listAffixes ()
+            let editMessage (props : MessageProperties) =
+                let embed =
+                    let builder = EmbedBuilder()
+                    match affixList with
+                    | Error err ->
+                        builder.Color <- Nullable Color.Red
+                        builder.Title <- "❌ Error fetching affixes!"
+                        
+                        embedField "🔬 Details" err
+                        |> builder.Fields.Add
+                        
+                        builder.Build()
+                    | Ok affixes ->
+                        builder.Color <- Nullable Color.Gold
+                        builder.Title <- affixes.title
+                        
+                        affixes.affix_details
+                        |> List.map (fun affix -> embedField affix.name affix.description)
+                        |> builder.Fields.AddRange
+                        
+                        builder.Build()
+                    
+                props.Embed <- Optional.Create embed
+                    
+            do! editable.ModifyAsync (Action<MessageProperties> editMessage) |> Async.AwaitTask
+        }
 
     let handleUnknownMessage (msg: IMessage) = 
         let msg = msg :?> SocketUserMessage
@@ -336,6 +393,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | Help -> handleHelpMessage msg
             | Hype -> handleHypeMessage msg
             | FoxyLocation -> handleFoxyLocation msg
+            | GetAffix -> handleGetAffixMessage msg
             | Unknown -> handleUnknownMessage msg
             | Ignore -> Async.Empty
 
