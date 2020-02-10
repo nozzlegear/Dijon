@@ -365,7 +365,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                         builder.Title <- sprintf "This week's Mythic+ affixes: %s" affixes.title
                         
                         affixes.affix_details
-                        |> List.map (fun affix -> embedField affix.name affix.description)
+                        |> List.map (fun affix -> embedField (sprintf "**%s**" affix.name) affix.description)
                         |> builder.Fields.AddRange
                         
                         builder.Build()
