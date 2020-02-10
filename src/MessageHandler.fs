@@ -143,7 +143,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
     let handleGoulashRecipe (msg: IMessage) = 
         let ingredients = [
             "- 10oz wide egg noodles"
-            "- 1lb ground beef"
+            "- 1lb ground beef or plant meat"
             "- 3/4 cup light brown sugar"
             "- 1 can (10.5oz) tomato soup"
             "- 1/8 cup ketchup"
