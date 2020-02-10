@@ -3,3 +3,4 @@ nuget dapper
 nuget discord.net
 nuget FSharp.Control.AsyncSeq
 nuget fsharp.core
+nuget thoth.json.net
