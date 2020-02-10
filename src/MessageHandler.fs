@@ -370,6 +370,8 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                         
                         builder.Build()
                     
+                // Clear the content and add an embed
+                props.Content <- Optional.Create ()
                 props.Embed <- Optional.Create embed
                     
             do! editable.ModifyAsync (Action<MessageProperties> editMessage) |> Async.AwaitTask
