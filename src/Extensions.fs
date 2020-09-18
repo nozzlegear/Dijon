@@ -1,6 +1,7 @@
 namespace Dijon
 open System.Collections.Generic
 open System.Threading
+open System.Threading.Tasks
 
 [<AutoOpen>]
 module Extensions = 
@@ -39,17 +40,21 @@ module Extensions =
         /// <summary>
         /// Enumerates over a <see cref="IAsyncEnumerable" />, reading all items and mapping them to an F# sequence.
         /// </summary>
-        static member EnumerateCollection (collection: IAsyncEnumerable<_ IReadOnlyCollection>) = 
+        static member EnumerateCollection (collection: IAsyncEnumerable<_ IReadOnlyCollection>) =
             let cancellationToken = CancellationToken()
+            let asTask (task : ValueTask<_>) = task.AsTask()
             let rec iterate (enumerator: IAsyncEnumerator<_ IReadOnlyCollection>) (gathered: _ seq) = async {
-                let! shouldContinue = enumerator.MoveNext cancellationToken |> Async.AwaitTask
+                let! shouldContinue =
+                    enumerator.MoveNextAsync cancellationToken
+                    |> asTask
+                    |> Async.AwaitTask
 
                 if not shouldContinue then 
                     return gathered
                 else
                     return! iterate enumerator (Seq.concat [gathered; seq enumerator.Current])
             }
-            iterate (collection.GetEnumerator()) []
+            iterate (collection.GetAsyncEnumerator()) []
 
         /// <summary>
         /// Iterates over a list of async computations, executing them sequentially.
