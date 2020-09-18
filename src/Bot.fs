@@ -55,10 +55,49 @@ module Bot =
     let private handleUserJoined (bot: BotConfig) (user: SocketGuildUser) = 
         bot.database.BatchSetAsync [MemberUpdate.FromGuildUser user]
 
-    let private handleUserUpdated (bot: BotConfig) (before: SocketGuildUser) (after: SocketGuildUser) =
+    let private handleGuildUserUpdated (bot: BotConfig) (before: SocketGuildUser) (after: SocketGuildUser) =
+        
+        printfn "Guild user %s has been updated. Are they streaming? %b" after.Nickname after.IsStreaming
+        printfn "Guild user %s activity: %s: %s (type: %A)" after.Nickname after.Activity.Name after.Activity.Details after.Activity.Type
+        
+        match after.Activity with
+        | :? CustomStatusGame as custom ->
+            printfn "user has a custom status -- Name: %s; Details: %s; State: %s" custom.Name custom.Details custom.State
+        | :? SpotifyGame as spotify ->
+            printfn "user %s is listening to %s on spotify" after.Nickname spotify.AlbumTitle
+        | :? StreamingGame as stream ->
+            printfn "user %s is streaming %s at URL %s" after.Nickname stream.Name stream.Url
+        | x ->
+            printfn "User has an activity that is not a custom status: %A" x 
+        
+        // TODO: detect if a user is streaming, and if so, detect _what_ they're streaming
+        match before.IsStreaming, after.IsStreaming with
+        | true, false ->
+            // User has stopped streaming
+            // TODO: delete the stream message from the streaming channel
+            
+            printfn "User %s has stopped streaming" after.Nickname
+            
+            ()
+        | false, true ->
+            // User has started streaming
+            // TODO: add an "is streaming" message in the streaming channel
+            let userStatus = after.Activity.Details
+            
+            printfn "User %s has started streaming" after.Nickname
+            
+            ()
+        | _, _ -> 
+            // Nothing has changed 
+            ()
+        
         // Temporarily disable the update handler, which is blocking and causing issues
         Async.Empty
-//        bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
+        // bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
+        
+    let private handleUserUpdated (bot: BotConfig) (before: SocketUser) (after: IUser) =
+        printfn "User %s has been updated" after.Username
+        Async.Empty
     
     let handleLeftGuild (bot: BotConfig) (guild: SocketGuild) = 
         bot.database.UnsetLogChannelForGuild (GuildId <| int64 guild.Id)
@@ -97,6 +136,7 @@ module Bot =
         client.add_UserLeft += handleUserLeft bot
         client.add_UserJoined += handleUserJoined bot
         client.add_LeftGuild += handleLeftGuild bot
-        client.add_GuildMemberUpdated ++= handleUserUpdated bot
+        client.add_GuildMemberUpdated ++= handleGuildUserUpdated bot
+        client.add_UserUpdated ++= handleUserUpdated bot 
 
         Async.Empty
