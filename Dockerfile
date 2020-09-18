@@ -17,6 +17,7 @@ RUN dotnet restore
 
 # Copy source files and build project
 COPY src/* src/
+COPY src/Services/* src/Services/
 RUN dotnet publish -c Release -o dist -r linux-musl-x64
 
 # Switch to alpine for smaller container size
