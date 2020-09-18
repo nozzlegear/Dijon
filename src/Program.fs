@@ -40,7 +40,8 @@ module Program =
                 .ConfigureServices(fun context services ->
                     services.AddSingleton<BotClient>() |> ignore 
 //                    services.AddHostedService<BotService> |> ignore
-                    services.AddHostedService<StreamCheckService>() |> ignore)
+                    services.AddHostedService<StreamCheckService>() |> ignore
+                    services.AddHostedService<AffixCheckService>() |> ignore)
                 .ConfigureLogging(fun context logging ->
                     logging.AddConsole() |> ignore)
                 .RunConsoleAsync()
