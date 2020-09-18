@@ -3,3 +3,6 @@ fsharp.core
 FSharp.Control.AsyncSeq
 dapper
 thoth.json.net
+microsoft.extensions.hosting
+microsoft.extensions.logging
+taskbuilder.fs
