@@ -7,6 +7,8 @@
     <Compile Include="Extensions.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="SqlDatabase.fs" />
+    <Compile Include="BotClient.fs" />
+    <Compile Include="Services\StreamCheckService.fs" />
     <Compile Include="MessageHandler.fs" />
     <Compile Include="Bot.fs" />
     <Compile Include="Program.fs" />

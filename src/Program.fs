@@ -1,7 +1,11 @@
 ﻿namespace Dijon
 
 open System
+open Dijon.Services
 open Discord
+open Microsoft.Extensions.Hosting
+open Microsoft.Extensions.Logging
+open Microsoft.Extensions.DependencyInjection
 
 module Program = 
     let requiredEnv key = 
@@ -9,7 +13,7 @@ module Program =
         | x when String.IsNullOrEmpty x -> failwithf "Required environment key %s was null or empty." key 
         | x -> x 
 
-    let initDatabase () = 
+    let initDatabase () =
         let database = 
             requiredEnv "DIJON_SQL_CONNECTION_STRING"
             |> DijonSqlDatabase
@@ -25,29 +29,42 @@ module Program =
             return database
         }
     
-    let initBot () = 
+    let initBot () =
         requiredEnv "DIJON_BOT_TOKEN"
         |> Bot.Connect 
 
     [<EntryPoint>]
     let main argv =
-        async {
-            let! database = initDatabase()
-            let! bot = initBot()
-            let config = 
-                {
-                    database = database
-                    client = bot 
-                    messages = MessageHandler(database, bot) 
-                }
-
-            do! Bot.RecordAllUsers config 
-            do! Bot.WireEventListeners config 
-        } |> Async.RunSynchronously
-
-        // Keep the program running until canceled    
-        System.Threading.Tasks.Task.Delay -1
-        |> Async.AwaitTask
+        let host =
+            Host.CreateDefaultBuilder()
+                .ConfigureServices(fun context services ->
+                    services.AddSingleton<BotClient>() |> ignore 
+//                    services.AddHostedService<BotService> |> ignore
+                    services.AddHostedService<StreamCheckService>() |> ignore)
+                .ConfigureLogging(fun context logging ->
+                    logging.AddConsole() |> ignore)
+                .RunConsoleAsync()
+                
+        Async.AwaitTask host
         |> Async.RunSynchronously
+        
+//        async {
+//            let! database = initDatabase()
+//            let! bot = initBot()
+//            let config = 
+//                {
+//                    database = database
+//                    client = bot 
+//                    messages = MessageHandler(database, bot) 
+//                }
+//
+//            do! Bot.RecordAllUsers config 
+//            do! Bot.WireEventListeners config 
+//        } |> Async.RunSynchronously
+//
+//        // Keep the program running until canceled    
+//        System.Threading.Tasks.Task.Delay -1
+//        |> Async.AwaitTask
+//        |> Async.RunSynchronously
 
         0 // return an integer exit code
