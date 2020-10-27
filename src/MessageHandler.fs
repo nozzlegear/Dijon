@@ -1,4 +1,5 @@
 namespace Dijon 
+open Dijon.RaiderIo
 open Discord
 open System
 open System.Net.Http
@@ -102,6 +103,13 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | "set log channel"
             | "set log channel here"
             | "set channel" -> SetLogChannel
+            | "set affixes here"
+            | "set affixes"
+            | "affixes here"
+            | "set affix channel here"
+            | "affix here"
+            | "set affix channel"
+            | "set affixes channel" -> SetAffixesChannel
             | "affix"
             | "what are the affixes"
             | "affixes" -> GetAffix
@@ -182,9 +190,15 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                     logChannelId
                     |> Option.map (sprintf "Membership logs for this server are sent to the <#%i> channel.")
                     |> Option.defaultValue "Member logs are **not set up** for this server. Use `!dijon log here` to set the log channel."
+                let! affixChannelId = database.GetAffixChannelForGuild guildId
+                let affixChannelMessage =
+                    affixChannelId
+                    |> Option.map (sprintf "Mythic Plus affixes messages for this server are sent to the <#%i> channel.")
+                    |> Option.defaultValue "Mythic Plus affixes are **not set up** for this server. Use `!dijon set affixes here` to set the affix channel."
 
                 embed.Fields.AddRange [
                     embedField "Log Channel" logChannelMessage
+                    embedField "Affixes Channel" affixChannelMessage
                 ]
 
                 return! sendEmbed msg.Channel embed 
@@ -208,6 +222,23 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             sendMessage msg.Channel "Unable to set log channel in a private message."
         | _ -> 
             sendMessage msg.Channel "Unable to set log channel in unknown channel type."
+            
+    let handleSetAffixesChannelMessage (msg: IMessage) =
+        match msg.Channel with
+        | :? SocketGuildChannel as guildChannel ->
+            if msg.Author.Id <> djurId then
+                sendMessage msg.Channel (sprintf "At the moment, only <@%i> may set the affixes channel." djurId)
+            else
+                async {
+                    let guildId = GuildId (int64 guildChannel.Guild.Id)
+                    
+                    do! database.SetAffixesChannelForGuild guildId (int64 msg.Channel.Id)
+                    do! sendMessage msg.Channel "Affixes will be sent to this channel every Tuesday."
+                }
+        | :? ISocketPrivateChannel ->
+            sendMessage msg.Channel "Unable to set log channel in a private message."
+        | _ ->
+            sendMessage msg.Channel "Unable to set log channel in unknown channel type."
 
     let handleHelpMessage (msg: IMessage) =
         let embed = EmbedBuilder()
@@ -217,6 +248,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             embedField "`affixes`" "Fetches this week's Mythic+ dungeon affixes and displays them alongside a description of each."
             embedField "`status`" "Checks the status of Dijon-bot and reports which channel is used for logging membership changes."
             embedField "`set logs here`" "Tells Dijon-bot to report membership changes to the current channel. Only one channel is supported per server."
+            embedField "`set affixes here`" "Tells Dijon-bot to post Mythic Plus affixes to the current channel every Tuesday. Only one channel is supported per server."
             embedField "`test`" "Sends a test membership change message to the current channel."
             embedField "`goulash recipe`" "Sends Djur's world-renowned sweet goulash recipe, the food that powers Team Tight Bois."
         ]
@@ -323,6 +355,17 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             |> Seq.cast<IEmote>
             |> mutliReact msg
             
+    let createAffixesEmbed (affixes: ListAffixesResponse) =
+        let builder = EmbedBuilder()
+        builder.Color <- Nullable Color.Green
+        builder.Title <- sprintf "This week's Mythic+ affixes: %s" affixes.title
+        
+        affixes.affix_details
+        |> List.map (fun affix -> embedField (sprintf "**%s**" affix.name) affix.description)
+        |> builder.Fields.AddRange
+        
+        builder
+            
     let handleGetAffixMessage (msg : IMessage) =
         async {
             let! editable = sendEditableMessage msg.Channel "Fetching affixes, please wait..."
@@ -340,14 +383,8 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                         
                         builder.Build()
                     | Ok affixes ->
-                        builder.Color <- Nullable Color.Green
-                        builder.Title <- sprintf "This week's Mythic+ affixes: %s" affixes.title
-                        
-                        affixes.affix_details
-                        |> List.map (fun affix -> embedField (sprintf "**%s**" affix.name) affix.description)
-                        |> builder.Fields.AddRange
-                        
-                        builder.Build()
+                        let embed = createAffixesEmbed affixes
+                        embed.Build()
                     
                 // Clear the content and add an embed
                 props.Content <- Optional.Create ""
@@ -368,7 +405,8 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             | Test -> handleTestMessage msg self.SendUserLeftMessage 
             | Goulash -> handleGoulashRecipe msg 
             | Status -> handleStatusMessage msg 
-            | SetLogChannel -> handleSetLogChannelMessage msg 
+            | SetLogChannel -> handleSetLogChannelMessage msg
+            | SetAffixesChannel -> handleSetAffixesChannelMessage msg
             | Slander -> handleSlander msg 
             | AidAgainstSlander -> handleAidAgainstSlander msg
             | Help -> handleHelpMessage msg
@@ -386,5 +424,10 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             embed.Description <- message
             embed.Color <- Nullable Color.DarkOrange
             embed.ThumbnailUrl <- user.AvatarUrl
+            
+            sendEmbed channel embed 
+
+        member x.SendAffixesMessage channel affixes =
+            let embed = createAffixesEmbed affixes
             
             sendEmbed channel embed 

@@ -4,11 +4,15 @@ open Dapper
 open System.Data.SqlClient
 open System.Data
 open System
-open System.Collections.Generic
 
-type DijonSqlDatabase (connStr: string) = 
+type SqlOptions =
+    { connectionString : string }
+
+type DijonSqlDatabase (options : SqlOptions) =
+    let connStr = options.connectionString
     let memberTableName = "DIJON_MEMBER_RECORDS"
-    let channelTableName = "DIJON_LOG_CHANNELS"
+    let logChannelTableName = "DIJON_LOG_CHANNELS"
+    let affixesChannelTableName = "DIJON_AFFIXES_CHANNELS"
     let (=>) a b = a, box b
     let dispose (conn: IDisposable) = Async.Iter (fun _ -> conn.Dispose())
     let getDiscordId = function 
@@ -118,7 +122,7 @@ type DijonSqlDatabase (connStr: string) =
                     FirstSeenAt = reader.GetDateTime firstSeenIndex |> DateTimeOffset
                     Username = reader.GetString usernameIndex
                     Discriminator = reader.GetString discIndex
-                    Nickname = reader.GetString nickIndex
+                    Nickname = if reader.IsDBNull nickIndex then String.Empty else reader.GetString nickIndex
                 }
         ]
 
@@ -130,8 +134,37 @@ type DijonSqlDatabase (connStr: string) =
                 """
             let data = dict ["id" => match guildId with GuildId i -> i]
 
-            executeReader (sql memberTableName) data
-            |> Async.Map mapReaderToUsers
+            async {
+                use conn = new SqlConnection(connStr)
+                let! reader = conn.ExecuteReaderAsync(sql memberTableName, data) |> Async.AwaitTask
+                let result = mapReaderToUsers reader
+                conn.Dispose()
+                return result
+            }
+            
+        member x.ListAllAffixChannels () =
+            let sql =
+                sprintf """
+                SELECT * FROM %s
+                """
+            let mapDataReader (reader : IDataReader) =
+                [
+                    while reader.Read() do
+                        let guildIdColumn = reader.GetOrdinal "GuildId"
+                        let channelIdColumn = reader.GetOrdinal "ChannelId"
+                        let guildId = reader.GetInt64 guildIdColumn |> GuildId
+                        let channelId = reader.GetInt64 channelIdColumn
+                        
+                        yield guildId, channelId
+                ]
+
+            async {
+                use conn = new SqlConnection(connStr)
+                let! reader = conn.ExecuteReaderAsync(sql affixesChannelTableName) |> Async.AwaitTask
+                let result = mapDataReader reader
+                conn.Dispose()
+                return result
+            }
 
         member x.BatchSetAsync members = 
             // Cheating for now until I can get a batch update in
@@ -167,7 +200,17 @@ type DijonSqlDatabase (connStr: string) =
                 """
             let data = dict [ "guildId" => match guildId with GuildId g -> g ]
 
-            query (sql channelTableName) data 
+            query (sql logChannelTableName) data 
+            |> Async.Map Seq.tryHead
+            
+        member x.GetAffixChannelForGuild guildId = 
+            let sql = 
+                sprintf """
+                SELECT ChannelId FROM %s WHERE GuildId = @guildId
+                """
+            let data = dict [ "guildId" => match guildId with GuildId g -> g ]
+            
+            query (sql affixesChannelTableName) data 
             |> Async.Map Seq.tryHead
 
         member x.SetLogChannelForGuild guildId channelId = 
@@ -197,7 +240,37 @@ type DijonSqlDatabase (connStr: string) =
                 "channelId" => channelId
             ]
 
-            execute (sql channelTableName) data
+            execute (sql logChannelTableName) data
+            |> Async.Ignore
+            
+        member x.SetAffixesChannelForGuild guildId channelId =
+            let sql = 
+                sprintf """
+                MERGE %s as Target
+                USING (
+                    SELECT @guildId
+                ) AS Source (
+                    GuildId
+                ) ON (Target.GuildId = Source.GuildId)
+                WHEN MATCHED THEN
+                    UPDATE
+                    SET ChannelId = @channelId
+                WHEN NOT MATCHED THEN
+                    Insert (
+                        GuildId,
+                        ChannelId
+                    ) VALUES (
+                        @guildId,
+                        @channelId
+                    )
+                ;
+                """
+            let data = dict [
+                "guildId" => match guildId with GuildId g -> g
+                "channelId" => channelId
+            ]
+
+            execute (sql affixesChannelTableName) data
             |> Async.Ignore
 
         member x.UnsetLogChannelForGuild guildId = 
@@ -207,7 +280,7 @@ type DijonSqlDatabase (connStr: string) =
                 """
             let data = dict [ "guildId" => match guildId with GuildId g -> g ]
 
-            execute (sql channelTableName) data 
+            execute (sql logChannelTableName) data 
             |> Async.Ignore
 
         member x.ConfigureAsync () =
@@ -228,7 +301,7 @@ type DijonSqlDatabase (connStr: string) =
                 )
                 END
                 """
-            let channelSql = 
+            let logChannelSql = 
                 sprintf """
                 IF NOT EXISTS (SELECT * FROM sys.tables
                 WHERE name = N'%s' AND type = 'U')
@@ -241,9 +314,23 @@ type DijonSqlDatabase (connStr: string) =
                 )
                 END
                 """
+            let affixesChannelSql =
+                sprintf """
+                IF NOT EXISTS (SELECT * FROM sys.tables
+                WHERE name = N'%s' AND type = 'U')
+                
+                BEGIN
+                CREATE TABLE [dbo].[%s] (
+                    Id int identity(1,1) primary key,
+                    GuildId bigint not null index idx_guildid,
+                    ChannelId bigint not null
+                )
+                END
+                """
             [
                 execute (memberSql memberTableName memberTableName) (Map.empty)
-                execute (channelSql channelTableName channelTableName) (Map.empty)
+                execute (logChannelSql logChannelTableName logChannelTableName) (Map.empty)
+                execute (affixesChannelSql affixesChannelTableName affixesChannelTableName) (Map.empty)
             ]
             |> Async.Parallel
             |> Async.Ignore

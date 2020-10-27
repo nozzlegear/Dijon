@@ -8,11 +8,11 @@
     <Compile Include="Domain.fs" />
     <Compile Include="SqlDatabase.fs" />
     <Compile Include="Affixes.fs" />
+    <Compile Include="Bot.fs" />
+    <Compile Include="MessageHandler.fs" />
     <Compile Include="BotClient.fs" />
     <Compile Include="Services\StreamCheckService.fs" />
     <Compile Include="Services\AffixCheckService.fs" />
-    <Compile Include="MessageHandler.fs" />
-    <Compile Include="Bot.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />

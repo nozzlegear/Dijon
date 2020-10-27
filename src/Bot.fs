@@ -90,7 +90,7 @@ module Bot =
         // TODO: the bot should look for members that may have left while it was offline and announce them to the configured channel
     }
 
-    let WireEventListeners (bot: BotConfig) =
+    let WireEventListeners onReady (bot: BotConfig) =
         let client = bot.client
 
         client.add_MessageReceived += bot.messages.HandleMessage 
@@ -98,5 +98,8 @@ module Bot =
         client.add_UserJoined += handleUserJoined bot
         client.add_LeftGuild += handleLeftGuild bot
         client.add_GuildMemberUpdated ++= handleUserUpdated bot
+        
+        let func = Func<Task>(fun _ -> onReady (); Task.CompletedTask)
+        client.add_Ready func 
 
         Async.Empty

@@ -2,33 +2,33 @@ namespace Dijon.Services
 
 open System
 open System.Threading.Tasks
+open Dijon
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 open System.Threading
 
-type AffixCheckService(logger : ILogger<AffixCheckService>, bot : Dijon.BotClient) =
+type AffixCheckService(logger : ILogger<AffixCheckService>, bot : Dijon.BotClient, database : IDijonDatabase) =
     let mutable timer : Timer option = None
     
     let checkAffixes _ : unit =
-        let newAffixes =
-            Affixes.list()
-            |> Async.RunSynchronously
+        async {
+            let! channels = database.ListAllAffixChannels()
             
-        let someName = Some "Joshua"
-        
-        match someName with
-        | Some x ->
-            // do something with x
-            ()
-        | None ->
-            // name has no value set
-            ()
-            
-        match newAffixes with
-        | Error err ->
-            logger.LogError(sprintf "Failed to get new affixes due to reason: %s" err)
-        | Ok affixes ->
-            logger.LogInformation(sprintf "Got affixes: %s" affixes.title)
+            if List.isEmpty channels then
+                logger.LogInformation(sprintf "No guilds have enabled the affixes channel, no reason to check affixes.")
+            else
+                let! newAffixes = Affixes.list()
+                
+                match newAffixes with
+                | Error err ->
+                    logger.LogError(sprintf "Failed to get new affixes due to reason: %s" err)
+                | Ok affixes ->
+                    logger.LogInformation(sprintf "Got affixes: %s" affixes.title)
+                    
+                    for (guildId, channelId) in channels do
+                        do! bot.PostAffixesMessageAsync guildId channelId affixes
+                
+        } |> Async.RunSynchronously
     
     interface IDisposable with
         member x.Dispose() =

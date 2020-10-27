@@ -2,7 +2,6 @@
 
 open System
 open Dijon.Services
-open Discord
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 open Microsoft.Extensions.DependencyInjection
@@ -14,9 +13,11 @@ module Program =
         | x -> x 
 
     let initDatabase () =
-        let database = 
-            requiredEnv "DIJON_SQL_CONNECTION_STRING"
-            |> DijonSqlDatabase
+        let database =
+            let options =
+                { connectionString = requiredEnv "DIJON_SQL_CONNECTION_STRING" }
+            
+            DijonSqlDatabase options
             :> IDijonDatabase
 
         async {
@@ -35,9 +36,11 @@ module Program =
 
     [<EntryPoint>]
     let main argv =
+        let database = initDatabase () |> Async.RunSynchronously
         let host =
             Host.CreateDefaultBuilder()
                 .ConfigureServices(fun context services ->
+                    services.AddSingleton<IDijonDatabase, DijonSqlDatabase>(fun _ -> downcast database) |> ignore
                     services.AddSingleton<BotClient>() |> ignore 
 //                    services.AddHostedService<BotService> |> ignore
                     services.AddHostedService<StreamCheckService>() |> ignore
