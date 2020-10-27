@@ -39,7 +39,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
             
     interface IHostedService with
         member x.StartAsync cancellation =
-            let baseTimer = new Timer(checkStreams, None, TimeSpan.Zero, TimeSpan.FromMinutes(3.))
+            let baseTimer = new Timer(checkStreams, None, TimeSpan.Zero, TimeSpan.FromHours(1.))
             timer <- Some baseTimer
             
             Task.CompletedTask
