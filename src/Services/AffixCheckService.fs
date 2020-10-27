@@ -37,7 +37,7 @@ type AffixCheckService(logger : ILogger<AffixCheckService>, bot : Dijon.BotClien
 
     interface IHostedService with
         member x.StartAsync cancellationToken =
-            let baseTimer = new Timer(checkAffixes, None, TimeSpan.Zero, TimeSpan.FromMinutes 1.)
+            let baseTimer = new Timer(checkAffixes, None, TimeSpan.Zero, TimeSpan.FromHours 24.)
             timer <- Some baseTimer
             
             Task.CompletedTask
