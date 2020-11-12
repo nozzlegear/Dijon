@@ -294,7 +294,6 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                 [ "This bot will not rest until all dissidents have been crushed."
                   sprintf "Down with %s!" (formatMentionString biggelsId)
                   sprintf "Down with %s!" (formatMentionString foxyId)
-                  sprintf "Down with %s!" (formatMentionString calyId)
                   "In the land of Djur'alotha, there is only goulash."
                   sprintf "Long may %s reign!" (formatMentionString djurId) ]
                 |> Seq.randomItem
