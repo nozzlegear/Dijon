@@ -12,7 +12,7 @@ module Program =
             Host.CreateDefaultBuilder()
                 .ConfigureServices(fun context services ->
                     services.AddSingleton<DatabaseOptions>() |> ignore
-                    services.AddSingleton<IDijonDatabase, DijonSqlDatabase> |> ignore
+                    services.AddSingleton<IDijonDatabase, DijonSqlDatabase>() |> ignore
                     services.AddSingleton<BotClient>() |> ignore 
                     services.AddHostedService<DatabaseMigratorService>() |> ignore
                     services.AddHostedService<StreamCheckService>() |> ignore
