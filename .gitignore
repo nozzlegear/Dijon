@@ -331,6 +331,8 @@ ASALocalRun/
 
 # Ignore env files
 .env
+env.fish
 
 # VS Code Ionide junk
 .ionide
+.gitsecret/keys/random_seed
