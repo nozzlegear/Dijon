@@ -3,6 +3,7 @@ open Dijon
 open Discord
 open Discord.WebSocket
 open System.Collections.Generic
+open Microsoft.Extensions.Configuration
 
 type DiscordId = DiscordId of int64
 type GuildId = GuildId of int64
@@ -109,7 +110,6 @@ type IDijonDatabase =
     abstract member SetLogChannelForGuild: GuildId -> int64 -> Async<unit>
     abstract member SetAffixesChannelForGuild: guildId: GuildId -> channelId: int64 -> Async<unit>
     abstract member UnsetLogChannelForGuild: GuildId -> Async<unit>
-    abstract member ConfigureAsync: unit -> Async<unit>
 
 type IMessageHandler = 
     abstract member HandleMessage: IMessage -> Async<unit>
@@ -122,3 +122,11 @@ type BotConfig =
         client: DiscordSocketClient
         messages: IMessageHandler
     }
+
+type DatabaseOptions (config : IConfiguration) =
+    member x.SqlConnectionString : string =
+        let key = "DIJON_SQL_CONNECTION_STRING"
+        match config.GetValue<string> key with
+        | ""
+        | null -> failwithf "%s was null or empty." key
+        | token -> token 

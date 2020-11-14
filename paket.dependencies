@@ -7,3 +7,5 @@ nuget thoth.json.net
 nuget microsoft.extensions.hosting
 nuget microsoft.extensions.logging
 nuget taskbuilder.fs
+nuget simple.migrations
+nuget system.data.sqlclient

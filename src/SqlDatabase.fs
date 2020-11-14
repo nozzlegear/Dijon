@@ -5,11 +5,8 @@ open System.Data.SqlClient
 open System.Data
 open System
 
-type SqlOptions =
-    { connectionString : string }
-
-type DijonSqlDatabase (options : SqlOptions) =
-    let connStr = options.connectionString
+type DijonSqlDatabase (options : DatabaseOptions) =
+    let connStr = options.SqlConnectionString
     let memberTableName = "DIJON_MEMBER_RECORDS"
     let logChannelTableName = "DIJON_LOG_CHANNELS"
     let affixesChannelTableName = "DIJON_AFFIXES_CHANNELS"
@@ -282,56 +279,3 @@ type DijonSqlDatabase (options : SqlOptions) =
 
             execute (sql logChannelTableName) data 
             |> Async.Ignore
-
-        member x.ConfigureAsync () =
-            let memberSql = 
-                sprintf """
-                IF NOT EXISTS (SELECT * FROM sys.tables
-                WHERE name = N'%s' AND type = 'U')
-
-                BEGIN
-                CREATE TABLE [dbo].[%s] (
-                    Id int identity(1,1) primary key,
-                    DiscordId bigint not null index idx_discordid,
-                    GuildId bigint not null index idx_guildid,
-                    FirstSeenAt datetime2 not null,
-                    Username nvarchar(500) not null,
-                    Discriminator nvarchar (12) not null,
-                    Nickname nvarchar (1000) null
-                )
-                END
-                """
-            let logChannelSql = 
-                sprintf """
-                IF NOT EXISTS (SELECT * FROM sys.tables
-                WHERE name = N'%s' AND type = 'U')
-
-                BEGIN
-                CREATE TABLE [dbo].[%s] (
-                    Id int identity(1,1) primary key,
-                    GuildId bigint not null index idx_guildid,
-                    ChannelId bigint not null
-                )
-                END
-                """
-            let affixesChannelSql =
-                sprintf """
-                IF NOT EXISTS (SELECT * FROM sys.tables
-                WHERE name = N'%s' AND type = 'U')
-                
-                BEGIN
-                CREATE TABLE [dbo].[%s] (
-                    Id int identity(1,1) primary key,
-                    GuildId bigint not null index idx_guildid,
-                    ChannelId bigint not null
-                )
-                END
-                """
-            [
-                execute (memberSql memberTableName memberTableName) (Map.empty)
-                execute (logChannelSql logChannelTableName logChannelTableName) (Map.empty)
-                execute (affixesChannelSql affixesChannelTableName affixesChannelTableName) (Map.empty)
-            ]
-            |> Async.Parallel
-            |> Async.Ignore
-        
