@@ -10,6 +10,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
     let foxyId = uint64 397255457862975509L
     let calyId = uint64 148990194815598592L
     let biggelsId = uint64 479036597312946177L
+    let rhunonId = uint64 376795664698441740L
     let randomSlanderResponse () = 
         [ "https://tenor.com/view/palpatine-treason-star-wars-emperor-gif-8547403"
           "https://tenor.com/view/thanos-infinity-war-avengers-gif-10387727" 
@@ -317,7 +318,11 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         | i when i = djurId ->
             let djurHype =
                 [ "https://az.nozzlegear.com/images/share/2019-10-23.09.41.19.png"
-                  "Here's a glimpse into Djur's average day: https://www.youtube.com/watch?v=hyNu5i_6lKA" ]
+                  "Here's a glimpse into Djur's average day: https://www.youtube.com/watch?v=hyNu5i_6lKA"
+                  "If only Djur could pick a class! https://i.imgflip.com/48mqi5.jpg"
+                  "If only Djur could pick a class! https://cdn.discordapp.com/attachments/665392948778893333/733877683863289927/48mqln.png"
+                  "https://cdn.discordapp.com/attachments/477977486857338880/666298017984544798/ezgif.com-add-text.gif"
+                  "STAMINA STAVES ARE LEGITIMATE BREWMASTER WEAPONS, WHO CARES IF THEY DON'T HAVE AGILITY?!" ]
                 |> Seq.randomItem
                
             let addReactions = fun _ -> 
@@ -337,7 +342,8 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                   // Bear taunt
                   "https://az.nozzlegear.com/images/share/2019-10-23.09.15.02.png"
                   "You know him well! He's the number one member of the Loose Bois team! 🦊"
-                  "_Foxy eating spicy food._ https://az.nozzlegear.com/images/share/tenor.gif" ]
+                  "_Foxy eating spicy food._ https://az.nozzlegear.com/images/share/tenor.gif"
+                  "Foxy is the kind of bear who would show his right hand. 😼💦" ]
                 |> Seq.randomItem
            
             sendMessage msg.Channel foxyHype  
@@ -347,7 +353,28 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                   "Don't let Calyso send you food. https://cdn.discordapp.com/attachments/477977486857338880/585631207824293908/2019-01-11-200450.jpg"
                   "https://cdn.discordapp.com/attachments/477977486857338880/509872721891688458/Snapchat-973247782.jpg" ]
                 |> Seq.randomItem
+                
             sendMessage msg.Channel calyHype
+        | i when i = rhunonId ->
+            let rhunonHype =
+                [ "https://tenor.com/view/rihanna-crown-queen-princess-own-it-gif-4897467"
+                  "https://tenor.com/view/jon-snow-my-queen-gif-9619999"
+                  "https://tenor.com/view/were-not-worthy-waynes-world-gif-9201571"
+                  "🎉 Hail to the Queen! 👑"
+                  sprintf "%swould be lost without the Queen." (formatMentionString djurId)
+                  "https://tenor.com/view/the-outpost-the-outpost-series-thecw-gulman-randall-malin-gif-12842854" ]
+                |> Seq.randomItem
+                
+            sendMessage msg.Channel rhunonHype
+        | i when i = biggelsId ->
+            let biggsHype =
+                [ "Let your failure be the final word in the story of rebellion! https://tenor.com/view/palpatine-the-rise-of-skywalker-lightning-palpatine-lightning-exegol-gif-18167689"
+                  sprintf "%sis a decidedly okay healer!" (formatMentionString biggelsId)
+                  "JUST STAND IN THE MIDDLE AND HEAL THROUGH IT https://tenor.com/view/georffrey-rush-captain-of-the-ship-is-giving-orders-barbossa-pirates-of-the-caribbean-gif-9227393"
+                  "Although he masquerades as the architect of #DownWithDjur, we all know he's secretly in the benevolent leader's pocket!" ]
+                |> Seq.randomItem
+            
+            sendMessage msg.Channel biggsHype
         | _ -> 
             ["🇳"; "🇴"]
             |> Seq.map Emoji
