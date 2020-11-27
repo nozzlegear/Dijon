@@ -93,6 +93,14 @@ type MemberUpdate =
             Nickname = user.Nickname
         }
 
+type AffixChannel =
+    {
+        GuildId: int64
+        ChannelId: int64
+        /// The title of the last affix message posted to this channel.
+        LastAffixesPosted: string option
+    }
+
 type UniqueUser = 
     UniqueUser of DiscordId * GuildId
     with 
@@ -102,13 +110,14 @@ type UniqueUser =
 
 type IDijonDatabase = 
     abstract member ListAsync: GuildId -> Async<Member list>
-    abstract member ListAllAffixChannels: unit -> Async<(GuildId * int64) list>
+    abstract member ListAllAffixChannels: unit -> Async<AffixChannel list>
     abstract member BatchSetAsync: MemberUpdate seq -> Async<unit>
     abstract member DeleteAsync: UniqueUser -> Async<unit>
     abstract member GetLogChannelForGuild: GuildId -> Async<int64 option>
-    abstract member GetAffixChannelForGuild: GuildId -> Async<int64 option>
+    abstract member GetAffixChannelForGuild: GuildId -> Async<AffixChannel option>
     abstract member SetLogChannelForGuild: GuildId -> int64 -> Async<unit>
     abstract member SetAffixesChannelForGuild: guildId: GuildId -> channelId: int64 -> Async<unit>
+    abstract member SetLastAffixesPostedForGuild: guildId: GuildId -> lastAffixesTitle: string -> Async<unit>
     abstract member UnsetLogChannelForGuild: GuildId -> Async<unit>
 
 type IMessageHandler = 

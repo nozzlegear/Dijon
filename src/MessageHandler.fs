@@ -185,15 +185,15 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         | :? SocketGuildChannel as guildChannel ->
             let guildId = GuildId (int64 guildChannel.Guild.Id)
             async {
-                let! logChannelId = database.GetLogChannelForGuild guildId 
+                let! logChannelId = database.GetLogChannelForGuild guildId
                 let logChannelMessage = 
                     logChannelId
                     |> Option.map (sprintf "Membership logs for this server are sent to the <#%i> channel.")
                     |> Option.defaultValue "Member logs are **not set up** for this server. Use `!dijon log here` to set the log channel."
-                let! affixChannelId = database.GetAffixChannelForGuild guildId
+                let! affixChannel = database.GetAffixChannelForGuild guildId
                 let affixChannelMessage =
-                    affixChannelId
-                    |> Option.map (sprintf "Mythic Plus affixes messages for this server are sent to the <#%i> channel.")
+                    affixChannel
+                    |> Option.map (fun channel -> sprintf "Mythic Plus affixes messages for this server are sent to the <#%i> channel." channel.ChannelId)
                     |> Option.defaultValue "Mythic Plus affixes are **not set up** for this server. Use `!dijon set affixes here` to set the affix channel."
 
                 embed.Fields.AddRange [

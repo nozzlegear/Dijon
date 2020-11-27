@@ -122,6 +122,30 @@ type DijonSqlDatabase (options : DatabaseOptions) =
                     Nickname = if reader.IsDBNull nickIndex then String.Empty else reader.GetString nickIndex
                 }
         ]
+        
+    let mapReaderToAffixChannels (reader: IDataReader) : AffixChannel list =
+        [
+            while reader.Read() do
+                let guildIdColumn = reader.GetOrdinal "GuildId"
+                let channelIdColumn = reader.GetOrdinal "ChannelId"
+                let lastAffixesColumn = reader.GetOrdinal "LastAffixesPosted"
+                let guildId = reader.GetInt64 guildIdColumn
+                let channelId = reader.GetInt64 channelIdColumn
+                let lastAffixes =
+                    match reader.GetValue lastAffixesColumn with
+                    | :? DBNull ->
+                        None
+                    | :? String as x when String.IsNullOrWhiteSpace x ->
+                        None
+                    | :? String as x ->
+                        Some x
+                    | x ->
+                        failwithf "Failed to read last affixes channel, value was type %s" (x.GetType().FullName)
+                
+                yield { GuildId = guildId
+                        ChannelId = channelId
+                        LastAffixesPosted = lastAffixes }
+        ]
 
     interface IDijonDatabase with 
         member x.ListAsync guildId = 
@@ -144,21 +168,11 @@ type DijonSqlDatabase (options : DatabaseOptions) =
                 sprintf """
                 SELECT * FROM %s
                 """
-            let mapDataReader (reader : IDataReader) =
-                [
-                    while reader.Read() do
-                        let guildIdColumn = reader.GetOrdinal "GuildId"
-                        let channelIdColumn = reader.GetOrdinal "ChannelId"
-                        let guildId = reader.GetInt64 guildIdColumn |> GuildId
-                        let channelId = reader.GetInt64 channelIdColumn
-                        
-                        yield guildId, channelId
-                ]
 
             async {
                 use conn = new SqlConnection(connStr)
                 let! reader = conn.ExecuteReaderAsync(sql affixesChannelTableName) |> Async.AwaitTask
-                let result = mapDataReader reader
+                let result = mapReaderToAffixChannels reader
                 conn.Dispose()
                 return result
             }
@@ -203,12 +217,17 @@ type DijonSqlDatabase (options : DatabaseOptions) =
         member x.GetAffixChannelForGuild guildId = 
             let sql = 
                 sprintf """
-                SELECT ChannelId FROM %s WHERE GuildId = @guildId
+                SELECT * FROM %s WHERE GuildId = @guildId
                 """
             let data = dict [ "guildId" => match guildId with GuildId g -> g ]
             
-            query (sql affixesChannelTableName) data 
-            |> Async.Map Seq.tryHead
+            async {
+                use conn = new SqlConnection(connStr)
+                let! reader = conn.ExecuteReaderAsync(sql affixesChannelTableName, data) |> Async.AwaitTask
+                let result = mapReaderToAffixChannels reader
+                conn.Dispose()
+                return result |> Seq.tryHead 
+            }
 
         member x.SetLogChannelForGuild guildId channelId = 
             let sql = 
@@ -269,6 +288,19 @@ type DijonSqlDatabase (options : DatabaseOptions) =
 
             execute (sql affixesChannelTableName) data
             |> Async.Ignore
+            
+        member x.SetLastAffixesPostedForGuild guildId lastAffixes =
+            let sql =
+                sprintf """
+                UPDATE %s SET [LastAffixesPosted] = @lastAffixesPosted WHERE GuildId = @guildId
+                """
+            let data = dict [
+                "guildId" => match guildId with GuildId g -> g
+                "lastAffixesPosted" => lastAffixes
+            ]
+            
+            execute (sql affixesChannelTableName) data
+            |> Async.Ignore 
 
         member x.UnsetLogChannelForGuild guildId = 
             let sql = 
