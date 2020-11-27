@@ -174,7 +174,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
 
         sendEmbed msg.Channel embed 
 
-    let handleStatusMessage (msg: IMessage) = 
+    let handleStatusMessage (msg: IMessage) =
         let embed = EmbedBuilder()
         embed.Title <- ":robot: Dijon Status"
         embed.Description <- sprintf ":heartbeat: **%i ms** heartbeat latency." client.Latency
