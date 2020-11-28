@@ -13,11 +13,12 @@ COPY paket.lock .
 COPY paket.dependencies .
 COPY src/paket.references src/
 COPY src/Dijon.fsproj src/
+COPY Dijon.Migrations/Dijon.Migrations.fsproj Dijon.Migrations/
 RUN dotnet restore
 
 # Copy source files and build project
-COPY src/* src/
-COPY src/Services/* src/Services/
+COPY src/ src/
+COPY Dijon.Migrations/ Dijon.Migrations/
 RUN dotnet publish -c Release -o dist -r linux-musl-x64
 
 # Switch to alpine for smaller container size
