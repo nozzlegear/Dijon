@@ -35,7 +35,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
     let sendMessage (channel: IMessageChannel) msg = sendEditableMessage channel msg |> Async.Ignore
     let sendEmbed (channel: IMessageChannel) (embed: EmbedBuilder) = channel.SendMessageAsync("", false, embed.Build()) |> Async.AwaitTask |> Async.Ignore
     let react (msg: SocketUserMessage) emote = msg.AddReactionAsync emote |> Async.AwaitTask |> Async.Ignore
-    let mutliReact (msg: SocketUserMessage) (emotes: IEmote seq) = 
+    let multiReact (msg: SocketUserMessage) (emotes: IEmote seq) = 
         emotes
         |> Seq.map (fun e -> fun _ -> react msg e)
         |> Async.Sequential
@@ -329,7 +329,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                 ["👌"; "🎉"; "👏"]
                 |> Seq.map Emoji
                 |> Seq.cast<IEmote>
-                |> mutliReact msg
+                |> multiReact msg
             [
                 addReactions
                 fun _ -> sendMessage msg.Channel djurHype
@@ -379,7 +379,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             ["🇳"; "🇴"]
             |> Seq.map Emoji
             |> Seq.cast<IEmote>
-            |> mutliReact msg
+            |> multiReact msg
             
     let createAffixesEmbed (affixes: ListAffixesResponse) =
         let builder = EmbedBuilder()
