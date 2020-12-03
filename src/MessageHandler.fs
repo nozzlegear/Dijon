@@ -11,6 +11,9 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
     let calyId = uint64 148990194815598592L
     let biggelsId = uint64 479036597312946177L
     let rhunonId = uint64 376795664698441740L
+    let tazId = uint64 223974005948809223L
+    let initId = uint64 162728562850267138L
+    let durzId = uint64 241044004269981697L
     let randomSlanderResponse () = 
         [ "https://tenor.com/view/palpatine-treason-star-wars-emperor-gif-8547403"
           "https://tenor.com/view/thanos-infinity-war-avengers-gif-10387727" 
@@ -375,6 +378,30 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                 |> Seq.randomItem
             
             sendMessage msg.Channel biggsHype
+        | i when i = tazId ->
+            let tazHype =
+                [ "Taz'dingo! https://tenor.com/view/arrow-hunting-fierce-nature-shoot-gif-14621316"
+                  "You've never seen a more exceptional hunter than Taz! https://tenor.com/view/bow-and-arrow-nerd-happy-cd-glasses-gif-15617156" ]
+                |> Seq.randomItem
+                
+            sendMessage msg.Channel tazHype
+        | i when i = initId ->
+            let initHype =
+                [ "HEY https://tenor.com/view/spongebob-squarepants-chest-bust-rip-shirt-gif-4172168"
+                  "https://tenor.com/view/happy-im-so-happy-happiness-joy-excited-gif-16119788"
+                  "Init be like: https://tenor.com/view/pancakes-michael-scott-you-will-like-it-food-gif-16324949"
+                  "He's the original member of the Pancake Party! https://tenor.com/view/bunny-pancakes-wreck-it-ralph-gif-11221126" ]
+                |> Seq.randomItem
+                
+            sendMessage msg.Channel initHype
+        | i when i = durzId ->
+            let durzHype =
+                [ "Live look at Durz when he casts Hand of Freedom: https://tenor.com/view/speed-wheelchair-me-running-late-gif-14178485"
+                  "https://tenor.com/view/george-costanza-scooter-look-back-slow-gif-14470443"
+                  "https://tenor.com/view/wheelchair-fall-fail-gif-8902077" ]
+                |> Seq.randomItem
+                
+            sendMessage msg.Channel durzHype
         | _ -> 
             ["🇳"; "🇴"]
             |> Seq.map Emoji
