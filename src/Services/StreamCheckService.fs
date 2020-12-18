@@ -26,7 +26,8 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
                   "A Virulent Surplus of Hubris"
                   "No Scrap Value"
                   "Failure of Statecraft"
-                  "Down With Biggelsworth!" ]
+                  "Down With Biggelsworth!"
+                  "Decentralize me, daddy" ]
                 |> Seq.sortBy (fun _ -> Guid.NewGuid())
                 |> Seq.head
             do! bot.UpdateGameAsync status |> Async.AwaitTask
