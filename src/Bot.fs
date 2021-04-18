@@ -56,9 +56,45 @@ module Bot =
         bot.database.BatchSetAsync [MemberUpdate.FromGuildUser user]
 
     let private handleUserUpdated (bot: BotConfig) (before: SocketGuildUser) (after: SocketGuildUser) =
-        // Temporarily disable the update handler, which is blocking and causing issues
-        Async.Empty
-//        bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
+        // Check if this user was just assigned a raider/team role
+        let memberRoleId =
+            uint64 427327334119637014L
+        let raiderRoleIds =
+            [ uint64 424683167899713537L (* Raiders *)
+              uint64 460303590909673472L (* Last Call *)
+              uint64 460303540859043842L (* Team Tight Bois *)
+              uint64 534792074780999690L (* Weekend Raid *) ]
+        let hasNewRaiderRole =
+            after.Roles
+            |> Seq.except before.Roles
+            |> Seq.fold (fun state role -> if Seq.contains role.Id raiderRoleIds then true else state ) false
+        let hasMemberRole =
+            after.Roles
+            |> Seq.exists (fun r -> r.Id = memberRoleId)
+            
+        match hasNewRaiderRole, hasMemberRole with
+        | true, false ->
+            // Assign the member role to the user
+            let nickname =
+                if String.IsNullOrWhiteSpace after.Nickname then
+                    after.Username
+                else
+                    after.Nickname
+                    
+            async {
+                let memberRole =
+                    after.Guild.Roles
+                    |> Seq.find (fun r -> r.Id = memberRoleId)
+                    
+                printfn "Adding %s role for user %s#%s" memberRole.Name nickname after.Discriminator
+                
+                do! after.AddRoleAsync memberRole
+                    |> Async.AwaitTask
+            }
+        | _, _ ->
+            Async.Empty
+            // bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
+        
     
     let handleLeftGuild (bot: BotConfig) (guild: SocketGuild) = 
         bot.database.UnsetLogChannelForGuild (GuildId <| int64 guild.Id)
