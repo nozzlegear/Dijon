@@ -35,7 +35,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
             do! bot.UpdateGameAsync status |> Async.AwaitTask
         } |> Async.Start
         
-    let rec scheduleJob (cancellation : CancellationToken) =
+    let rec scheduleJob (cancellation : CancellationToken) startNow =
         let baseTimer = new Timer(TimeSpan.FromHours(1.).TotalMilliseconds)
         // Set AutoReset to false so the event is only raised once per timer
         baseTimer.AutoReset <- false
@@ -51,10 +51,13 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
             
             // Schedule the next job as soon as this one fires
             if not cancellation.IsCancellationRequested then
-                scheduleJob cancellation 
+                scheduleJob cancellation false
         )
         
         baseTimer.Start()
+        
+        if startNow then
+            checkStreams()
     
     interface IDisposable with
         member x.Dispose() =
@@ -63,7 +66,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
             
     interface IHostedService with
         member x.StartAsync cancellation =
-            scheduleJob cancellation
+            scheduleJob cancellation true
             Task.CompletedTask
             
         member x.StopAsync cancellation =
