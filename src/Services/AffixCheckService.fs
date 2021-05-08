@@ -2,79 +2,111 @@ namespace Dijon.Services
 
 open System
 open System.Threading.Tasks
+open System.Threading
 open Dijon
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
-open System.Threading
+open Cronos
+
+type private NextSchedule = 
+    | FromTimeSpan of TimeSpan
+    | FromCron
 
 type AffixCheckService(logger : ILogger<AffixCheckService>, bot : Dijon.BotClient, database : IDijonDatabase) =
-    let mutable timer : Timer option = None
-   
-    // The timer should run every 25 minutes on Tuesdays
-    let timerRunPeriod = TimeSpan.FromMinutes 25.
-     
-    let adjustTimer () =
-        let now =
-            DateTime.UtcNow
-        
-        match now.DayOfWeek with
-        | DayOfWeek.Tuesday ->
-            // It's currently Tuesday, so we don't need to adjust the timer. It will continue running
-            // every 20 minutes (based on the `timerRunPeriod` variable)
-            ()
-        | _ ->
-            // Set the timer to pause until next Tuesday 
-            // NOTE: it's important to use `now.Date.AddDays` instead of `now.AddDays` --
-            // this will make sure the clock is set to midnight, and adding hours later lets us
-            // pick a specific time on the day
-            let mutable nextDay = now.Date.AddDays 1.
-            
-            while nextDay.DayOfWeek <> DayOfWeek.Tuesday do
-                nextDay <- nextDay.AddDays 1.
-                
-            // Don't start the 20 minute checks until 15:00 UTC (9 or 10am central)
-            let nextRun = (nextDay.AddHours 15.) - now
-            
-            logger.LogInformation(sprintf "Next affix check will occur in %.1f hours." nextRun.TotalHours)
-            
-            timer
-            |> Option.iter (fun timer -> timer.Change(nextRun, timerRunPeriod) |> ignore)
+    let mutable timer : System.Timers.Timer option = None
     
-    let rec postAffixes (affixes : RaiderIo.ListAffixesResponse) channels =
-        match channels with
-        | [] ->
-            Async.Empty
-        | channel :: remaining ->
-            // Only post this message if it has not been posted to the guild/channel
-            match channel.LastAffixesPosted with
-            | Some title when title = affixes.title ->
-                postAffixes affixes remaining 
-            | _ ->
-                let guildId = GuildId channel.GuildId
-                
-                async {
-                    do! bot.PostAffixesMessageAsync guildId channel.ChannelId affixes
-                    do! database.SetLastAffixesPostedForGuild guildId affixes.title
-                    // Post to the remaining channels
-                    do! postAffixes affixes remaining
-                }
+    // Every Tuesday at 9am
+    let schedule = CronExpression.Parse("0 9 * * 2")
     
-    let checkAffixes _ : unit =
+    // Central Standard Time (automatically handles DST)
+    let timezone = TimeZoneInfo.FindSystemTimeZoneById "America/Chicago"
+    
+    let postAffixes (affixes : RaiderIo.ListAffixesResponse) channels =
+        let rec post hasPosted channels = 
+            match channels with
+            | [] ->
+                Async.Wrap hasPosted
+            | channel :: remaining ->
+                // Only post this message if it has not been posted to the guild/channel
+                match channel.LastAffixesPosted with
+                | Some title when title = affixes.title ->
+                    post hasPosted remaining
+                | _ ->
+                    let guildId = GuildId channel.GuildId
+                    
+                    async {
+                        do! bot.PostAffixesMessageAsync guildId channel.ChannelId affixes
+                        do! database.SetLastAffixesPostedForGuild guildId affixes.title
+                        // Post to the remaining channels
+                        return! post true remaining
+                    }
+
+        post false channels
+    
+    let checkAffixes _ : Async<bool> =
         async {
             let! channels = database.ListAllAffixChannels()
             
             if List.isEmpty channels then
-                logger.LogInformation(sprintf "No guilds have enabled the affixes channel, no reason to check affixes.")
+                logger.LogInformation(sprintf "No guilds have enabled the affixes channel, no reason to check affixes")
+                return true
             else
                 match! Affixes.list() with
                 | Error err ->
                     logger.LogError(sprintf "Failed to get new affixes due to reason: %s" err)
+                    return false
                 | Ok affixes ->
                     logger.LogInformation(sprintf "Got affixes: %s" affixes.title)
-                    do! postAffixes affixes channels
+                    return! postAffixes affixes channels
+        } 
+   
+    let rec scheduleJob (cancellation : CancellationToken) nextSchedule =
+        let now = DateTimeOffset.Now
+        let delay = 
+            match nextSchedule with 
+            | FromCron -> 
+                schedule.GetNextOccurrence(now, timezone)
+                |> Option.ofNullable
+                |> Option.map (fun next -> next - now)
+            | FromTimeSpan ts -> 
+                Some ts
+        
+        match delay with
+        | None ->
+            ()
+        | Some delay ->
+            let baseTimer = new System.Timers.Timer(delay.TotalMilliseconds)
+            // Set AutoReset to false so the event is only raised once per timer
+            baseTimer.AutoReset <- false
+            timer <- Some baseTimer
+            
+            baseTimer.Elapsed
+            |> Event.add (fun _ ->
+                baseTimer.Dispose()
+                timer <- None
+                
+                if not cancellation.IsCancellationRequested then
+                    let hasPosted = 
+                        checkAffixes ()
+                        |> Async.RunSynchronously
                     
-            adjustTimer ()
-        } |> Async.RunSynchronously
+                    // Schedule the next job 
+                    if hasPosted then
+                        // Affixes were posted, which means the bot can wait until the next cron schedule.
+                        scheduleJob cancellation FromCron
+                    else
+                        // Affixes were not posted, meaning they have not been updated yet. Check again in 5 minutes.
+                        TimeSpan.FromMinutes 5.
+                        |> FromTimeSpan
+                        |> scheduleJob cancellation
+            )
+                
+            logger.LogInformation(
+                "Next affix check occurs at {0} ({1:f1} hours from now)",
+                now + delay,
+                delay.TotalHours
+            )
+            baseTimer.Start()
     
     interface IDisposable with
         member x.Dispose() =
@@ -83,13 +115,12 @@ type AffixCheckService(logger : ILogger<AffixCheckService>, bot : Dijon.BotClien
 
     interface IHostedService with
         member x.StartAsync cancellationToken =
-            let baseTimer = new Timer(checkAffixes, None, TimeSpan.Zero, timerRunPeriod)
-            timer <- Some baseTimer
-            
+            checkAffixes () |> ignore
+            scheduleJob cancellationToken FromCron
             Task.CompletedTask
             
         member x.StopAsync cancellationToken =
             timer
-            |> Option.iter (fun timer -> timer.Change(Timeout.Infinite, 0) |> ignore)
+            |> Option.iter (fun timer -> timer.Stop())
             
             Task.CompletedTask
