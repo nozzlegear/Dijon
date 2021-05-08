@@ -9,3 +9,4 @@ nuget microsoft.extensions.logging
 nuget taskbuilder.fs
 nuget simple.migrations
 nuget system.data.sqlclient
+nuget cronos
