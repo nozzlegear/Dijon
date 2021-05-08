@@ -5,11 +5,13 @@ open System.Threading
 open System.Threading.Tasks
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
+// Alias the System.Timers.Timer type so it doesn't clash with System.Threading.Timer
+type Timer = System.Timers.Timer
 
 type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotClient) =
     let mutable timer : Timer option = None
     
-    let checkStreams state : unit =
+    let checkStreams () : unit =
         logger.LogWarning "Service is checking streams."
         
         async {
@@ -31,7 +33,28 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
                 |> Seq.sortBy (fun _ -> Guid.NewGuid())
                 |> Seq.head
             do! bot.UpdateGameAsync status |> Async.AwaitTask
-        } |> Async.RunSynchronously
+        } |> Async.Start
+        
+    let rec scheduleJob (cancellation : CancellationToken) =
+        let baseTimer = new Timer(TimeSpan.FromHours(1.).TotalMilliseconds)
+        // Set AutoReset to false so the event is only raised once per timer
+        baseTimer.AutoReset <- false
+        timer <- Some baseTimer
+        
+        baseTimer.Elapsed
+        |> Event.add (fun _ ->
+            baseTimer.Dispose()
+            timer <- None
+            
+            if not cancellation.IsCancellationRequested then
+                checkStreams()
+            
+            // Schedule the next job as soon as this one fires
+            if not cancellation.IsCancellationRequested then
+                scheduleJob cancellation 
+        )
+        
+        baseTimer.Start()
     
     interface IDisposable with
         member x.Dispose() =
@@ -40,12 +63,10 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
             
     interface IHostedService with
         member x.StartAsync cancellation =
-            let baseTimer = new Timer(checkStreams, None, TimeSpan.Zero, TimeSpan.FromHours(1.))
-            timer <- Some baseTimer
-            
+            scheduleJob cancellation
             Task.CompletedTask
             
         member x.StopAsync cancellation =
             timer
-            |> Option.iter (fun timer -> timer.Change(Timeout.Infinite, 0) |> ignore)
+            |> Option.iter (fun timer -> timer.Stop())
             Task.CompletedTask
