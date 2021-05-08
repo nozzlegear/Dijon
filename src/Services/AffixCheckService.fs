@@ -55,6 +55,8 @@ type AffixCheckService(logger : ILogger<AffixCheckService>, bot : Dijon.BotClien
                 async {
                     do! bot.PostAffixesMessageAsync guildId channel.ChannelId affixes
                     do! database.SetLastAffixesPostedForGuild guildId affixes.title
+                    // Post to the remaining channels
+                    do! postAffixes affixes remaining
                 }
     
     let checkAffixes _ : unit =
