@@ -10,3 +10,4 @@ nuget taskbuilder.fs
 nuget simple.migrations
 nuget system.data.sqlclient
 nuget cronos
+nuget TimeZoneConverter

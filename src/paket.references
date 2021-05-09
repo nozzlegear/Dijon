@@ -7,3 +7,4 @@ microsoft.extensions.hosting
 microsoft.extensions.logging
 taskbuilder.fs
 cronos
+TimeZoneConverter

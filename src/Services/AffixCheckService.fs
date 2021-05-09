@@ -3,10 +3,11 @@ namespace Dijon.Services
 open System
 open System.Threading.Tasks
 open System.Threading
-open Dijon
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
+open Dijon
 open Cronos
+open TimeZoneConverter
 
 type private NextSchedule = 
     | FromTimeSpan of TimeSpan
@@ -19,7 +20,9 @@ type AffixCheckService(logger : ILogger<AffixCheckService>, bot : Dijon.BotClien
     let schedule = CronExpression.Parse("0 9 * * 2")
     
     // Central Standard Time (automatically handles DST)
-    let timezone = TimeZoneInfo.FindSystemTimeZoneById "America/Chicago"
+    // Use the TimeZoneConverter package to convert between Windows/Linux/Mac TimeZone names
+    // https://devblogs.microsoft.com/dotnet/cross-platform-time-zones-with-net-core/
+    let timezone = TZConvert.GetTimeZoneInfo "America/Chicago"
     
     let postAffixes (affixes : RaiderIo.ListAffixesResponse) channels =
         let rec post hasPosted channels = 
