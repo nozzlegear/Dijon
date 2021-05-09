@@ -25,6 +25,10 @@ RUN dotnet publish -c Release -o dist -r linux-musl-x64
 FROM mcr.microsoft.com/dotnet/core/runtime:3.1-alpine
 WORKDIR /app
 
+# Add timezone info (tzdata package) to Alpine
+# https://github.com/dotnet/dotnet-docker/issues/1366
+RUN apk add --no-cache tzdata
+
 # Copy the built files from Builder container
 COPY --from=0 /app/dist /app/dist
 RUN chmod +x /app/dist/Dijon 
