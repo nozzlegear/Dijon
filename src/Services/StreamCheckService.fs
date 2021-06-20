@@ -10,8 +10,6 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
     let mutable timer : System.Timers.Timer option = None
     
     let checkStreams () : unit =
-        logger.LogWarning "Service is checking streams."
-        
         async {
             let status =
                 [ "Incentives Available Subject to Covenant"
