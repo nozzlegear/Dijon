@@ -13,26 +13,26 @@ NUGET
       System.Reflection.TypeExtensions (>= 4.4) - restriction: || (&& (< net451) (>= netstandard1.3) (< netstandard2.0)) (&& (< net451) (>= netstandard2.0))
       System.Runtime.InteropServices (>= 4.3) - restriction: && (< net451) (>= netstandard1.3) (< netstandard2.0)
       System.Xml.XmlDocument (>= 4.3) - restriction: && (< net451) (>= netstandard1.3) (< netstandard2.0)
-    Discord.Net (2.1.1)
-      Discord.Net.Commands (>= 2.1.1) - restriction: >= netstandard1.3
-      Discord.Net.Core (>= 2.1.1) - restriction: >= netstandard1.3
-      Discord.Net.Rest (>= 2.1.1) - restriction: >= netstandard1.3
-      Discord.Net.Webhook (>= 2.1.1) - restriction: >= netstandard1.3
-      Discord.Net.WebSocket (>= 2.1.1) - restriction: >= netstandard1.3
-    Discord.Net.Commands (2.2) - restriction: >= netstandard1.3
-      Discord.Net.Core (>= 2.2) - restriction: || (>= net461) (>= netstandard2.0)
-    Discord.Net.Core (2.2) - restriction: >= netstandard1.3
+    Discord.Net (2.4)
+      Discord.Net.Commands (>= 2.4) - restriction: || (>= net461) (>= netstandard2.0)
+      Discord.Net.Core (>= 2.4) - restriction: || (>= net461) (>= netstandard2.0)
+      Discord.Net.Rest (>= 2.4) - restriction: || (>= net461) (>= netstandard2.0)
+      Discord.Net.Webhook (>= 2.4) - restriction: || (>= net461) (>= netstandard2.0)
+      Discord.Net.WebSocket (>= 2.4) - restriction: || (>= net461) (>= netstandard2.0)
+    Discord.Net.Commands (2.4) - restriction: || (>= net461) (>= netstandard2.0)
+      Discord.Net.Core (>= 2.4) - restriction: || (>= net461) (>= netstandard2.0)
+    Discord.Net.Core (2.4) - restriction: || (>= net461) (>= netstandard2.0)
       Newtonsoft.Json (>= 12.0.2) - restriction: || (>= net461) (>= netstandard2.0)
       System.Collections.Immutable (>= 1.3.1) - restriction: || (>= net461) (>= netstandard2.0)
       System.Interactive.Async (>= 4.0) - restriction: || (>= net461) (>= netstandard2.0)
-    Discord.Net.Rest (2.2) - restriction: >= netstandard1.3
-      Discord.Net.Core (>= 2.2) - restriction: || (>= net461) (>= netstandard2.0)
-    Discord.Net.Webhook (2.2) - restriction: >= netstandard1.3
-      Discord.Net.Core (>= 2.2) - restriction: >= netstandard2.0
-      Discord.Net.Rest (>= 2.2) - restriction: >= netstandard2.0
-    Discord.Net.WebSocket (2.2) - restriction: >= netstandard1.3
-      Discord.Net.Core (>= 2.2) - restriction: || (>= net461) (>= netstandard2.0)
-      Discord.Net.Rest (>= 2.2) - restriction: || (>= net461) (>= netstandard2.0)
+    Discord.Net.Rest (2.4) - restriction: || (>= net461) (>= netstandard2.0)
+      Discord.Net.Core (>= 2.4) - restriction: || (>= net461) (>= netstandard2.0)
+    Discord.Net.Webhook (2.4) - restriction: || (>= net461) (>= netstandard2.0)
+      Discord.Net.Core (>= 2.4) - restriction: >= netstandard2.0
+      Discord.Net.Rest (>= 2.4) - restriction: >= netstandard2.0
+    Discord.Net.WebSocket (2.4) - restriction: || (>= net461) (>= netstandard2.0)
+      Discord.Net.Core (>= 2.4) - restriction: || (>= net461) (>= netstandard2.0)
+      Discord.Net.Rest (>= 2.4) - restriction: || (>= net461) (>= netstandard2.0)
     Fable.Core (3.1.1) - restriction: && (< net46) (>= netstandard2.0)
       FSharp.Core (>= 4.5.2) - restriction: >= netstandard2.0
     FSharp.Control.AsyncSeq (2.0.21)
