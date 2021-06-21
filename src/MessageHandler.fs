@@ -2,7 +2,6 @@ namespace Dijon
 open Dijon.RaiderIo
 open Discord
 open System
-open System.Net.Http
 open Discord.WebSocket
 
 type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) = 
@@ -32,16 +31,6 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
           "https://tenor.com/view/youre-unbearably-naive-avengers-ultron-gif-10230820"
           "https://tenor.com/view/anakin-darth-vader-gif-5233555" ]
         |> Seq.randomItem
-    let formatMentionString = sprintf "<@%i> "
-    let embedField title value = EmbedFieldBuilder().WithName(title).WithValue(value)
-    let sendEditableMessage (channel : IMessageChannel) msg = channel.SendMessageAsync msg |> Async.AwaitTask
-    let sendMessage (channel: IMessageChannel) msg = sendEditableMessage channel msg |> Async.Ignore
-    let sendEmbed (channel: IMessageChannel) (embed: EmbedBuilder) = channel.SendMessageAsync("", false, embed.Build()) |> Async.AwaitTask |> Async.Ignore
-    let react (msg: SocketUserMessage) emote = msg.AddReactionAsync emote |> Async.AwaitTask |> Async.Ignore
-    let multiReact (msg: SocketUserMessage) (emotes: IEmote seq) = 
-        emotes
-        |> Seq.map (fun e -> fun _ -> react msg e)
-        |> Async.Sequential
 
     let (|ContainsSlander|_|) (a: string) = 
         let tdeDownWithDjurChannel = 561289801890791425L
@@ -75,7 +64,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             None 
 
     let (|Mentioned|NotMentioned|) (msg: IMessage) = 
-        let mentionString = formatMentionString client.CurrentUser.Id
+        let mentionString = MessageUtils.mentionUser client.CurrentUser.Id
 
         if StringUtils.startsWithAny msg.Content ["!dijon"; mentionString]
         then Mentioned
@@ -172,11 +161,11 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         embed.Description <- "Here's the recipe for Djur's sweet goulash, the power food that fuels Team Tight Bois. **Highly** recommended by all those who've tried it, including Foxy, Jay and Patoosh."
         embed.ThumbnailUrl <- "https://az.nozzlegear.com/images/share/2019-07-30.16.13.11.png"
         embed.Fields.AddRange [
-            embedField "Ingredients" (StringUtils.newlineJoin ingredients)
-            embedField "Instructions" (StringUtils.newlineJoin instructions)
+            MessageUtils.embedField "Ingredients" (StringUtils.newlineJoin ingredients)
+            MessageUtils.embedField "Instructions" (StringUtils.newlineJoin instructions)
         ]
 
-        sendEmbed msg.Channel embed 
+        MessageUtils.sendEmbed msg.Channel embed 
 
     let handleStatusMessage (msg: IMessage) =
         let embed = EmbedBuilder()
@@ -201,69 +190,69 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                     |> Option.defaultValue "Mythic Plus affixes are **not set up** for this server. Use `!dijon set affixes here` to set the affix channel."
 
                 embed.Fields.AddRange [
-                    embedField "Log Channel" logChannelMessage
-                    embedField "Affixes Channel" affixChannelMessage
+                    MessageUtils.embedField "Log Channel" logChannelMessage
+                    MessageUtils.embedField "Affixes Channel" affixChannelMessage
                 ]
 
-                return! sendEmbed msg.Channel embed 
+                return! MessageUtils.sendEmbed msg.Channel embed 
             }
         | _ -> 
-            sendEmbed msg.Channel embed
+            MessageUtils.sendEmbed msg.Channel embed
 
     let handleSetLogChannelMessage (msg: IMessage) = 
         match msg.Channel with 
         | :? SocketGuildChannel as guildChannel -> 
             if msg.Author.Id <> djurId then
-                sendMessage msg.Channel (sprintf "At the moment, only the Almighty <@%i> may set the log channel." djurId)
+                MessageUtils.sendMessage msg.Channel (sprintf "At the moment, only the Almighty <@%i> may set the log channel." djurId)
             else 
                 async {
                     let guildId = GuildId (int64 guildChannel.Guild.Id)
 
                     do! database.SetLogChannelForGuild guildId (int64 msg.Channel.Id)
-                    do! sendMessage msg.Channel "Messages will be sent to this channel when a user leaves the server."
+                    do! MessageUtils.sendMessage msg.Channel "Messages will be sent to this channel when a user leaves the server."
                 }
         | :? ISocketPrivateChannel -> 
-            sendMessage msg.Channel "Unable to set log channel in a private message."
+            MessageUtils.sendMessage msg.Channel "Unable to set log channel in a private message."
         | _ -> 
-            sendMessage msg.Channel "Unable to set log channel in unknown channel type."
+            MessageUtils.sendMessage msg.Channel "Unable to set log channel in unknown channel type."
             
     let handleSetAffixesChannelMessage (msg: IMessage) =
         match msg.Channel with
         | :? SocketGuildChannel as guildChannel ->
             if msg.Author.Id <> djurId then
-                sendMessage msg.Channel (sprintf "At the moment, only <@%i> may set the affixes channel." djurId)
+                MessageUtils.sendMessage msg.Channel (sprintf "At the moment, only <@%i> may set the affixes channel." djurId)
             else
                 async {
                     let guildId = GuildId (int64 guildChannel.Guild.Id)
                     
                     do! database.SetAffixesChannelForGuild guildId (int64 msg.Channel.Id)
-                    do! sendMessage msg.Channel "Affixes will be sent to this channel every Tuesday."
+                    do! MessageUtils.sendMessage msg.Channel "Affixes will be sent to this channel every Tuesday."
                 }
         | :? ISocketPrivateChannel ->
-            sendMessage msg.Channel "Unable to set log channel in a private message."
+            MessageUtils.sendMessage msg.Channel "Unable to set log channel in a private message."
         | _ ->
-            sendMessage msg.Channel "Unable to set log channel in unknown channel type."
+            MessageUtils.sendMessage msg.Channel "Unable to set log channel in unknown channel type."
 
     let handleHelpMessage (msg: IMessage) =
         let embed = EmbedBuilder()
         embed.Title <- "⚡ Dijon-bot Commands" 
         embed.Color <- Nullable Color.Blue
         embed.Fields.AddRange [
-            embedField "`affixes`" "Fetches this week's Mythic+ dungeon affixes and displays them alongside a description of each."
-            embedField "`status`" "Checks the status of Dijon-bot and reports which channel is used for logging membership changes."
-            embedField "`set logs here`" "Tells Dijon-bot to report membership changes to the current channel. Only one channel is supported per server."
-            embedField "`set affixes here`" "Tells Dijon-bot to post Mythic Plus affixes to the current channel every Tuesday. Only one channel is supported per server."
-            embedField "`test`" "Sends a test membership change message to the current channel."
-            embedField "`goulash recipe`" "Sends Djur's world-renowned sweet goulash recipe, the food that powers Team Tight Bois."
+            MessageUtils.embedField "`affixes`" "Fetches this week's Mythic+ dungeon affixes and displays them alongside a description of each."
+            MessageUtils.embedField "`status`" "Checks the status of Dijon-bot and reports which channel is used for logging membership changes."
+            MessageUtils.embedField "`set logs here`" "Tells Dijon-bot to report membership changes to the current channel. Only one channel is supported per server."
+            MessageUtils.embedField "`set affixes here`" "Tells Dijon-bot to post Mythic Plus affixes to the current channel every Tuesday. Only one channel is supported per server."
+            MessageUtils.embedField "`test`" "Sends a test membership change message to the current channel."
+            MessageUtils.embedField "`goulash recipe`" "Sends Djur's world-renowned sweet goulash recipe, the food that powers Team Tight Bois."
         ]
 
-        sendEmbed msg.Channel embed
+        MessageUtils.sendEmbed msg.Channel embed
 
     let handleSlander (msg: IMessage) = 
         match msg with 
         | Mentioned -> 
             randomSlanderResponse ()
-            |> sendMessage msg.Channel
+            |> MessageUtils.sendMessage msg.Channel
         | NotMentioned ->
             // React 1/3 times
             match [1;2;3] |> Seq.randomItem with
@@ -271,7 +260,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                 [ "😭"; "💔"; "🔪"; "😡" ]
                 |> Seq.randomItem
                 |> Emoji 
-                |> react (msg :?> SocketUserMessage)
+                |> MessageUtils.react (msg :?> SocketUserMessage)
             | _ -> 
                 Async.Empty
 
@@ -280,13 +269,13 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         | Mentioned -> 
             // Send the Twitch clip embed
             let twitchClipMsg = "Schrodinger's Foxy: he exists in both Dalaran and Moonglade, but you never know which until you pull a boss: https://clips.twitch.tv/HyperCrackyRabbitHeyGirl"
-            sendMessage msg.Channel twitchClipMsg
+            MessageUtils.sendMessage msg.Channel twitchClipMsg
         | NotMentioned -> 
             // Send a message 1/3 times
             match [1;2;3;] |> Seq.randomItem with 
             | i when i = 1 -> 
                 let twitchClipMsg = "Foxy is _always_ in Dalaran! https://clips.twitch.tv/HyperCrackyRabbitHeyGirl"
-                sendMessage msg.Channel twitchClipMsg
+                MessageUtils.sendMessage msg.Channel twitchClipMsg
             | _ -> 
                 Async.Empty
             
@@ -296,14 +285,14 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         | i when i = djurId ->
             let responseMsg =
                 [ "This bot will not rest until all dissidents have been crushed."
-                  sprintf "Down with %s!" (formatMentionString biggelsId)
-                  sprintf "Down with %s!" (formatMentionString foxyId)
+                  sprintf "Down with %s!" (MessageUtils.mentionUser biggelsId)
+                  sprintf "Down with %s!" (MessageUtils.mentionUser foxyId)
                   "In the land of Djur'alotha, there is only goulash."
-                  sprintf "Long may %s reign!" (formatMentionString djurId) ]
+                  sprintf "Long may %s reign!" (MessageUtils.mentionUser djurId) ]
                 |> Seq.randomItem
             
-            [ fun _ -> sendMessage msg.Channel responseMsg
-              fun _ -> sendMessage msg.Channel (randomSlanderResponse ()) ]
+            [ fun _ -> MessageUtils.sendMessage msg.Channel responseMsg
+              fun _ -> MessageUtils.sendMessage msg.Channel (randomSlanderResponse ()) ]
             |> Async.Sequential
         | _ ->
             // Gifs that say "no" or just laugh
@@ -312,7 +301,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
               "https://tenor.com/view/evil-laugh-star-wars-sith-palpatine-gif-4145117"
               "https://tenor.com/view/jake-gyllenhaal-smh-shake-my-head-no-nope-gif-4996204" ]
             |> Seq.randomItem
-            |> sendMessage msg.Channel
+            |> MessageUtils.sendMessage msg.Channel
 
     let handleHypeMessage (msg: IMessage) = 
         let msg = msg :?> SocketUserMessage
@@ -332,10 +321,10 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                 ["👌"; "🎉"; "👏"]
                 |> Seq.map Emoji
                 |> Seq.cast<IEmote>
-                |> multiReact msg
+                |> MessageUtils.multiReact msg
             [
                 addReactions
-                fun _ -> sendMessage msg.Channel djurHype
+                fun _ -> MessageUtils.sendMessage msg.Channel djurHype
             ]
             |> Async.Sequential
         | i when i = foxyId ->
@@ -349,7 +338,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                   "Foxy is the kind of bear who would show his right hand. 😼💦" ]
                 |> Seq.randomItem
            
-            sendMessage msg.Channel foxyHype  
+            MessageUtils.sendMessage msg.Channel foxyHype  
         | i when i = calyId ->
             let calyHype =
                 [ "https://cdn.discordapp.com/attachments/477977486857338880/601212276984250398/image.png"
@@ -357,34 +346,34 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                   "https://cdn.discordapp.com/attachments/477977486857338880/509872721891688458/Snapchat-973247782.jpg" ]
                 |> Seq.randomItem
                 
-            sendMessage msg.Channel calyHype
+            MessageUtils.sendMessage msg.Channel calyHype
         | i when i = rhunonId ->
             let rhunonHype =
                 [ "https://tenor.com/view/rihanna-crown-queen-princess-own-it-gif-4897467"
                   "https://tenor.com/view/jon-snow-my-queen-gif-9619999"
                   "https://tenor.com/view/were-not-worthy-waynes-world-gif-9201571"
                   "🎉 Hail to the Queen! 👑"
-                  sprintf "%swould be lost without the Queen." (formatMentionString djurId)
+                  sprintf "%swould be lost without the Queen." (MessageUtils.mentionUser djurId)
                   "https://tenor.com/view/the-outpost-the-outpost-series-thecw-gulman-randall-malin-gif-12842854" ]
                 |> Seq.randomItem
                 
-            sendMessage msg.Channel rhunonHype
+            MessageUtils.sendMessage msg.Channel rhunonHype
         | i when i = biggelsId ->
             let biggsHype =
                 [ "Let your failure be the final word in the story of rebellion! https://tenor.com/view/palpatine-the-rise-of-skywalker-lightning-palpatine-lightning-exegol-gif-18167689"
-                  sprintf "%sis a decidedly okay healer!" (formatMentionString biggelsId)
+                  sprintf "%sis a decidedly okay healer!" (MessageUtils.mentionUser biggelsId)
                   "JUST STAND IN THE MIDDLE AND HEAL THROUGH IT https://tenor.com/view/georffrey-rush-captain-of-the-ship-is-giving-orders-barbossa-pirates-of-the-caribbean-gif-9227393"
                   "Although he masquerades as the architect of #DownWithDjur, we all know he's secretly in the benevolent leader's pocket!" ]
                 |> Seq.randomItem
             
-            sendMessage msg.Channel biggsHype
+            MessageUtils.sendMessage msg.Channel biggsHype
         | i when i = tazId ->
             let tazHype =
                 [ "Taz'dingo! https://tenor.com/view/arrow-hunting-fierce-nature-shoot-gif-14621316"
                   "You've never seen a more exceptional hunter than Taz! https://tenor.com/view/bow-and-arrow-nerd-happy-cd-glasses-gif-15617156" ]
                 |> Seq.randomItem
                 
-            sendMessage msg.Channel tazHype
+            MessageUtils.sendMessage msg.Channel tazHype
         | i when i = initId ->
             let initHype =
                 [ "HEY https://tenor.com/view/spongebob-squarepants-chest-bust-rip-shirt-gif-4172168"
@@ -393,7 +382,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                   "He's the original member of the Pancake Party! https://tenor.com/view/bunny-pancakes-wreck-it-ralph-gif-11221126" ]
                 |> Seq.randomItem
                 
-            sendMessage msg.Channel initHype
+            MessageUtils.sendMessage msg.Channel initHype
         | i when i = durzId ->
             let durzHype =
                 [ "Live look at Durz when he casts Hand of Freedom: https://tenor.com/view/speed-wheelchair-me-running-late-gif-14178485"
@@ -401,12 +390,12 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                   "https://tenor.com/view/wheelchair-fall-fail-gif-8902077" ]
                 |> Seq.randomItem
                 
-            sendMessage msg.Channel durzHype
+            MessageUtils.sendMessage msg.Channel durzHype
         | _ -> 
             ["🇳"; "🇴"]
             |> Seq.map Emoji
             |> Seq.cast<IEmote>
-            |> multiReact msg
+            |> MessageUtils.multiReact msg
             
     let createAffixesEmbed (affixes: ListAffixesResponse) =
         let builder = EmbedBuilder()
@@ -414,14 +403,14 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
         builder.Title <- sprintf "This week's Mythic+ affixes: %s" affixes.title
         
         affixes.affix_details
-        |> List.map (fun affix -> embedField (sprintf "**%s**" affix.name) affix.description)
+        |> List.map (fun affix -> MessageUtils.embedField (sprintf "**%s**" affix.name) affix.description)
         |> builder.Fields.AddRange
         
         builder
             
     let handleGetAffixMessage (msg : IMessage) =
         async {
-            let! editable = sendEditableMessage msg.Channel "Fetching affixes, please wait..."
+            let! editable = MessageUtils.sendEditableMessage msg.Channel "Fetching affixes, please wait..."
             let! affixList = Affixes.list()
             let editMessage (props : MessageProperties) =
                 let embed =
@@ -431,7 +420,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
                         builder.Color <- Nullable Color.Red
                         builder.Title <- "❌ Error fetching affixes!"
                         
-                        embedField "🔬 Details" err
+                        MessageUtils.embedField "🔬 Details" err
                         |> builder.Fields.Add
                         
                         builder.Build()
@@ -448,7 +437,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
 
     let handleUnknownMessage (msg: IMessage) = 
         let msg = msg :?> SocketUserMessage
-        react msg (Emoji "\uD83E\uDD37")
+        MessageUtils.react msg (Emoji "\uD83E\uDD37")
 
     interface IMessageHandler with 
         member x.HandleMessage msg = 
@@ -478,9 +467,9 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             embed.Color <- Nullable Color.DarkOrange
             embed.ThumbnailUrl <- user.AvatarUrl
             
-            sendEmbed channel embed 
+            MessageUtils.sendEmbed channel embed 
 
         member x.SendAffixesMessage channel affixes =
             let embed = createAffixesEmbed affixes
             
-            sendEmbed channel embed 
+            MessageUtils.sendEmbed channel embed 
