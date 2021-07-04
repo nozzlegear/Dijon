@@ -16,7 +16,9 @@ module Program =
                     services.AddSingleton<BotClient>() |> ignore 
                     services.AddHostedService<DatabaseMigratorService>() |> ignore
                     services.AddHostedService<StreamCheckService>() |> ignore
-                    services.AddHostedService<AffixCheckService>() |> ignore)
+                    services.AddHostedService<AffixCheckService>() |> ignore
+                    services.AddHostedService<MessageMonitorService>() |> ignore
+                    services.AddHostedService<UserMonitorService>() |> ignore)
                 .ConfigureLogging(fun context logging ->
                     logging.AddConsole() |> ignore)
                 .RunConsoleAsync()
