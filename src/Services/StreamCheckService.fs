@@ -1,71 +1,78 @@
 namespace Dijon.Services
 
+open Dijon
 open System
-open System.Threading
 open System.Threading.Tasks
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
+open FSharp.Control.Tasks.V2.ContextInsensitive
+open Discord
+open Discord.WebSocket
 
 type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotClient) =
-    let mutable timer : System.Timers.Timer option = None
-    
-    let checkStreams () : unit =
-        async {
-            let status =
-                [ "Incentives Available Subject to Covenant"
-                  "Exceedingly Tedious and Slightly Unhinged"
-                  "Sweet and Full of Grace"
-                  "Now We Try It My Way"
-                  "This Is Legal But We Question The Ethics"
-                  "Conditions to Deteriorate Soon"
-                  "Moderate Traffic Density"
-                  "I Don't Need A Tie For Gravitas"
-                  "Flatten The Curve"
-                  "A Virulent Surplus of Hubris"
-                  "No Scrap Value"
-                  "Failure of Statecraft"
-                  "Down With Biggelsworth!"
-                  "Decentralize me, daddy" ]
-                |> Seq.sortBy (fun _ -> Guid.NewGuid())
-                |> Seq.head
-            do! bot.UpdateGameAsync status |> Async.AwaitTask
-        } |> Async.Start
-        
-    let rec scheduleJob (cancellation : CancellationToken) startNow =
-        let baseTimer = new System.Timers.Timer(TimeSpan.FromHours(1.).TotalMilliseconds)
-        // Set AutoReset to false so the event is only raised once per timer
-        baseTimer.AutoReset <- false
-        timer <- Some baseTimer
-        
-        baseTimer.Elapsed
-        |> Event.add (fun _ ->
-            baseTimer.Dispose()
-            timer <- None
             
-            if not cancellation.IsCancellationRequested then
-                checkStreams()
-            
-            // Schedule the next job as soon as this one fires
-            if not cancellation.IsCancellationRequested then
-                scheduleJob cancellation false
-        )
-        
-        baseTimer.Start()
-        
-        if startNow then
-            checkStreams()
+    /// Tries to get the user's stream activity. Returns None if the user is not streaming.
+    let tryGetStreamActivity (user : SocketUser): Option<StreamingGame> = 
+        user.Activities
+        |> Seq.tryPick (function
+            | :? StreamingGame as stream -> Some stream 
+            | _ -> None)
+
+    /// Checks if the user's activities indicate they're streaming. 
+    let isStreaming(user : SocketUser): bool = 
+        tryGetStreamActivity user
+        |> Option.isSome
+
+    let postStreamingMessage (user : SocketUser) (stream : StreamingGame) : Async<unit> =
+        let embed = EmbedBuilder()
+        embed.Title <- sprintf "%s is streaming %s right now!" user.Mention stream.Name
+        embed.Color <- Nullable Color.Green
+        embed.Description <- sprintf "%s. Check out their stream at %s" stream.Details stream.Url
+        embed.Url <- stream.Url
+
+        // TODO: get the server's stream messages channel id
+        let channelId = int64 856354026509434890L
+        let channel = bot.GetChannel channelId
+
+        MessageUtils.sendEmbed (channel :> IChannel :?> IMessageChannel) embed
+
+    let removeStreamingMessage (user : SocketUser) : Async<unit> = 
+        Async.Empty
+
+    let userUpdated (before : SocketGuildUser) (after : SocketGuildUser) = 
+        let streamerRoleId = 
+            uint64 856350523812610048L
+        let hasStreamerRole = 
+            after.Roles
+            |> Seq.exists (fun r -> r.Id = streamerRoleId)
+
+        for activity in after.Activities do
+            match activity with
+            | :? StreamingGame as stream ->
+                printfn "%s is streaming %s at %s" after.Nickname stream.Name stream.Url
+                ()
+            | :? Game ->
+                ()
+            | _ -> 
+                ()
+
+        let wasStreaming = isStreaming before
+        let stream = tryGetStreamActivity after
+
+        match wasStreaming, stream with
+        | true, None ->
+            removeStreamingMessage after
+        | false, Some stream when hasStreamerRole ->
+            postStreamingMessage after stream
+        | _, _ ->
+            Async.Empty
     
     interface IDisposable with
-        member x.Dispose() =
-            timer
-            |> Option.iter (fun timer -> timer.Dispose())
+        member _.Dispose() =
+            ()
             
     interface IHostedService with
-        member x.StartAsync cancellation =
-            scheduleJob cancellation true
-            Task.CompletedTask
+        member _.StartAsync cancellation =
             
-        member x.StopAsync cancellation =
-            timer
-            |> Option.iter (fun timer -> timer.Stop())
+        member _.StopAsync _ =
             Task.CompletedTask

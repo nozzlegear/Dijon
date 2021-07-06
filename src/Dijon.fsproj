@@ -17,6 +17,7 @@
     <Compile Include="Services\AffixCheckService.fs" />
     <Compile Include="Services\UserMonitorService.fs" />
     <Compile Include="Services\MessageMonitorService.fs" />
+    <Compile Include="Services\StatusChangeService.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

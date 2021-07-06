@@ -18,7 +18,8 @@ module Program =
                     services.AddHostedService<StreamCheckService>() |> ignore
                     services.AddHostedService<AffixCheckService>() |> ignore
                     services.AddHostedService<MessageMonitorService>() |> ignore
-                    services.AddHostedService<UserMonitorService>() |> ignore)
+                    services.AddHostedService<UserMonitorService>() |> ignore
+                    services.AddHostedService<StatusChangeService>() |> ignore)
                 .ConfigureLogging(fun context logging ->
                     logging.AddConsole() |> ignore)
                 .RunConsoleAsync()
