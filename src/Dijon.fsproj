@@ -9,8 +9,8 @@
     <Compile Include="SqlDatabase.fs" />
     <Compile Include="Affixes.fs" />
     <Compile Include="MessageUtils.fs" />
-    <Compile Include="MessageHandler.fs" />
     <Compile Include="BotClient.fs" />
+    <Compile Include="MessageHandler.fs" />
     <Compile Include="Services\StreamCheckService.fs" />
     <Compile Include="Services\DatabaseMigratorService.fs" />
     <Compile Include="Services\AffixCheckService.fs" />

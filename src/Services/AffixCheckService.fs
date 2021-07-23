@@ -8,12 +8,14 @@ open Microsoft.Extensions.Logging
 open Dijon
 open Cronos
 open TimeZoneConverter
+open Discord
+open Discord.WebSocket
 
 type private NextSchedule = 
     | FromTimeSpan of TimeSpan
     | FromCron
 
-type AffixCheckService(logger : ILogger<AffixCheckService>, bot : Dijon.BotClient, database : IDijonDatabase) =
+type AffixCheckService(logger : ILogger<AffixCheckService>, bot : Dijon.BotClient, database : IDijonDatabase, messageHandler : IMessageHandler) =
     let mutable timer : System.Timers.Timer option = None
     
     // Every Tuesday at 9am
@@ -23,6 +25,19 @@ type AffixCheckService(logger : ILogger<AffixCheckService>, bot : Dijon.BotClien
     // Use the TimeZoneConverter package to convert between Windows/Linux/Mac TimeZone names
     // https://devblogs.microsoft.com/dotnet/cross-platform-time-zones-with-net-core/
     let timezone = TZConvert.GetTimeZoneInfo "America/Chicago"
+
+    let postAffixesMessageAsync (_ : GuildId) (channelId : int64) (affixes: RaiderIo.ListAffixesResponse) =
+        async {
+            // Wait for the bot's ready event to fire. If the bot is not yet ready, the channel will be null
+            //readyEvent.WaitOne() |> ignore
+            
+            sprintf "Posting affixes to channel %i" channelId 
+            |> logger.LogInformation
+            
+            let channel = bot.GetChannel channelId
+            
+            return! messageHandler.SendAffixesMessage (channel :> IChannel :?> IMessageChannel) affixes
+        }
     
     let postAffixes (affixes : RaiderIo.ListAffixesResponse) channels =
         let rec post hasPosted channels = 
@@ -38,7 +53,7 @@ type AffixCheckService(logger : ILogger<AffixCheckService>, bot : Dijon.BotClien
                     let guildId = GuildId channel.GuildId
                     
                     async {
-                        do! bot.PostAffixesMessageAsync guildId channel.ChannelId affixes
+                        do! postAffixesMessageAsync guildId channel.ChannelId affixes
                         do! database.SetLastAffixesPostedForGuild guildId affixes.title
                         // Post to the remaining channels
                         return! post true remaining

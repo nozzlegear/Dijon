@@ -9,7 +9,7 @@ open Discord
 open Discord.WebSocket
 open FSharp.Control.Tasks.V2.ContextInsensitive
 
-type UserMonitorService(logger : ILogger<UserMonitorService>, bot : Dijon.BotClient, database : IDijonDatabase) =
+type UserMonitorService(logger : ILogger<UserMonitorService>, bot : Dijon.BotClient, database : IDijonDatabase, messages : IMessageHandler) =
     let listGuildUsers (guild: Rest.RestGuild) = 
         guild.GetUsersAsync() 
         |> Async.EnumerateCollection
@@ -56,8 +56,6 @@ type UserMonitorService(logger : ILogger<UserMonitorService>, bot : Dijon.BotCli
         // Check if this user was just assigned a raider/team role
         let memberRoleId =
             uint64 427327334119637014L
-        let streamerRoleId = 
-            uint64 856350523812610048L
         let raiderRoleIds =
             [ uint64 424683167899713537L (* Raiders *)
               uint64 460303590909673472L (* Last Call *)
@@ -70,62 +68,30 @@ type UserMonitorService(logger : ILogger<UserMonitorService>, bot : Dijon.BotCli
         let hasMemberRole =
             after.Roles
             |> Seq.exists (fun r -> r.Id = memberRoleId)
-        let hasStreamerRole = 
-            after.Roles
-            |> Seq.exists (fun r -> r.Id = streamerRoleId)
 
-        for activity in after.Activities do
-            match activity with
-            | :? StreamingGame as stream ->
-                printfn "%s is streaming %s at %s" after.Nickname stream.Name stream.Url
-                ()
-            | :? Game ->
-                ()
-            | _ -> 
-                ()
-
-        let maybeUpdateStream = 
-            let wasStreaming : bool = Streams.IsStreaming before
-            let stream : Option<StreamingGame> = Streams.TryGetStream after
-
-            match wasStreaming, stream with
-            | true, None ->
-                //Streams.RemoveStreamingMessage after
-                Async.Empty
-            | false, Some stream when hasStreamerRole ->
-                //Streams.PostStreamingMessage after stream
-                Async.Empty
-            | _, _ ->
-                Async.Empty
-
-        let maybeUpdateMemberRole = 
-            match hasNewRaiderRole, hasMemberRole with
-            | true, false ->
-                // Assign the member role to the user
-                let nickname =
-                    if String.IsNullOrWhiteSpace after.Nickname then
-                        after.Username
-                    else
-                        after.Nickname
-                        
-                async {
-                    let memberRole =
-                        after.Guild.Roles
-                        |> Seq.find (fun r -> r.Id = memberRoleId)
-                        
-                    logger.LogInformation("Adding %s role for user %s#%s", memberRole.Name, nickname, after.Discriminator)
+        match hasNewRaiderRole, hasMemberRole with
+        | true, false ->
+            // Assign the member role to the user
+            let nickname =
+                if String.IsNullOrWhiteSpace after.Nickname then
+                    after.Username
+                else
+                    after.Nickname
                     
-                    do! after.AddRoleAsync memberRole
-                        |> Async.AwaitTask
-                }
-            | _, _ ->
-                Async.Empty
-                // bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
+            async {
+                let memberRole =
+                    after.Guild.Roles
+                    |> Seq.find (fun r -> r.Id = memberRoleId)
+                    
+                logger.LogInformation("Adding %s role for user %s#%s", memberRole.Name, nickname, after.Discriminator)
+                
+                do! after.AddRoleAsync memberRole
+                    |> Async.AwaitTask
+            }
+        | _, _ ->
+            Async.Empty
+            // bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
 
-        async {
-            do! maybeUpdateStream
-            do! maybeUpdateMemberRole
-        }
 
     interface IDisposable with
         member _.Dispose() =

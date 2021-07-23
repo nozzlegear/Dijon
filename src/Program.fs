@@ -14,6 +14,7 @@ module Program =
                     services.AddSingleton<DatabaseOptions>() |> ignore
                     services.AddSingleton<IDijonDatabase, DijonSqlDatabase>() |> ignore
                     services.AddSingleton<BotClient>() |> ignore 
+                    services.AddSingleton<IMessageHandler, MessageHandler>() |> ignore 
                     services.AddHostedService<DatabaseMigratorService>() |> ignore
                     services.AddHostedService<StreamCheckService>() |> ignore
                     services.AddHostedService<AffixCheckService>() |> ignore
@@ -22,9 +23,17 @@ module Program =
                     services.AddHostedService<StatusChangeService>() |> ignore)
                 .ConfigureLogging(fun context logging ->
                     logging.AddConsole() |> ignore)
-                .RunConsoleAsync()
+                .UseConsoleLifetime()
+                .Build()
+
+        // The bot client must be initialized to log the bot in
+        host.Services.GetRequiredService<BotClient>().InitAsync()
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
                 
-        Async.AwaitTask host
+        //host.RunConsoleAsync()
+        host.RunAsync()
+        |> Async.AwaitTask
         |> Async.RunSynchronously
 
         0 // return an integer exit code

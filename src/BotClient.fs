@@ -6,6 +6,7 @@ open Discord
 open Discord.WebSocket
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.Logging
+open FSharp.Control.Tasks.V2.ContextInsensitive
 
 type DiscordEvent = 
     | MessageReceived of (IMessage -> Async<unit>)
@@ -14,9 +15,8 @@ type DiscordEvent =
     | UserUpdated of (SocketGuildUser -> SocketGuildUser -> Async<unit>)
     | BotLeftGuild of (SocketGuild -> Async<unit>)
 
-type BotClient(logger : ILogger<BotClient>, config : IConfiguration, database: IDijonDatabase) =
+type BotClient(logger : ILogger<BotClient>, config : IConfiguration) =
     let client = new DiscordSocketClient()
-    let messageHandler : IMessageHandler = upcast MessageHandler(database, client)
     let readyEvent = new System.Threading.ManualResetEvent false
     let token =
         match config.GetValue<string>("DIJON_BOT_TOKEN") with
@@ -53,29 +53,23 @@ type BotClient(logger : ILogger<BotClient>, config : IConfiguration, database: I
         printfn "[%s] %s: %s" now logMessage.Source logMessage.Message
     }
 
-    do 
-        singleArgFunc handleLogMessage
-        |> client.add_Log
-
-        let connectTask =
-            async {
-                do! client.LoginAsync(TokenType.Bot, token) |> Async.AwaitTask
-                do! client.StartAsync() |> Async.AwaitTask
-                do! client.SetGameAsync "This Is Legal But We Question The Ethics" |> Async.AwaitTask
-
-                // Trip the ready event once the client indicates it's ready
-                let func = Func<Task>(fun _ -> readyEvent.Set() |> ignore; Task.CompletedTask)
-                client.add_Ready func 
-            }
-            
-        Async.RunSynchronously connectTask
-
     interface IAsyncDisposable with
         member _.DisposeAsync () =
             logger.LogWarning("The bot is disposing")
             readyEvent.Dispose()
             client.StopAsync()
             |> ValueTask
+
+    member _.InitAsync () = 
+        task {
+            do! client.LoginAsync(TokenType.Bot, token) 
+            do! client.StartAsync() 
+            do! client.SetGameAsync "This Is Legal But We Question The Ethics" 
+
+            // Trip the ready event once the client indicates it's ready
+            let func = Func<Task>(fun _ -> readyEvent.Set() |> ignore; Task.CompletedTask)
+            client.add_Ready func 
+        }
 
     member _.GetChannel (channelId : int64) = 
         client.GetChannel (uint64 channelId)
@@ -86,18 +80,11 @@ type BotClient(logger : ILogger<BotClient>, config : IConfiguration, database: I
     member _.UpdateGameAsync message =
         client.SetGameAsync(message)
 
-    member x.PostAffixesMessageAsync (_ : GuildId) (channelId : int64) (affixes: RaiderIo.ListAffixesResponse) =
-        async {
-            // Wait for the bot's ready event to fire. If the bot is not yet ready, the channel will be null
-            readyEvent.WaitOne() |> ignore
-            
-            sprintf "Posting affixes to channel %i" channelId 
-            |> logger.LogInformation
-            
-            let channel = x.GetChannel channelId
-            
-            return! messageHandler.SendAffixesMessage (channel :> IChannel :?> IMessageChannel) affixes
-        }
+    member _.GetLatency () = 
+        client.Latency
+
+    member _.GetBotUserId () = 
+        client.CurrentUser.Id
 
     member _.AddEventListener eventType =
 

@@ -73,6 +73,10 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
             
     interface IHostedService with
         member _.StartAsync cancellation =
+            task {
+                do! bot.AddEventListener (DiscordEvent.UserUpdated userUpdated)
+            }
+            :> Task
             
         member _.StopAsync _ =
             Task.CompletedTask

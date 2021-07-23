@@ -4,7 +4,7 @@ open Discord
 open System
 open Discord.WebSocket
 
-type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) = 
+type MessageHandler(database: IDijonDatabase, bot: BotClient) = 
     let djurId = uint64 204665846386262016L
     let foxyId = uint64 397255457862975509L
     let calyId = uint64 148990194815598592L
@@ -64,7 +64,9 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
             None 
 
     let (|Mentioned|NotMentioned|) (msg: IMessage) = 
-        let mentionString = MessageUtils.mentionUser client.CurrentUser.Id
+        let mentionString = 
+            bot.GetBotUserId ()
+            |> MessageUtils.mentionUser 
 
         if StringUtils.startsWithAny msg.Content ["!dijon"; mentionString]
         then Mentioned
@@ -170,7 +172,7 @@ type MessageHandler(database: IDijonDatabase, client: DiscordSocketClient) =
     let handleStatusMessage (msg: IMessage) =
         let embed = EmbedBuilder()
         embed.Title <- ":robot: Dijon Status"
-        embed.Description <- sprintf ":heartbeat: **%i ms** heartbeat latency." client.Latency
+        embed.Description <- sprintf ":heartbeat: **%i ms** heartbeat latency." (bot.GetLatency ())
         embed.Color <- Nullable Color.Green
 
         // If this message was sent in a guild channel, report which channel it logs to
