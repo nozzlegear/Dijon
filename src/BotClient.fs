@@ -69,6 +69,9 @@ type BotClient(logger : ILogger<BotClient>, config : IConfiguration) =
             // Trip the ready event once the client indicates it's ready
             let func = Func<Task>(fun _ -> readyEvent.Set() |> ignore; Task.CompletedTask)
             client.add_Ready func 
+
+            readyEvent.WaitOne()
+            |> ignore
         }
 
     member _.GetChannel (channelId : int64) = 
