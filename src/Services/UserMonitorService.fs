@@ -10,13 +10,15 @@ open Discord.WebSocket
 open FSharp.Control.Tasks.V2.ContextInsensitive
 
 type UserMonitorService(logger : ILogger<UserMonitorService>, bot : Dijon.BotClient, database : IDijonDatabase, messages : IMessageHandler) =
-    let listGuildUsers (guild: Rest.RestGuild) = 
-        guild.GetUsersAsync() 
-        |> Async.EnumerateCollection
+    let mapUsersToMembers (guild: IGuild) =
+        async {
+            let! users = 
+                guild.GetUsersAsync()
+                |> Async.AwaitTask
 
-    let mapUsersToMembers (guild: Rest.RestGuild) =
-        listGuildUsers guild 
-        |> Async.SeqMap MemberUpdate.FromGuildUser 
+            return users
+                   |> Seq.map MemberUpdate.FromGuildUser
+        }
 
     let userJoined (user : SocketGuildUser) = 
         database.BatchSetAsync [MemberUpdate.FromGuildUser user]

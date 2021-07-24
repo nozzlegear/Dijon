@@ -12,22 +12,22 @@ open Discord.WebSocket
 type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotClient) =
             
     /// Tries to get the user's stream activity. Returns None if the user is not streaming.
-    let tryGetStreamActivity (user : SocketUser): Option<StreamingGame> = 
+    let tryGetStreamActivity (user : IGuildUser): Option<StreamingGame> = 
         user.Activities
         |> Seq.tryPick (function
             | :? StreamingGame as stream -> Some stream 
             | _ -> None)
 
     /// Checks if the user's activities indicate they're streaming. 
-    let isStreaming(user : SocketUser): bool = 
+    let isStreaming(user : IGuildUser): bool = 
         tryGetStreamActivity user
         |> Option.isSome
 
-    let postStreamingMessage (user : SocketUser) (stream : StreamingGame) : Async<unit> =
+    let postStreamingMessage (user : IGuildUser) (stream : StreamingGame) : Async<unit> =
         let embed = EmbedBuilder()
-        embed.Title <- sprintf "%s is streaming %s right now!" user.Mention stream.Name
+        embed.Title <- sprintf "%s is streaming on %s right now!" user.Nickname stream.Name
         embed.Color <- Nullable Color.Green
-        embed.Description <- sprintf "%s. Check out their stream at %s" stream.Details stream.Url
+        embed.Description <- sprintf "**%s**" stream.Details
         embed.Url <- stream.Url
 
         // TODO: get the server's stream messages channel id
@@ -36,7 +36,8 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
 
         MessageUtils.sendEmbed (channel :> IChannel :?> IMessageChannel) embed
 
-    let removeStreamingMessage (user : SocketUser) : Async<unit> = 
+    let removeStreamingMessage (user : IGuildUser) : Async<unit> = 
+        logger.LogInformation("Removing streaming message for user {0}", user.Id)
         Async.Empty
 
     let userUpdated (before : SocketGuildUser) (after : SocketGuildUser) = 

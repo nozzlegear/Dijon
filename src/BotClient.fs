@@ -78,7 +78,8 @@ type BotClient(logger : ILogger<BotClient>, config : IConfiguration) =
         client.GetChannel (uint64 channelId)
 
     member _.ListGuildsAsync () = 
-        client.Rest.GetGuildsAsync()
+        let client = client :> IDiscordClient
+        client.GetGuildsAsync(CacheMode.CacheOnly, RequestOptions.Default)
     
     member _.UpdateGameAsync message =
         client.SetGameAsync(message)
