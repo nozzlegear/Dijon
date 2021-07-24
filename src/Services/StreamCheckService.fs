@@ -40,23 +40,49 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
         logger.LogInformation("Removing streaming message for user {0}", user.Id)
         Async.Empty
 
+    let scanActiveStreamers () : Async<unit> = 
+        logger.LogInformation("Scanning for active streamers.")
+        
+        let rec scanNextGuild (remaining : IGuild list) =
+            match remaining with
+            | [] -> 
+                Async.Empty
+            | guild :: remaining ->
+                async {
+                    let! members = 
+                        guild.GetUsersAsync() 
+                        |> Async.AwaitTask
+
+                    // Check each member to see if they're streaming
+                    for guildMember in members do
+                        match tryGetStreamActivity guildMember with
+                        | Some activity ->
+                            // User is streaming, announce it to the stream channel
+                            do! postStreamingMessage guildMember activity
+                        | None ->
+                            let totalActivities = Seq.length guildMember.Activities
+                            ()
+
+                    return! scanNextGuild remaining
+                }
+
+        async {
+            // Update the list of guild members
+            let! allGuilds = 
+                bot.ListGuildsAsync() 
+                |> Async.AwaitTask
+
+            do! allGuilds
+                |> List.ofSeq
+                |> scanNextGuild
+        }
+
     let userUpdated (before : SocketGuildUser) (after : SocketGuildUser) = 
         let streamerRoleId = 
             uint64 856350523812610048L
         let hasStreamerRole = 
             after.Roles
             |> Seq.exists (fun r -> r.Id = streamerRoleId)
-
-        for activity in after.Activities do
-            match activity with
-            | :? StreamingGame as stream ->
-                printfn "%s is streaming %s at %s" after.Nickname stream.Name stream.Url
-                ()
-            | :? Game ->
-                ()
-            | _ -> 
-                ()
-
         let wasStreaming = isStreaming before
         let stream = tryGetStreamActivity after
 
@@ -76,6 +102,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
         member _.StartAsync cancellation =
             task {
                 do! bot.AddEventListener (DiscordEvent.UserUpdated userUpdated)
+                do! scanActiveStreamers ()
             }
             :> Task
             
