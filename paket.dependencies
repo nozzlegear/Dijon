@@ -1,4 +1,6 @@
 source https://www.nuget.org/api/v2
+strategy: max
+
 nuget dapper
 nuget discord.net
 nuget FSharp.Control.AsyncSeq
@@ -11,3 +13,4 @@ nuget simple.migrations
 nuget system.data.sqlclient
 nuget cronos
 nuget TimeZoneConverter
+nuget DustyTables ~> 4
