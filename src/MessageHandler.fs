@@ -40,7 +40,7 @@ type MessageHandler(database: IDijonDatabase, bot: BotClient) =
               ":downwithdjur:"
               sprintf "<#%i>" tdeDownWithDjurChannel ]
 
-        if StringUtils.containsAny a slanderMessages then
+        if String.containsAny a slanderMessages then
             Some ContainsSlander 
         else
             None
@@ -58,7 +58,7 @@ type MessageHandler(database: IDijonDatabase, bot: BotClient) =
               "can't find foxy"
               "cant find foxy" ]
 
-        if StringUtils.containsAny a whereIsFoxyMessages then 
+        if String.containsAny a whereIsFoxyMessages then 
             Some AsksWhereFoxyIs
         else 
             None 
@@ -68,7 +68,7 @@ type MessageHandler(database: IDijonDatabase, bot: BotClient) =
             bot.GetBotUserId ()
             |> MessageUtils.mentionUser 
 
-        if StringUtils.startsWithAny msg.Content ["!dijon"; mentionString]
+        if String.startsWithAny msg.Content ["!dijon"; mentionString]
         then Mentioned
         else NotMentioned        
 
@@ -83,7 +83,7 @@ type MessageHandler(database: IDijonDatabase, bot: BotClient) =
             | _ -> 
                 Ignore
         | Mentioned ->
-            match StringUtils.stripFirstWord msg.Content |> StringUtils.lower |> StringUtils.trim with 
+            match String.stripFirstWord msg.Content |> String.lower |> String.trim with 
             | "goulash"
             | "goulash recipe"
             | "scrapple"
@@ -163,8 +163,8 @@ type MessageHandler(database: IDijonDatabase, bot: BotClient) =
         embed.Description <- "Here's the recipe for Djur's sweet goulash, the power food that fuels Team Tight Bois. **Highly** recommended by all those who've tried it, including Foxy, Jay and Patoosh."
         embed.ThumbnailUrl <- "https://az.nozzlegear.com/images/share/2019-07-30.16.13.11.png"
         embed.Fields.AddRange [
-            MessageUtils.embedField "Ingredients" (StringUtils.newlineJoin ingredients)
-            MessageUtils.embedField "Instructions" (StringUtils.newlineJoin instructions)
+            MessageUtils.embedField "Ingredients" (String.newlineJoin ingredients)
+            MessageUtils.embedField "Instructions" (String.newlineJoin instructions)
         ]
 
         MessageUtils.sendEmbed msg.Channel embed 

@@ -4,7 +4,9 @@
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Extensions.fs" />
+    <Compile Include="Extensions/Async.fs" />
+    <Compile Include="Extensions/Seq.fs" />
+    <Compile Include="Extensions/Strings.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="SqlDatabase.fs" />
     <Compile Include="Affixes.fs" />
