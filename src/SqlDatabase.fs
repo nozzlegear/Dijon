@@ -45,7 +45,8 @@ type DijonSqlDatabase (options : DatabaseOptions) =
     let mapStreamAnnouncementChannels (read : RowReader) : StreamAnnouncementChannel =
         { Id = read.int "Id"
           GuildId = read.int64 "GuildId"
-          ChannelId = read.int64 "ChannelId" }
+          ChannelId = read.int64 "ChannelId"
+          StreamerRoleId = read.int64 "StreamerRoleId" }
 
     let userExists user =
         let sql = 
@@ -331,7 +332,8 @@ type DijonSqlDatabase (options : DatabaseOptions) =
             |> Sql.storedProcedure "sp_SetStreamChannelForGuild"
             |> Sql.parameters 
                 [ "@guildId", Sql.int64 channel.GuildId
-                  "@channelId", Sql.int64 channel.ChannelId ]
+                  "@channelId", Sql.int64 channel.ChannelId
+                  "@streamerRoleId", Sql.int64 channel.StreamerRoleId ]
             |> Sql.executeNonQueryAsync
             |> Async.AwaitTask
             |> Async.Ignore

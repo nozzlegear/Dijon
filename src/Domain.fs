@@ -110,10 +110,16 @@ type UniqueUser =
     static member FromMemberUpdate (m: MemberUpdate) = UniqueUser (DiscordId m.DiscordId, GuildId m.GuildId)    
     static member FromSocketGuildUser (m: SocketGuildUser) = UniqueUser (DiscordId <| int64 m.Id, GuildId <| int64 m.Guild.Id) 
 
+type PartialStreamAnnouncementChannel =
+    { GuildId: int64
+      ChannelId: int64
+      StreamerRoleId: int64 }
+
 type StreamAnnouncementChannel =
     { Id: int
       GuildId: int64
-      ChannelId: int64 }
+      ChannelId: int64
+      StreamerRoleId: int64 }
 
 type PartialStreamAnnouncementMessage =
     {
@@ -144,7 +150,7 @@ type IDijonDatabase =
     abstract member SetAffixesChannelForGuild: guildId: GuildId -> channelId: int64 -> Async<unit>
     abstract member SetLastAffixesPostedForGuild: guildId: GuildId -> lastAffixesTitle: string -> Async<unit>
     abstract member UnsetLogChannelForGuild: GuildId -> Async<unit>
-    abstract member SetStreamAnnouncementChannelForGuild: StreamAnnouncementChannel -> Async<unit>
+    abstract member SetStreamAnnouncementChannelForGuild: PartialStreamAnnouncementChannel -> Async<unit>
     abstract member GetStreamAnnouncementChannelForGuild: GuildId -> Async<StreamAnnouncementChannel option>
     abstract member DeleteStreamAnnouncementChannelForGuild: GuildId -> Async<unit>
     abstract member ListStreamAnnouncementChannels: unit -> Async<StreamAnnouncementChannel list>
