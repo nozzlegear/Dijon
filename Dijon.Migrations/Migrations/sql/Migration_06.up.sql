@@ -17,13 +17,13 @@ BEGIN
     -- If the channel already exists, just update it
     if exists (select 1 from [DIJON_STREAM_ANNOUNCEMENT_CHANNELS] where [GuildId] = @guildId)
         begin
-            UPDATE [DIJON_STREAM_ANNOUNCEMENTS_CHANNELS]
+            UPDATE [DIJON_STREAM_ANNOUNCEMENT_CHANNELS]
             SET [ChannelId] = @channelId
             WHERE [GuildId] = @guildId;
         end
     else
         begin
-            INSERT INTO [DIJON_STREAM_ANNOUNCEMENTS_CHANNELS] (
+            INSERT INTO [DIJON_STREAM_ANNOUNCEMENT_CHANNELS] (
                 GuildId, 
                 ChannelId
             ) VALUES (

@@ -14,7 +14,7 @@ BEGIN
             return
         end
 
-    INSERT INTO [DIJON_STREAM_ANNOUNCEMENTS_CHANNELS] (
+    INSERT INTO [DIJON_STREAM_ANNOUNCEMENT_CHANNELS] (
         GuildId, 
         ChannelId
     ) VALUES (
@@ -35,7 +35,7 @@ BEGIN
             return
         end
 
-    DELETE FROM [DIJON_STREAM_ANNOUNCEMENTS_CHANNELS] WHERE [GuildId] = @guildId;
+    DELETE FROM [DIJON_STREAM_ANNOUNCEMENT_CHANNELS] WHERE [GuildId] = @guildId;
 END;
 
 GO

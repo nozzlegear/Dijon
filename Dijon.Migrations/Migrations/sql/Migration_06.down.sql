@@ -14,7 +14,7 @@ BEGIN
             return
         end
 
-    INSERT INTO [DIJON_STREAM_ANNOUNCEMENTS_CHANNELS] (
+    INSERT INTO [DIJON_STREAM_ANNOUNCEMENT_CHANNELS] (
         GuildId, 
         ChannelId
     ) VALUES (
