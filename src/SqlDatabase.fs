@@ -4,6 +4,7 @@ open Dapper
 open System.Data.SqlClient
 open System.Data
 open System
+open DustyTables
 
 type DijonSqlDatabase (options : DatabaseOptions) =
     let connStr = options.SqlConnectionString
@@ -32,6 +33,19 @@ type DijonSqlDatabase (options : DatabaseOptions) =
         use conn = new SqlConnection(connStr)
         return! conn.ExecuteReaderAsync(sql, data) |> Async.AwaitTask
     }
+
+    let mapStreamAnnouncementMessages (read : RowReader) : StreamAnnouncementMessage = 
+        { Id = read.int "Id"
+          DateCreated = read.dateTimeOffset "DateCreated"
+          GuildId = read.int64 "GuildId"
+          ChannelId = read.int64 "ChannelId"
+          MessageId = read.int64 "MessageId"
+          StreamerId = read.int64 "StreamerId" }
+
+    let mapStreamAnnouncementChannels (read : RowReader) : StreamAnnouncementChannel =
+        { Id = read.int "Id"
+          GuildId = read.int64 "GuildId"
+          ChannelId = read.int64 "ChannelId" }
 
     let userExists user =
         let sql = 
@@ -311,3 +325,74 @@ type DijonSqlDatabase (options : DatabaseOptions) =
 
             execute (sql logChannelTableName) data 
             |> Async.Ignore
+
+        member _.SetStreamAnnouncementChannelForGuild channel =
+            Sql.connect connStr
+            |> Sql.storedProcedure "sp_SetStreamChannelForGuild"
+            |> Sql.parameters 
+                [ "@guildId", Sql.int64 channel.GuildId
+                  "@channelId", Sql.int64 channel.ChannelId ]
+            |> Sql.executeRowAsync ignore
+            |> Async.AwaitTask
+
+        member _.GetStreamAnnouncementChannelForGuild guildId =
+            let toOption job = 
+                async {
+                    let! result = job
+                    return Seq.tryHead result
+                }
+
+            Sql.connect connStr
+            |> Sql.storedProcedure "sp_GetStreamChannelForGuild"
+            |> Sql.parameters [ "@guildId", match guildId with GuildId g -> Sql.int64 g ]
+            |> Sql.executeAsync mapStreamAnnouncementChannels
+            |> Async.AwaitTask
+            |> toOption
+
+        member _.DeleteStreamAnnouncementChannelForGuild guildId =
+            Sql.connect connStr
+            |> Sql.storedProcedure "sp_UnsetStreamChannelForGuild"
+            |> Sql.parameters [ "@guildId", match guildId with GuildId g -> Sql.int64 g ]
+            |> Sql.executeRowAsync ignore
+            |> Async.AwaitTask
+
+        member _.ListStreamAnnouncementChannels () =
+            Sql.connect connStr
+            |> Sql.storedProcedure "sp_ListStreamAnnouncementChannels"
+            |> Sql.executeAsync mapStreamAnnouncementChannels
+            |> Async.AwaitTask
+
+        member _.AddStreamAnnouncementMessage message =
+            Sql.connect connStr
+            |> Sql.storedProcedure "sp_AddStreamAnnouncementMessage"
+            |> Sql.parameters 
+                [ "@guildId", Sql.int64 message.GuildId
+                  "@channelId", Sql.int64 message.ChannelId
+                  "@messageId", Sql.int64 message.MessageId
+                  "@streamerId", Sql.int64 message.StreamerId ]
+            |> Sql.executeRowAsync ignore
+            |> Async.AwaitTask
+
+        member _.ListStreamAnnouncementMessagesForStreamer streamerId =
+            Sql.connect connStr
+            |> Sql.storedProcedure "sp_ListStreamAnnouncementMessagesForStreamer"
+            |> Sql.parameters
+                [ "@streamerId", Sql.int64 streamerId ]
+            |> Sql.executeAsync mapStreamAnnouncementMessages
+            |> Async.AwaitTask
+
+        member _.ListStreamAnnouncementMessagesForGuild guildId =
+            Sql.connect connStr
+            |> Sql.storedProcedure "sp_ListStreamAnnouncementMessagesForGuild"
+            |> Sql.parameters
+                [ "@guildId", Sql.int64 guildId ]
+            |> Sql.executeAsync mapStreamAnnouncementMessages
+            |> Async.AwaitTask
+
+        member _.DeleteStreamAnnouncementMessageForStreamer streamerId =
+            Sql.connect connStr
+            |> Sql.storedProcedure "sp_DeleteStreamAnnouncementMessageForStreamer"
+            |> Sql.parameters
+                [ "@streamerId", Sql.int64 streamerId ]
+            |> Sql.executeRowAsync ignore
+            |> Async.AwaitTask
