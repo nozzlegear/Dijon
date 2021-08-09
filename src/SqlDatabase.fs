@@ -332,8 +332,9 @@ type DijonSqlDatabase (options : DatabaseOptions) =
             |> Sql.parameters 
                 [ "@guildId", Sql.int64 channel.GuildId
                   "@channelId", Sql.int64 channel.ChannelId ]
-            |> Sql.executeRowAsync ignore
+            |> Sql.executeNonQueryAsync
             |> Async.AwaitTask
+            |> Async.Ignore
 
         member _.GetStreamAnnouncementChannelForGuild guildId =
             let toOption job = 
@@ -353,8 +354,9 @@ type DijonSqlDatabase (options : DatabaseOptions) =
             Sql.connect connStr
             |> Sql.storedProcedure "sp_UnsetStreamChannelForGuild"
             |> Sql.parameters [ "@guildId", match guildId with GuildId g -> Sql.int64 g ]
-            |> Sql.executeRowAsync ignore
+            |> Sql.executeNonQueryAsync
             |> Async.AwaitTask
+            |> Async.Ignore
 
         member _.ListStreamAnnouncementChannels () =
             Sql.connect connStr
@@ -370,8 +372,9 @@ type DijonSqlDatabase (options : DatabaseOptions) =
                   "@channelId", Sql.int64 message.ChannelId
                   "@messageId", Sql.int64 message.MessageId
                   "@streamerId", Sql.int64 message.StreamerId ]
-            |> Sql.executeRowAsync ignore
+            |> Sql.executeNonQueryAsync
             |> Async.AwaitTask
+            |> Async.Ignore
 
         member _.ListStreamAnnouncementMessagesForStreamer streamerId =
             Sql.connect connStr
@@ -394,5 +397,6 @@ type DijonSqlDatabase (options : DatabaseOptions) =
             |> Sql.storedProcedure "sp_DeleteStreamAnnouncementMessageForStreamer"
             |> Sql.parameters
                 [ "@streamerId", Sql.int64 streamerId ]
-            |> Sql.executeRowAsync ignore
+            |> Sql.executeNonQueryAsync
             |> Async.AwaitTask
+            |> Async.Ignore
