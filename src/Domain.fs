@@ -24,6 +24,7 @@ type Command =
     | FoxyLocation
     | GetAffix
     | SetAffixesChannel
+    | SetStreamsChannel
 
 module RaiderIo =
     open Thoth.Json.Net

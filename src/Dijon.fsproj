@@ -7,6 +7,7 @@
     <Compile Include="Extensions/Async.fs" />
     <Compile Include="Extensions/Seq.fs" />
     <Compile Include="Extensions/Strings.fs" />
+    <Compile Include="Extensions/Messages.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="SqlDatabase.fs" />
     <Compile Include="Affixes.fs" />

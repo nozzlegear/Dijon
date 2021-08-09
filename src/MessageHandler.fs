@@ -83,7 +83,7 @@ type MessageHandler(database: IDijonDatabase, bot: BotClient) =
             | _ -> 
                 Ignore
         | Mentioned ->
-            match String.stripFirstWord msg.Content |> String.lower |> String.trim with 
+            match Messages.SanitizeForParsing msg with 
             | "goulash"
             | "goulash recipe"
             | "scrapple"
