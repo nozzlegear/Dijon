@@ -1,10 +1,12 @@
 namespace Dijon 
+
 open Dijon.RaiderIo
 open Discord
 open System
 open Discord.WebSocket
+open Microsoft.Extensions.Logging
 
-type MessageHandler(database: IDijonDatabase, bot: BotClient) = 
+type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, bot: BotClient) = 
     let djurId = uint64 204665846386262016L
     let foxyId = uint64 397255457862975509L
     let calyId = uint64 148990194815598592L
@@ -105,6 +107,23 @@ type MessageHandler(database: IDijonDatabase, bot: BotClient) =
             | "affix here"
             | "set affix channel"
             | "set affixes channel" -> SetAffixesChannel
+            | "set stream channel"
+            | "set streams channel"
+            | "set stream announcement channel"
+            | "set stream announcements channel"
+            | "set streams here"
+            | "set stream announcements channel" 
+            | "set stream announcements channel"
+            | "set stream announcements channel to"
+            | "set streams"
+            | "set streams to"
+            | "set streams for"
+            | "set streams in"
+            | "set streams in for"
+            | "set streams for in"
+            | "announce streams for"
+            | "announce streams for in"
+            | "announce streams" -> SetStreamsChannel
             | "affix"
             | "what are the affixes"
             | "affixes" -> GetAffix
@@ -185,15 +204,23 @@ type MessageHandler(database: IDijonDatabase, bot: BotClient) =
                     logChannelId
                     |> Option.map (sprintf "Membership logs for this server are sent to the <#%i> channel.")
                     |> Option.defaultValue "Member logs are **not set up** for this server. Use `!dijon log here` to set the log channel."
+
                 let! affixChannel = database.GetAffixChannelForGuild guildId
                 let affixChannelMessage =
                     affixChannel
                     |> Option.map (fun channel -> sprintf "Mythic Plus affixes messages for this server are sent to the <#%i> channel." channel.ChannelId)
                     |> Option.defaultValue "Mythic Plus affixes are **not set up** for this server. Use `!dijon set affixes here` to set the affix channel."
 
+                let! streamChannel = database.GetStreamAnnouncementChannelForGuild guildId
+                let streamChannelMessage =
+                    streamChannel
+                    |> Option.map (fun channel -> sprintf "Stream announcement messages for this server are sent to the <#%i> channel when a user with the role %s role goes live." channel.ChannelId (MentionUtils.MentionRole <| uint64 channel.StreamerRoleId))
+                    |> Option.defaultValue "Stream announcement messages are **not set up** for this server. Use `!dijon set streams in #channel for @streamerRole` to set the stream announcements chanenl."
+
                 embed.Fields.AddRange [
                     MessageUtils.embedField "Log Channel" logChannelMessage
                     MessageUtils.embedField "Affixes Channel" affixChannelMessage
+                    MessageUtils.embedField "Stream Announcements Channel" streamChannelMessage
                 ]
 
                 return! MessageUtils.sendEmbed msg.Channel embed 
@@ -235,6 +262,40 @@ type MessageHandler(database: IDijonDatabase, bot: BotClient) =
         | _ ->
             MessageUtils.sendMessage msg.Channel "Unable to set log channel in unknown channel type."
 
+    let handleSetStreamsChannelMessage (msg : IMessage) =
+        match msg.Channel with
+        | :? SocketGuildChannel as guildChannel ->
+            if Seq.length msg.MentionedRoleIds <> 1 then
+                MessageUtils.sendMessage msg.Channel "You must mention exactly 1 role to use as the streamer role."
+            elif Seq.length msg.MentionedChannelIds <> 1 then
+                MessageUtils.sendMessage msg.Channel "You must mention exactly 1 channel to use as the announcements channel."
+            else
+                let streamerRoleId = Seq.head msg.MentionedRoleIds
+                let channelId = Seq.head msg.MentionedChannelIds
+                let guildId = guildChannel.Guild.Id
+
+                async {
+                    let channel = 
+                        { ChannelId = int64 channelId
+                          GuildId = int64 guildId
+                          StreamerRoleId = int64 streamerRoleId }
+
+                    do! database.SetStreamAnnouncementChannelForGuild channel
+
+                    let returnMessage = 
+                        sprintf "Stream announcement messages from streamers with the role "
+                        + MentionUtils.MentionRole streamerRoleId
+                        + " will be sent to the channel "
+                        + MentionUtils.MentionChannel channelId
+                        + "."
+
+                    return! MessageUtils.sendMessage msg.Channel returnMessage
+                }
+        | :? ISocketPrivateChannel ->
+            MessageUtils.sendMessage msg.Channel "Unable to set streams channel in a private message."
+        | _ ->
+            MessageUtils.sendMessage msg.Channel "Unable to set log channel in unknown channel type."
+
     let handleHelpMessage (msg: IMessage) =
         let embed = EmbedBuilder()
         embed.Title <- "⚡ Dijon-bot Commands" 
@@ -244,6 +305,7 @@ type MessageHandler(database: IDijonDatabase, bot: BotClient) =
             MessageUtils.embedField "`status`" "Checks the status of Dijon-bot and reports which channel is used for logging membership changes."
             MessageUtils.embedField "`set logs here`" "Tells Dijon-bot to report membership changes to the current channel. Only one channel is supported per server."
             MessageUtils.embedField "`set affixes here`" "Tells Dijon-bot to post Mythic Plus affixes to the current channel every Tuesday. Only one channel is supported per server."
+            MessageUtils.embedField "`set streams #announcementChannel @streamerRole`" "Tells Dijon-bot to announce the streams of any member with the @streamerRole role to the given channel. Only one channel and one streamer role is supported per server."
             MessageUtils.embedField "`test`" "Sends a test membership change message to the current channel."
             MessageUtils.embedField "`goulash recipe`" "Sends Djur's world-renowned sweet goulash recipe, the food that powers Team Tight Bois."
         ]
@@ -444,21 +506,31 @@ type MessageHandler(database: IDijonDatabase, bot: BotClient) =
     interface IMessageHandler with 
         member x.HandleMessage msg = 
             let self = x :> IMessageHandler
-
-            match parseCommand msg with 
-            | Test -> handleTestMessage msg self.SendUserLeftMessage 
-            | Goulash -> handleGoulashRecipe msg 
-            | Status -> handleStatusMessage msg 
-            | SetLogChannel -> handleSetLogChannelMessage msg
-            | SetAffixesChannel -> handleSetAffixesChannelMessage msg
-            | Slander -> handleSlander msg 
-            | AidAgainstSlander -> handleAidAgainstSlander msg
-            | Help -> handleHelpMessage msg
-            | Hype -> handleHypeMessage msg
-            | FoxyLocation -> handleFoxyLocation msg
-            | GetAffix -> handleGetAffixMessage msg
-            | Unknown -> handleUnknownMessage msg
-            | Ignore -> Async.Empty
+            let job = 
+                match parseCommand msg with 
+                | Test -> handleTestMessage msg self.SendUserLeftMessage 
+                | Goulash -> handleGoulashRecipe msg 
+                | Status -> handleStatusMessage msg 
+                | SetLogChannel -> handleSetLogChannelMessage msg
+                | SetAffixesChannel -> handleSetAffixesChannelMessage msg
+                | SetStreamsChannel -> handleSetStreamsChannelMessage msg
+                | Slander -> handleSlander msg 
+                | AidAgainstSlander -> handleAidAgainstSlander msg
+                | Help -> handleHelpMessage msg
+                | Hype -> handleHypeMessage msg
+                | FoxyLocation -> handleFoxyLocation msg
+                | GetAffix -> handleGetAffixMessage msg
+                | Unknown -> handleUnknownMessage msg
+                | Ignore -> Async.Empty
+            
+            async {
+                match! Async.Catch job with
+                | Choice1Of2 _ -> 
+                    ()
+                | Choice2Of2 ex ->
+                    logger.LogError(ex, "Failed to handle message")
+                    raise ex
+            }
 
         member x.SendUserLeftMessage channel user = 
             let nickname = Option.defaultValue user.UserName user.Nickname
