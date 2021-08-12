@@ -1,0 +1,2 @@
+EXEC sp_rename 'sp_UnsetStreamChannelForGuild', 'sp_UnsetStreamAnnouncementChannelForGuild'
+EXEC sp_rename 'sp_SetStreamChannelForGuild', 'sp_SetStreamAnnouncementChannelForGuild'

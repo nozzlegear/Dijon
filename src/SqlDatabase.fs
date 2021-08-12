@@ -329,7 +329,7 @@ type DijonSqlDatabase (options : DatabaseOptions) =
 
         member _.SetStreamAnnouncementChannelForGuild channel =
             Sql.connect connStr
-            |> Sql.storedProcedure "sp_SetStreamChannelForGuild"
+            |> Sql.storedProcedure "sp_SetStreamAnnouncementChannelForGuild"
             |> Sql.parameters 
                 [ "@guildId", Sql.int64 channel.GuildId
                   "@channelId", Sql.int64 channel.ChannelId
@@ -354,7 +354,7 @@ type DijonSqlDatabase (options : DatabaseOptions) =
 
         member _.DeleteStreamAnnouncementChannelForGuild guildId =
             Sql.connect connStr
-            |> Sql.storedProcedure "sp_UnsetStreamChannelForGuild"
+            |> Sql.storedProcedure "sp_UnsetStreamAnnouncementChannelForGuild"
             |> Sql.parameters [ "@guildId", match guildId with GuildId g -> Sql.int64 g ]
             |> Sql.executeNonQueryAsync
             |> Async.AwaitTask
