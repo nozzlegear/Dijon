@@ -27,3 +27,4 @@ module Messages =
         |> String.stripFirstWord 
         |> String.lower 
         |> String.trim 
+        |> String.trimBetweenWords
