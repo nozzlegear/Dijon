@@ -346,7 +346,7 @@ type DijonSqlDatabase (options : DatabaseOptions) =
                 }
 
             Sql.connect connStr
-            |> Sql.storedProcedure "sp_GetStreamChannelForGuild"
+            |> Sql.storedProcedure "sp_GetStreamAnnouncementChannelForGuild"
             |> Sql.parameters [ "@guildId", match guildId with GuildId g -> Sql.int64 g ]
             |> Sql.executeAsync mapStreamAnnouncementChannels
             |> Async.AwaitTask
