@@ -9,7 +9,6 @@ open Microsoft.Extensions.Logging
 open FSharp.Control.Tasks.V2.ContextInsensitive
 
 type DiscordEvent = 
-    | MessageReceived of (IMessage -> Async<unit>)
     | UserLeft of (SocketGuildUser -> Async<unit>)
     | UserJoined of (SocketGuildUser -> Async<unit>)
     | UserUpdated of (SocketGuildUser -> SocketGuildUser -> Async<unit>)
@@ -107,9 +106,6 @@ type BotClient(logger : ILogger<BotClient>, config : IConfiguration) =
     member _.AddEventListener eventType =
 
         match eventType with
-        | MessageReceived fn ->
-            singleArgFunc fn
-            |> client.add_MessageReceived 
         | UserLeft fn ->
             singleArgFunc fn
             |> client.add_UserLeft
