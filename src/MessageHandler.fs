@@ -91,7 +91,9 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
             | "scrapple"
             | "scrapple recipe"
             | "recipe" -> Goulash
-            | "test" -> Test
+            | "test" 
+            | "test user left" -> TestUserLeft
+            | "test stream started" -> TestStreamStarted
             | "status" -> Status
             | "set logs"
             | "log here"
@@ -156,7 +158,7 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
             | AsksWhereFoxyIs -> FoxyLocation
             | _ -> Unknown
 
-    let handleTestMessage (msg: IMessage) (send: IMessageChannel -> GuildUser -> Async<unit>) =
+    let handleTestUserLeftMessage (msg: IMessage) (send: IMessageChannel -> GuildUser -> Async<unit>) =
         let fakeUser = {
             Nickname = Some "TestUser"
             UserName = "Discord"
@@ -165,6 +167,36 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
         }
 
         send msg.Channel fakeUser
+
+    let handleTestStreamStartedMessage (msg : IMessage) (self : IMessageHandler) =
+        match msg.Channel with
+        | :? SocketGuildChannel as guildChannel ->
+            async {
+                let guildId = int64 guildChannel.Guild.Id |> GuildId
+
+                match! database.GetStreamAnnouncementChannelForGuild guildId with
+                | Some channelData ->
+                    let channel = bot.GetChannel channelData.ChannelId
+                    let user = msg.Author
+                    let stream = StreamingGame("Twitch", "https://twitch.tv/nozzlegear")
+                    // stream.Details <- "This is the title of the test stream. It's an amazing and fun stream!"
+                    let! messageId = self.SendStreamAnnouncementMessage channel user stream
+                    let announcementMessage =
+                        { ChannelId = channelData.ChannelId
+                          GuildId = int64 guildChannel.Guild.Id
+                          MessageId = messageId
+                          StreamerId = int64 <| bot.GetBotUserId() }
+
+                    do! database.AddStreamAnnouncementMessage announcementMessage
+                    
+                    return! MessageUtils.react (msg :?> SocketUserMessage) (Emoji "✅")
+                | None ->
+                    return! MessageUtils.sendMessage msg.Channel "This guild does not have a stream announcements channel set."
+            }
+        | :? ISocketPrivateChannel ->
+            MessageUtils.sendMessage msg.Channel "Command is not supported in a private message."
+        | _ ->
+            MessageUtils.sendMessage msg.Channel "Command is not supported in unknown channel type."
 
     let handleGoulashRecipe (msg: IMessage) = 
         let ingredients = [
@@ -531,7 +563,8 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
             let self = x :> IMessageHandler
             let job = 
                 match parseCommand msg with 
-                | Test -> handleTestMessage msg self.SendUserLeftMessage 
+                | TestUserLeft -> handleTestUserLeftMessage msg self.SendUserLeftMessage 
+                | TestStreamStarted -> handleTestStreamStartedMessage msg self
                 | Goulash -> handleGoulashRecipe msg 
                 | Status -> handleStatusMessage msg 
                 | SetLogChannel -> handleSetLogChannelMessage msg

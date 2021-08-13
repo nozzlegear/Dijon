@@ -12,7 +12,8 @@ type SqlParams = IDictionary<string, obj>
 
 type Command = 
     | Ignore 
-    | Test
+    | TestStreamStarted
+    | TestStreamEnded
     | Goulash 
     | Status 
     | SetLogChannel 
