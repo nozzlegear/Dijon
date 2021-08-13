@@ -1,5 +1,6 @@
 namespace Dijon
 
+open System
 open Discord
 open Discord.WebSocket
 
@@ -27,3 +28,9 @@ module MessageUtils =
         emotes
         |> Seq.map (fun e -> fun _ -> react msg e)
         |> Async.Sequential
+
+    /// Get's the user's Nickname if available, else their Discord username.
+    let GetNickname (user : IUser) = 
+        match user with
+        | :? IGuildUser as guildUser when not (String.IsNullOrEmpty guildUser.Nickname) -> guildUser.Nickname
+        | _ -> user.Username

@@ -1,5 +1,5 @@
 namespace Dijon
-open Dijon
+
 open Discord
 open Discord.WebSocket
 open System
@@ -140,6 +140,15 @@ type StreamAnnouncementMessage =
         ChannelId: int64
         MessageId: int64
         StreamerId: int64
+    }
+
+type StreamData =
+    {
+        Name: string
+        Details: string
+        Url: string
+        User: IUser
+        GuildId: int64
     }
 
 type IDijonDatabase = 

@@ -25,38 +25,36 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
         tryGetStreamActivity user
         |> Option.isSome
 
-    let sendStreamAnnouncementMessage (channel : IChannel) (user  : IUser) (stream : StreamingGame) =
-        async {
-            let embed = EmbedBuilder()
-            let username = 
-                match user with
-                | :? IGuildUser as guildUser when not (String.IsNullOrEmpty guildUser.Nickname) -> guildUser.Nickname
-                | _ -> user.Username
-            embed.Title <- sprintf "%s is live on %s right now!" username stream.Name
-            embed.Color <- Nullable Color.Green
-            embed.Description <- sprintf "**%s**" stream.Details
-            embed.Url <- stream.Url
+    let buildStreamAnnouncementEmbed (stream : StreamData) =
+        // TODO: use the Twitch API to get a stream preview image
+        let embed = EmbedBuilder()
+        let nickname = MessageUtils.GetNickname stream.User
+        embed.Title <- sprintf "%s is live on %s right now!" nickname stream.Name
+        embed.Color <- Nullable Color.Green
+        embed.Description <- sprintf "**%s**" stream.Details
+        embed.Url <- stream.Url
+        embed.ThumbnailUrl <- stream.User.GetAvatarUrl(size = uint16 256)
+        embed
 
-            return! MessageUtils.sendEmbed (channel :?> IMessageChannel) embed
-        }
-
-    let postStreamingMessage (user : IGuildUser) (stream : StreamingGame) : Async<unit> =
+    let sendStreamAnnouncementMessage (stream : StreamData) =
         async {
-            let guildId = GuildId <| int64 user.Guild.Id
-            
-            match! database.GetStreamAnnouncementChannelForGuild guildId with
+            match! database.GetStreamAnnouncementChannelForGuild (GuildId stream.GuildId) with
             | Some channelData ->
                 let channel = bot.GetChannel channelData.ChannelId
-                let! messageId = sendStreamAnnouncementMessage channel user stream
+                let! messageId = 
+                    buildStreamAnnouncementEmbed stream
+                    |> MessageUtils.sendEmbed (channel :> IChannel :?> IMessageChannel)
                 let announcementMessage =
                     { ChannelId = channelData.ChannelId
                       MessageId = messageId
-                      GuildId = int64 user.Guild.Id
-                      StreamerId = int64 user.Id }
+                      GuildId = stream.GuildId
+                      StreamerId = int64 stream.User.Id }
 
                 do! database.AddStreamAnnouncementMessage announcementMessage
+
+                return Ok messageId
             | None ->
-                ()
+                return Error "Guild does not have a stream announcements channel set."
         }
 
     let removeStreamingMessage (user : IGuildUser) : Async<unit> = 
@@ -67,26 +65,19 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
         match msg.Channel with
         | :? SocketGuildChannel as guildChannel ->
             async {
-                let guildId = int64 guildChannel.Guild.Id |> GuildId
+                let streamData =
+                    { Name = "Twitch"
+                      Details = "An amazing test stream that's not actually live right now! It's a test!"
+                      Url = "https://twitch.tv/nozzlegear"
+                      User = msg.Author
+                      GuildId = int64 guildChannel.Guild.Id }
 
-                match! database.GetStreamAnnouncementChannelForGuild guildId with
-                | Some channelData ->
-                    let channel = bot.GetChannel channelData.ChannelId
-                    let user = msg.Author
-                    let stream = StreamingGame("Twitch", "https://twitch.tv/nozzlegear")
-                    // stream.Details <- "This is the title of the test stream. It's an amazing and fun stream!"
-                    let! messageId = sendStreamAnnouncementMessage channel user stream
-                    let announcementMessage =
-                        { ChannelId = channelData.ChannelId
-                          GuildId = int64 guildChannel.Guild.Id
-                          MessageId = messageId
-                          StreamerId = int64 <| bot.GetBotUserId() }
-
-                    do! database.AddStreamAnnouncementMessage announcementMessage
-                    
+                match! sendStreamAnnouncementMessage streamData with
+                | Ok _ ->
                     return! MessageUtils.react (msg :?> SocketUserMessage) (Emoji "✅")
-                | None ->
-                    return! MessageUtils.sendMessage msg.Channel "This guild does not have a stream announcements channel set."
+                | Error err ->
+                    return! sprintf "Error: %s" err
+                            |> MessageUtils.sendMessage msg.Channel
             }
         | :? ISocketPrivateChannel ->
             MessageUtils.sendMessage msg.Channel "Command is not supported in a private message."
@@ -105,19 +96,32 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                 Async.Empty
             | guild :: remaining ->
                 async {
-                    let! members = 
-                        guild.GetUsersAsync() 
-                        |> Async.AwaitTask
+                    // Make sure this guild has a stream channel
+                    let guildId = int64 guild.Id
 
-                    // Check each member to see if they're streaming
-                    for guildMember in members do
-                        match tryGetStreamActivity guildMember with
-                        | Some activity ->
-                            // User is streaming, announce it to the stream channel
-                            do! postStreamingMessage guildMember activity
-                        | None ->
-                            let totalActivities = Seq.length guildMember.Activities
-                            ()
+                    match! database.GetStreamAnnouncementChannelForGuild (GuildId guildId) with
+                    | Some _ ->
+                        let! members = 
+                            guild.GetUsersAsync() 
+                            |> Async.AwaitTask
+
+                        // Check each member to see if they're streaming
+                        for guildMember in members do
+                            match tryGetStreamActivity guildMember with
+                            | Some activity ->
+                                // User is streaming, announce it to the stream channel
+                                let streamData = 
+                                    { User = guildMember
+                                      Name = activity.Name
+                                      Details = activity.Details
+                                      Url = activity.Url
+                                      GuildId = int64 guild.Id }
+                                do! sendStreamAnnouncementMessage streamData
+                                    |> Async.Ignore
+                            | None ->
+                                ()
+                    | None ->
+                        ()
 
                     return! scanNextGuild remaining
                 }
@@ -146,7 +150,15 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
         | true, None ->
             removeStreamingMessage after
         | false, Some stream when hasStreamerRole ->
-            postStreamingMessage after stream
+            // User is streaming, announce it to the stream channel
+            let streamData = 
+                { User = after
+                  Name = stream.Name
+                  Details = stream.Details
+                  Url = stream.Url
+                  GuildId = int64 after.Guild.Id }
+            sendStreamAnnouncementMessage streamData
+            |> Async.Ignore
         | _, _ ->
             Async.Empty
 
