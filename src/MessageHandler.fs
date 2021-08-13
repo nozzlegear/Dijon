@@ -187,6 +187,7 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
         ]
 
         MessageUtils.sendEmbed msg.Channel embed 
+        |> Async.Ignore
 
     let handleStatusMessage (msg: IMessage) =
         let embed = EmbedBuilder()
@@ -224,9 +225,11 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
                 ]
 
                 return! MessageUtils.sendEmbed msg.Channel embed 
+                        |> Async.Ignore
             }
         | _ -> 
             MessageUtils.sendEmbed msg.Channel embed
+            |> Async.Ignore
 
     let handleSetLogChannelMessage (msg: IMessage) = 
         match msg.Channel with 
@@ -311,6 +314,7 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
         ]
 
         MessageUtils.sendEmbed msg.Channel embed
+        |> Async.Ignore
 
     let handleSlander (msg: IMessage) = 
         match msg with 
@@ -542,8 +546,10 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
             embed.ThumbnailUrl <- user.AvatarUrl
             
             MessageUtils.sendEmbed channel embed 
+            |> Async.Ignore
 
         member x.SendAffixesMessage channel affixes =
             let embed = createAffixesEmbed affixes
             
             MessageUtils.sendEmbed channel embed 
+            |> Async.Ignore

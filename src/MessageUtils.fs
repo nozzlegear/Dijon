@@ -13,7 +13,13 @@ module MessageUtils =
 
     let sendMessage (channel: IMessageChannel) msg = sendEditableMessage channel msg |> Async.Ignore
 
-    let sendEmbed (channel: IMessageChannel) (embed: EmbedBuilder) = channel.SendMessageAsync("", false, embed.Build()) |> Async.AwaitTask |> Async.Ignore
+    let sendEmbed (channel: IMessageChannel) (embed: EmbedBuilder) = 
+        async {
+            let! result = channel.SendMessageAsync("", false, embed.Build()) 
+                          |> Async.AwaitTask
+
+            return int64 result.Id
+        }
 
     let react (msg: SocketUserMessage) emote = msg.AddReactionAsync emote |> Async.AwaitTask |> Async.Ignore
 
