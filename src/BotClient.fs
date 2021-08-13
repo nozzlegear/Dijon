@@ -56,8 +56,16 @@ type BotClient(logger : ILogger<BotClient>, config : IConfiguration) =
 
     let delegateCommandMessages (fn : IMessage -> Command -> Async<unit>) (msg : IMessage) = 
         match CommandParser.ParseCommand msg with
-        | Ignore -> Async.Empty
-        | cmd -> fn msg cmd
+        | Ignore -> 
+            Async.Empty
+        | cmd -> 
+            async {
+                match! fn msg cmd |> Async.Catch with
+                | Choice1Of2 _ -> 
+                    ()
+                | Choice2Of2 err ->
+                    logger.LogError(err, sprintf "Command message delegate failed to handle command %A" cmd)
+            }
 
     interface IAsyncDisposable with
         member _.DisposeAsync () =
