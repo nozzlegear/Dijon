@@ -9,7 +9,10 @@ open FSharp.Control.Tasks.V2.ContextInsensitive
 open Discord
 open Discord.WebSocket
 
-type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotClient) =
+type StreamCheckService(logger : ILogger<StreamCheckService>, 
+                        database : IDijonDatabase, 
+                        bot : Dijon.BotClient,
+                        messageHandler : IMessageHandler) =
             
     /// Tries to get the user's stream activity. Returns None if the user is not streaming.
     let tryGetStreamActivity (user : IGuildUser): Option<StreamingGame> = 
@@ -24,17 +27,23 @@ type StreamCheckService(logger : ILogger<StreamCheckService>, bot : Dijon.BotCli
         |> Option.isSome
 
     let postStreamingMessage (user : IGuildUser) (stream : StreamingGame) : Async<unit> =
-        let embed = EmbedBuilder()
-        embed.Title <- sprintf "%s is streaming on %s right now!" user.Nickname stream.Name
-        embed.Color <- Nullable Color.Green
-        embed.Description <- sprintf "**%s**" stream.Details
-        embed.Url <- stream.Url
+        async {
+            let guildId = GuildId <| int64 user.Guild.Id
+            
+            match! database.GetStreamAnnouncementChannelForGuild guildId with
+            | Some channelData ->
+                let channel = bot.GetChannel channelData.ChannelId
+                let! messageId = messageHandler.SendStreamAnnouncementMessage channel user stream
+                let announcementMessage =
+                    { ChannelId = channelData.ChannelId
+                      MessageId = messageId
+                      GuildId = int64 user.Guild.Id
+                      StreamerId = int64 user.Id }
 
-        // TODO: get the server's stream messages channel id
-        let channelId = int64 856354026509434890L
-        let channel = bot.GetChannel channelId
-
-        MessageUtils.sendEmbed (channel :> IChannel :?> IMessageChannel) embed
+                do! database.AddStreamAnnouncementMessage announcementMessage
+            | None ->
+                ()
+        }
 
     let removeStreamingMessage (user : IGuildUser) : Async<unit> = 
         logger.LogInformation("Removing streaming message for user {0}", user.Id)

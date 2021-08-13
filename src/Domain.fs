@@ -164,6 +164,7 @@ type IMessageHandler =
     abstract member HandleMessage: IMessage -> Async<unit>
     abstract member SendUserLeftMessage: IMessageChannel -> GuildUser -> Async<unit>
     abstract member SendAffixesMessage: IMessageChannel -> RaiderIo.ListAffixesResponse -> Async<unit>
+    abstract member SendStreamAnnouncementMessage: IChannel -> IUser -> StreamingGame -> Async<int64>
 
 type BotConfig = 
     {

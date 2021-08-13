@@ -556,7 +556,7 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
                     raise ex
             }
 
-        member x.SendUserLeftMessage channel user = 
+        member _.SendUserLeftMessage channel user = 
             let nickname = Option.defaultValue user.UserName user.Nickname
             let message = sprintf "**%s** (%s#%s) has left the server." nickname user.UserName user.Discriminator
             let embed = EmbedBuilder()
@@ -568,8 +568,23 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
             MessageUtils.sendEmbed channel embed 
             |> Async.Ignore
 
-        member x.SendAffixesMessage channel affixes =
+        member _.SendAffixesMessage channel affixes =
             let embed = createAffixesEmbed affixes
             
             MessageUtils.sendEmbed channel embed 
             |> Async.Ignore
+
+        member _.SendStreamAnnouncementMessage channel user stream =
+            async {
+                let embed = EmbedBuilder()
+                let username = 
+                    match user with
+                    | :? IGuildUser as guildUser when not (String.IsNullOrEmpty guildUser.Nickname) -> guildUser.Nickname
+                    | _ -> user.Username
+                embed.Title <- sprintf "%s is live on %s right now!" username stream.Name
+                embed.Color <- Nullable Color.Green
+                embed.Description <- sprintf "**%s**" stream.Details
+                embed.Url <- stream.Url
+
+                return! MessageUtils.sendEmbed (channel :?> IMessageChannel) embed
+            }
