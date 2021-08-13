@@ -9,17 +9,19 @@
     <Compile Include="Extensions/Strings.fs" />
     <Compile Include="Extensions/Messages.fs" />
     <Compile Include="Domain.fs" />
+    <Compile Include="CommandParser.fs" />
     <Compile Include="SqlDatabase.fs" />
     <Compile Include="Affixes.fs" />
+    <Compile Include="KnownUsers.fs" />
     <Compile Include="MessageUtils.fs" />
     <Compile Include="BotClient.fs" />
-    <Compile Include="MessageHandler.fs" />
     <Compile Include="Services\StreamCheckService.fs" />
     <Compile Include="Services\DatabaseMigratorService.fs" />
     <Compile Include="Services\AffixCheckService.fs" />
     <Compile Include="Services\UserMonitorService.fs" />
-    <Compile Include="Services\MessageMonitorService.fs" />
     <Compile Include="Services\StatusChangeService.fs" />
+    <Compile Include="Services\HelpService.fs" />
+    <Compile Include="Services\MemeService.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

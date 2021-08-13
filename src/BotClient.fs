@@ -14,6 +14,7 @@ type DiscordEvent =
     | UserJoined of (SocketGuildUser -> Async<unit>)
     | UserUpdated of (SocketGuildUser -> SocketGuildUser -> Async<unit>)
     | BotLeftGuild of (SocketGuild -> Async<unit>)
+    | CommandReceived of (IMessage -> Command -> Async<unit>)
 
 type BotClient(logger : ILogger<BotClient>, config : IConfiguration) =
     let client = new DiscordSocketClient()
@@ -52,6 +53,11 @@ type BotClient(logger : ILogger<BotClient>, config : IConfiguration) =
         let now = DateTimeOffset.UtcNow.ToString()
         printfn "[%s] %s: %s" now logMessage.Source logMessage.Message
     }
+
+    let delegateCommandMessages (fn : IMessage -> Command -> Async<unit>) (msg : IMessage) = 
+        match CommandParser.ParseCommand msg with
+        | Ignore -> Async.Empty
+        | cmd -> fn msg cmd
 
     interface IAsyncDisposable with
         member _.DisposeAsync () =
@@ -108,5 +114,8 @@ type BotClient(logger : ILogger<BotClient>, config : IConfiguration) =
         | BotLeftGuild fn ->
             singleArgFunc fn
             |> client.add_LeftGuild
+        | CommandReceived fn ->
+            singleArgFunc (delegateCommandMessages fn)
+            |> client.add_MessageReceived
 
         Async.Empty

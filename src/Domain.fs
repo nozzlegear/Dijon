@@ -14,6 +14,7 @@ type Command =
     | Ignore 
     | TestStreamStarted
     | TestStreamEnded
+    | TestUserLeft
     | Goulash 
     | Status 
     | SetLogChannel 
@@ -161,21 +162,8 @@ type IDijonDatabase =
     abstract member ListStreamAnnouncementMessagesForGuild: guildId: int64 -> Async<StreamAnnouncementMessage list>
     abstract member DeleteStreamAnnouncementMessageForStreamer: streamerId: int64 -> Async<unit>
 
-type IMessageHandler = 
-    abstract member HandleMessage: IMessage -> Async<unit>
-    abstract member SendUserLeftMessage: IMessageChannel -> GuildUser -> Async<unit>
-    abstract member SendAffixesMessage: IMessageChannel -> RaiderIo.ListAffixesResponse -> Async<unit>
-    abstract member SendStreamAnnouncementMessage: IChannel -> IUser -> StreamingGame -> Async<int64>
-
-type BotConfig = 
-    {
-        database: IDijonDatabase
-        client: DiscordSocketClient
-        messages: IMessageHandler
-    }
-
 type DatabaseOptions (config : IConfiguration) =
-    member x.SqlConnectionString : string =
+    member _.SqlConnectionString : string =
         let key = "DIJON_SQL_CONNECTION_STRING"
         match config.GetValue<string> key with
         | ""

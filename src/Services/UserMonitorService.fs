@@ -9,7 +9,10 @@ open Discord
 open Discord.WebSocket
 open FSharp.Control.Tasks.V2.ContextInsensitive
 
-type UserMonitorService(logger : ILogger<UserMonitorService>, bot : Dijon.BotClient, database : IDijonDatabase, messages : IMessageHandler) =
+type UserMonitorService(logger : ILogger<UserMonitorService>, 
+                        bot : Dijon.BotClient, 
+                        database : IDijonDatabase) =
+
     let mapUsersToMembers (guild: IGuild) =
         async {
             let! users = 
@@ -19,6 +22,18 @@ type UserMonitorService(logger : ILogger<UserMonitorService>, bot : Dijon.BotCli
             return users
                    |> Seq.map MemberUpdate.FromGuildUser
         }
+
+    let sendUserLeftMessage channel user = 
+        let nickname = Option.defaultValue user.UserName user.Nickname
+        let message = sprintf "**%s** (%s#%s) has left the server." nickname user.UserName user.Discriminator
+        let embed = EmbedBuilder()
+        embed.Title <- "👋"
+        embed.Description <- message
+        embed.Color <- Nullable Color.DarkOrange
+        embed.ThumbnailUrl <- user.AvatarUrl
+        
+        MessageUtils.sendEmbed channel embed 
+        |> Async.Ignore
 
     let userJoined (user : SocketGuildUser) = 
         database.BatchSetAsync [MemberUpdate.FromGuildUser user]
@@ -41,7 +56,7 @@ type UserMonitorService(logger : ILogger<UserMonitorService>, bot : Dijon.BotCli
                 match logChannelId with 
                 | Some channelId -> 
                     let channel = user.Guild.GetTextChannel (uint64 channelId)
-                    messages.SendUserLeftMessage channel userData
+                    sendUserLeftMessage channel userData
                 | None -> 
                     Async.Empty
             
@@ -94,6 +109,41 @@ type UserMonitorService(logger : ILogger<UserMonitorService>, bot : Dijon.BotCli
             Async.Empty
             // bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
 
+    let handleSetLogChannelCommand (msg: IMessage) = 
+        match msg.Channel with 
+        | :? SocketGuildChannel as guildChannel -> 
+            if msg.Author.Id <> KnownUsers.DjurId then
+                "At the moment, only the Almighty "
+                + MentionUtils.MentionUser KnownUsers.DjurId
+                + " may set the log channel."
+                |> MessageUtils.sendMessage msg.Channel
+            else 
+                async {
+                    let guildId = GuildId (int64 guildChannel.Guild.Id)
+
+                    do! database.SetLogChannelForGuild guildId (int64 msg.Channel.Id)
+                    do! MessageUtils.sendMessage msg.Channel "Messages will be sent to this channel when a user leaves the server."
+                }
+        | :? ISocketPrivateChannel -> 
+            MessageUtils.sendMessage msg.Channel "Unable to set log channel in a private message."
+        | _ -> 
+            MessageUtils.sendMessage msg.Channel "Unable to set log channel in unknown channel type."
+
+    /// Sends a test message indicating that a fake user left the server.
+    let handleTestUserLeftCommand (msg : IMessage) = 
+        let fakeUser = {
+            Nickname = Some "TestUser"
+            UserName = "Discord"
+            Discriminator = "0000"
+            AvatarUrl = msg.Author.GetAvatarUrl(size = uint16 1024)
+        }
+
+        sendUserLeftMessage msg.Channel fakeUser
+
+    let handleCommand (msg : IMessage) = function
+        | SetLogChannel -> handleSetLogChannelCommand msg
+        | TestUserLeft -> handleTestUserLeftCommand msg
+        | _ -> Async.Empty
 
     interface IDisposable with
         member _.Dispose() =
@@ -107,6 +157,7 @@ type UserMonitorService(logger : ILogger<UserMonitorService>, bot : Dijon.BotCli
                 do! bot.AddEventListener (DiscordEvent.UserLeft userLeft)
                 do! bot.AddEventListener (DiscordEvent.UserUpdated userUpdated)
                 do! bot.AddEventListener (DiscordEvent.BotLeftGuild botLeftGuild)
+                do! bot.AddEventListener (DiscordEvent.CommandReceived handleCommand)
 
                 // Update the list of guild members
                 let! allGuilds = 

@@ -10,7 +10,7 @@ open Microsoft.Extensions.Logging
 type StatusChangeService(logger : ILogger<StatusChangeService>, bot : Dijon.BotClient) =
     let mutable timer : System.Timers.Timer option = None
     
-    let checkStreams () : unit =
+    let changeStatus () : unit =
         async {
             let status =
                 [ "Incentives Available Subject to Covenant"
@@ -44,7 +44,7 @@ type StatusChangeService(logger : ILogger<StatusChangeService>, bot : Dijon.BotC
             timer <- None
             
             if not cancellation.IsCancellationRequested then
-                checkStreams()
+                changeStatus()
             
             // Schedule the next job as soon as this one fires
             if not cancellation.IsCancellationRequested then
@@ -54,7 +54,7 @@ type StatusChangeService(logger : ILogger<StatusChangeService>, bot : Dijon.BotC
         baseTimer.Start()
         
         if startNow then
-            checkStreams()
+            changeStatus()
 
     interface IDisposable with
         member _.Dispose() = 

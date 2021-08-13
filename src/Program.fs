@@ -14,12 +14,12 @@ module Program =
                     services.AddSingleton<DatabaseOptions>() |> ignore
                     services.AddSingleton<IDijonDatabase, DijonSqlDatabase>() |> ignore
                     services.AddSingleton<BotClient>() |> ignore 
-                    services.AddSingleton<IMessageHandler, MessageHandler>() |> ignore 
                     services.AddHostedService<DatabaseMigratorService>() |> ignore
                     services.AddHostedService<StreamCheckService>() |> ignore
                     services.AddHostedService<AffixCheckService>() |> ignore
-                    services.AddHostedService<MessageMonitorService>() |> ignore
                     services.AddHostedService<UserMonitorService>() |> ignore
+                    services.AddHostedService<HelpService>() |> ignore
+                    services.AddHostedService<MemeService>() |> ignore
                     services.AddHostedService<StatusChangeService>() |> ignore)
                 .ConfigureLogging(fun context logging ->
                     logging.AddConsole() |> ignore)
