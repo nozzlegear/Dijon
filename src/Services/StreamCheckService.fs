@@ -127,56 +127,6 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
         | _ ->
             MessageUtils.sendMessage msg.Channel "Command is not supported in unknown channel type."
 
-    let scanActiveStreamers () : Async<unit> = 
-        logger.LogInformation("Scanning for active streamers.")
-        
-        let rec scanNextGuild (remaining : IGuild list) =
-            match remaining with
-            | [] -> 
-                Async.Empty
-            | guild :: remaining ->
-                async {
-                    // Make sure this guild has a stream channel
-                    let guildId = int64 guild.Id
-
-                    match! database.GetStreamAnnouncementChannelForGuild (GuildId guildId) with
-                    | Some _ ->
-                        let! members = 
-                            guild.GetUsersAsync() 
-                            |> Async.AwaitTask
-
-                        // Check each member to see if they're streaming
-                        for guildMember in members do
-                            match tryGetStreamActivity guildMember with
-                            | Some activity ->
-                                // User is streaming, announce it to the stream channel
-                                let streamData = 
-                                    { User = guildMember
-                                      Name = activity.Name
-                                      Details = activity.Details
-                                      Url = activity.Url
-                                      GuildId = int64 guild.Id }
-                                do! sendStreamAnnouncementMessage streamData
-                                    |> Async.Ignore
-                            | None ->
-                                ()
-                    | None ->
-                        ()
-
-                    return! scanNextGuild remaining
-                }
-
-        async {
-            // Update the list of guild members
-            let! allGuilds = 
-                bot.ListGuildsAsync() 
-                |> Async.AwaitTask
-
-            do! allGuilds
-                |> List.ofSeq
-                |> scanNextGuild
-        }
-
     let userUpdated (before : SocketGuildUser) (after : SocketGuildUser) = 
         let streamerRoleId = 
             uint64 856350523812610048L
@@ -197,6 +147,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                   Details = stream.Details
                   Url = stream.Url
                   GuildId = int64 after.Guild.Id }
+
             sendStreamAnnouncementMessage streamData
             |> Async.Ignore
         | _, _ ->
@@ -267,7 +218,6 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
             task {
                 do! bot.AddEventListener (DiscordEvent.UserUpdated userUpdated)
                 do! bot.AddEventListener (DiscordEvent.CommandReceived commandReceived)
-                do! scanActiveStreamers ()
             }
             :> Task
             
