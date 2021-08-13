@@ -22,12 +22,18 @@ module MessageUtils =
             return int64 result.Id
         }
 
-    let react (msg: SocketUserMessage) emote = msg.AddReactionAsync emote |> Async.AwaitTask |> Async.Ignore
+    let react (msg: SocketUserMessage) emote = 
+        msg.AddReactionAsync emote 
+        |> Async.AwaitTask
 
     let multiReact (msg: SocketUserMessage) (emotes: IEmote seq) = 
         emotes
         |> Seq.map (fun e -> fun _ -> react msg e)
         |> Async.Sequential
+
+    let AddGreenCheckReaction (msg : IMessage) =
+        msg.AddReactionAsync (Emoji "✅")
+        |> Async.AwaitTask
 
     /// Get's the user's Nickname if available, else their Discord username.
     let GetNickname (user : IUser) = 
