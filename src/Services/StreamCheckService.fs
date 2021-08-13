@@ -57,9 +57,41 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                 return Error "Guild does not have a stream announcements channel set."
         }
 
-    let removeStreamingMessage (user : IGuildUser) : Async<unit> = 
-        logger.LogInformation("Removing streaming message for user {0}", user.Id)
-        Async.Empty
+    let removeStreamingMessage (user : IUser) : Async<unit> = 
+        let userId = int64 user.Id
+
+        logger.LogInformation("Removing streaming message for user {0} ({1})", user.Username, userId)
+
+        async {
+            let options = 
+                let o = RequestOptions.Default
+                o.AuditLogReason <- "Stream ended"
+                o
+            let! messages = database.ListStreamAnnouncementMessagesForStreamer userId
+            let totalMessages = Seq.length messages
+
+            if totalMessages > 5 then
+                logger.LogWarning("User {0} ({1}) has {2} stream announcement messages. Only deleting the first 5.", user.Username, userId, totalMessages)
+
+            // Delete each message
+            for message in Seq.truncate 5 messages do
+                let channel = bot.GetChannel message.ChannelId :> IChannel :?> IMessageChannel
+                let deletion = channel.DeleteMessageAsync(uint64 message.MessageId, options)
+                               |> Async.AwaitTask
+                               |> Async.Catch
+
+                match! deletion with
+                | Choice2Of2 (:? Discord.Net.HttpException as ex) when int ex.HttpCode = 404 ->
+                    // The message was already deleted, possibly by hand
+                    ()
+                | Choice2Of2 err ->
+                    logger.LogError(err, "Failed to delete stream announcement message for user {0} ({1})", user.Username, userId)
+                | _ ->
+                    ()
+
+            // Delete the database messages
+            do! database.DeleteStreamAnnouncementMessageForStreamer userId
+        }
 
     let handleTestStreamStartedCommand (msg : IMessage) =
         match msg.Channel with
@@ -74,7 +106,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
 
                 match! sendStreamAnnouncementMessage streamData with
                 | Ok _ ->
-                    return! MessageUtils.react (msg :?> SocketUserMessage) (Emoji "✅")
+                    return! MessageUtils.AddGreenCheckReaction msg
                 | Error err ->
                     return! sprintf "Error: %s" err
                             |> MessageUtils.sendMessage msg.Channel
@@ -85,7 +117,15 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
             MessageUtils.sendMessage msg.Channel "Command is not supported in unknown channel type."
 
     let handleTestStreamEndedCommand (msg : IMessage) =
-        Async.Empty
+        match msg.Channel with
+        | :? SocketGuildChannel ->
+            async {
+                do! removeStreamingMessage msg.Author
+
+                return! MessageUtils.AddGreenCheckReaction msg
+            }
+        | _ ->
+            MessageUtils.sendMessage msg.Channel "Command is not supported in unknown channel type."
 
     let scanActiveStreamers () : Async<unit> = 
         logger.LogInformation("Scanning for active streamers.")
@@ -204,7 +244,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
 
                 do! database.DeleteStreamAnnouncementChannelForGuild guildId
 
-                return! MessageUtils.react (msg :?> SocketUserMessage) (Emoji "✅")
+                return! MessageUtils.AddGreenCheckReaction msg
             }
         | :? ISocketPrivateChannel ->
             MessageUtils.sendMessage msg.Channel "Command is not supported in a private message."
