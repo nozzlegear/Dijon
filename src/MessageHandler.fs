@@ -124,6 +124,10 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
             | "announce streams for"
             | "announce streams for in"
             | "announce streams" -> SetStreamsChannel
+            | "remove stream channel"
+            | "remove streams channel"
+            | "unset stream channel"
+            | "unset streams channel" -> UnsetStreamsChannel
             | "affix"
             | "what are the affixes"
             | "affixes" -> GetAffix
@@ -298,6 +302,21 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
             MessageUtils.sendMessage msg.Channel "Unable to set streams channel in a private message."
         | _ ->
             MessageUtils.sendMessage msg.Channel "Unable to set log channel in unknown channel type."
+
+    let handleUnsetStreamsChannelMessage (msg : IMessage) =
+        match msg.Channel with
+        | :? SocketGuildChannel as guildChannel ->
+            async {
+                let guildId = int64 guildChannel.Guild.Id |> GuildId
+
+                do! database.DeleteStreamAnnouncementChannelForGuild guildId
+
+                return! MessageUtils.react (msg :?> SocketUserMessage) (Emoji "✅")
+            }
+        | :? ISocketPrivateChannel ->
+            MessageUtils.sendMessage msg.Channel "Command is not supported in a private message."
+        | _ ->
+            MessageUtils.sendMessage msg.Channel "Command is not supported in unknown channel type."
 
     let handleHelpMessage (msg: IMessage) =
         let embed = EmbedBuilder()
@@ -518,6 +537,7 @@ type MessageHandler(logger: ILogger<MessageHandler>, database: IDijonDatabase, b
                 | SetLogChannel -> handleSetLogChannelMessage msg
                 | SetAffixesChannel -> handleSetAffixesChannelMessage msg
                 | SetStreamsChannel -> handleSetStreamsChannelMessage msg
+                | UnsetStreamsChannel -> handleUnsetStreamsChannelMessage msg
                 | Slander -> handleSlander msg 
                 | AidAgainstSlander -> handleAidAgainstSlander msg
                 | Help -> handleHelpMessage msg

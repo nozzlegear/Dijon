@@ -25,6 +25,7 @@ type Command =
     | GetAffix
     | SetAffixesChannel
     | SetStreamsChannel
+    | UnsetStreamsChannel
 
 module RaiderIo =
     open Thoth.Json.Net
