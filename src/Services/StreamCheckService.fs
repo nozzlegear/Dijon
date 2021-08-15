@@ -25,16 +25,39 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
         tryGetStreamActivity user
         |> Option.isSome
 
+    let getTwitchUsernameFromUrl (url : string) =
+        let uri = Uri url
+
+        // Taking the following URL: https://twitch.tv/nozzlegear
+        // uri.Segments will give an array with two entries:
+        // [| "/"; "nozzlegear" |]
+        //
+        // With this URL: https://twitch.tv/nozzlegear/something
+        // uri.Segments will give an array with three entries:
+        // [| "/"; "nozzlegear/"; "something" |]
+        // 
+        // Note the trailing slash in "nozzlegear/"!
+        
+        match Seq.tryItem 1 uri.Segments with
+        | Some segment ->
+            segment.Trim '/'
+        | None ->
+            // Unlikely, but item 1 could not be found. Just return the last segment.
+            Seq.last uri.Segments
+
     let buildStreamAnnouncementEmbed (stream : StreamData) =
-        // TODO: use the Twitch API to get a stream preview image
+        let twitchUsername = getTwitchUsernameFromUrl stream.Url
+        let discordNickname = MessageUtils.GetNickname stream.User
         let embed = EmbedBuilder()
-        let nickname = MessageUtils.GetNickname stream.User
-        embed.Title <- sprintf "%s is live on %s right now!" nickname stream.Name
+        embed.Title <- sprintf "%s is live on %s right now!" discordNickname stream.Name
         embed.Color <- Nullable Color.Green
-        embed.Description <- sprintf "**%s**" stream.Details
-        embed.Url <- stream.Url
+        embed.Description <- stream.Details
         embed.ThumbnailUrl <- stream.User.GetAvatarUrl(size = uint16 256)
-        embed
+        embed.ImageUrl <- sprintf "https://static-cdn.jtvnw.net/previews-ttv/live_user_%s-1280x740.jpg" twitchUsername
+        embed.Url <- stream.Url
+        embed.AddField (fun builder ->  
+                builder.Name <- "Stream URL"
+                builder.Value <- stream.Url)
 
     let sendStreamAnnouncementMessage (stream : StreamData) =
         async {
