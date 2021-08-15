@@ -129,17 +129,6 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
 
     let userUpdated (before : SocketGuildUser) (after : SocketGuildUser) = 
         async {
-            // Fetch all streamer role IDs and then check if the user has one
-            let! allRoles = 
-                database.ListStreamerRoles ()
-            let userRoles = 
-                after.Roles
-                |> Seq.map (fun r -> int64 r.Id)
-                |> Set.ofSeq
-            let hasStreamerRole = 
-                allRoles
-                |> Set.exists (fun role -> Set.contains role userRoles)
-
             let wasStreaming = isStreaming before
             let stream = tryGetStreamActivity after
 
@@ -148,17 +137,31 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                 // Always try to remove streaming messages for the user even if they don't currenty have a streamer role.
                 // This covers cases where they had a streamer role but it was removed while they were streaming.
                 return! removeStreamingMessage after
-            | false, Some stream when hasStreamerRole ->
-                // User is streaming, announce it to the stream channel
-                let streamData = 
-                    { User = after
-                      Name = stream.Name
-                      Details = stream.Details
-                      Url = stream.Url
-                      GuildId = int64 after.Guild.Id }
+            | false, Some stream ->
+                // Fetch all streamer role IDs and then check if the user has one
+                let! allRoles = 
+                    database.ListStreamerRoles ()
+                let userRoles = 
+                    after.Roles
+                    |> Seq.map (fun r -> int64 r.Id)
+                    |> Set.ofSeq
+                let hasStreamerRole = 
+                    allRoles
+                    |> Set.exists (fun role -> Set.contains role userRoles)
 
-                return! sendStreamAnnouncementMessage streamData
-                        |> Async.Ignore
+                if hasStreamerRole then
+                    // User is streaming and they have the streaming role. Announce the stream.
+                    let streamData = 
+                        { User = after
+                          Name = stream.Name
+                          Details = stream.Details
+                          Url = stream.Url
+                          GuildId = int64 after.Guild.Id }
+
+                    return! sendStreamAnnouncementMessage streamData
+                            |> Async.Ignore
+                else
+                    return ()
             | _, _ ->
                 return ()
         }
