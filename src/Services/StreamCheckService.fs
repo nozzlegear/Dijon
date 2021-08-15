@@ -192,7 +192,12 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
     let handleSetStreamChannelCommand (msg : IMessage) =
         match msg.Channel with
         | :? SocketGuildChannel as guildChannel ->
-            if Seq.length msg.MentionedRoleIds <> 1 then
+            if msg.Author.Id <> KnownUsers.DjurId then
+                let djurMention = MentionUtils.MentionUser KnownUsers.DjurId
+
+                sprintf "Only %s may set the stream channel at this time." djurMention
+                |> MessageUtils.sendMessage msg.Channel 
+            elif Seq.length msg.MentionedRoleIds <> 1 then
                 MessageUtils.sendMessage msg.Channel "You must mention exactly 1 role to use as the streamer role."
             elif Seq.length msg.MentionedChannelIds <> 1 then
                 MessageUtils.sendMessage msg.Channel "You must mention exactly 1 channel to use as the announcements channel."
@@ -226,13 +231,19 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
     let handleUnsetStreamChannelCommand (msg : IMessage) =
         match msg.Channel with
         | :? SocketGuildChannel as guildChannel ->
-            async {
-                let guildId = int64 guildChannel.Guild.Id |> GuildId
+            if msg.Author.Id <> KnownUsers.DjurId then
+                let djurMention = MentionUtils.MentionUser KnownUsers.DjurId
 
-                do! database.DeleteStreamAnnouncementChannelForGuild guildId
+                sprintf "Only %s may unset the stream channel at this time." djurMention
+                |> MessageUtils.sendMessage msg.Channel 
+            else
+                async {
+                    let guildId = int64 guildChannel.Guild.Id |> GuildId
 
-                return! MessageUtils.AddGreenCheckReaction msg
-            }
+                    do! database.DeleteStreamAnnouncementChannelForGuild guildId
+
+                    return! MessageUtils.AddGreenCheckReaction msg
+                }
         | :? ISocketPrivateChannel ->
             MessageUtils.sendMessage msg.Channel "Command is not supported in a private message."
         | _ ->
