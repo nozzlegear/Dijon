@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1 as Builder
+FROM mcr.microsoft.com/dotnet/sdk:5.0.203-focal as Builder
 WORKDIR /app
 
 # Configure dotnet and paket
