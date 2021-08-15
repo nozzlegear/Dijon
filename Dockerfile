@@ -25,6 +25,11 @@ RUN dotnet publish -c Release -o dist -r linux-musl-x64
 FROM mcr.microsoft.com/dotnet/runtime:5.0.9-alpine3.13
 WORKDIR /app
 
+# Fix SqlClient invariant errors when dotnet core runs in an alpine container
+# https://github.com/dotnet/SqlClient/issues/220
+RUN apk add icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+
 # Add timezone info (tzdata package) to Alpine
 # https://github.com/dotnet/dotnet-docker/issues/1366
 RUN apk add --no-cache tzdata
