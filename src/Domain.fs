@@ -166,6 +166,7 @@ type IDijonDatabase =
     abstract member GetStreamAnnouncementChannelForGuild: GuildId -> Async<StreamAnnouncementChannel option>
     abstract member DeleteStreamAnnouncementChannelForGuild: GuildId -> Async<unit>
     abstract member ListStreamAnnouncementChannels: unit -> Async<StreamAnnouncementChannel list>
+    abstract member ListStreamerRoles: unit -> Async<Set<int64>>
     abstract member AddStreamAnnouncementMessage: PartialStreamAnnouncementMessage -> Async<unit>
     abstract member ListStreamAnnouncementMessagesForStreamer: streamerId: int64 -> Async<StreamAnnouncementMessage list>
     abstract member ListStreamAnnouncementMessagesForGuild: guildId: int64 -> Async<StreamAnnouncementMessage list>

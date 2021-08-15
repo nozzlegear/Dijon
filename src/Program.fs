@@ -1,6 +1,8 @@
 ﻿namespace Dijon
 
+open Dijon.Cache
 open Dijon.Services
+
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 open Microsoft.Extensions.DependencyInjection
@@ -12,6 +14,7 @@ module Program =
             Host.CreateDefaultBuilder()
                 .ConfigureServices(fun context services ->
                     services.AddSingleton<DatabaseOptions>() |> ignore
+                    services.AddSingleton<StreamCache>() |> ignore
                     services.AddSingleton<IDijonDatabase, DijonSqlDatabase>() |> ignore
                     services.AddSingleton<BotClient>() |> ignore 
                     services.AddHostedService<DatabaseMigratorService>() |> ignore

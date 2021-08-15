@@ -14,3 +14,4 @@ nuget system.data.sqlclient
 nuget cronos
 nuget TimeZoneConverter
 nuget DustyTables ~> 4
+nuget LazyCache

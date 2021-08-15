@@ -10,6 +10,7 @@
     <Compile Include="Extensions/Messages.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="CommandParser.fs" />
+    <Compile Include="Cache/StreamCache.fs" />
     <Compile Include="SqlDatabase.fs" />
     <Compile Include="Affixes.fs" />
     <Compile Include="KnownUsers.fs" />

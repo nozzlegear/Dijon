@@ -128,30 +128,40 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
             MessageUtils.sendMessage msg.Channel "Command is not supported in unknown channel type."
 
     let userUpdated (before : SocketGuildUser) (after : SocketGuildUser) = 
-        let streamerRoleId = 
-            uint64 856350523812610048L
-        let hasStreamerRole = 
-            after.Roles
-            |> Seq.exists (fun r -> r.Id = streamerRoleId)
-        let wasStreaming = isStreaming before
-        let stream = tryGetStreamActivity after
+        async {
+            // Fetch all streamer role IDs and then check if the user has one
+            let! allRoles = 
+                database.ListStreamerRoles ()
+            let userRoles = 
+                after.Roles
+                |> Seq.map (fun r -> int64 r.Id)
+                |> Set.ofSeq
+            let hasStreamerRole = 
+                allRoles
+                |> Set.exists (fun role -> Set.contains role userRoles)
 
-        match wasStreaming, stream with
-        | true, None ->
-            removeStreamingMessage after
-        | false, Some stream when hasStreamerRole ->
-            // User is streaming, announce it to the stream channel
-            let streamData = 
-                { User = after
-                  Name = stream.Name
-                  Details = stream.Details
-                  Url = stream.Url
-                  GuildId = int64 after.Guild.Id }
+            let wasStreaming = isStreaming before
+            let stream = tryGetStreamActivity after
 
-            sendStreamAnnouncementMessage streamData
-            |> Async.Ignore
-        | _, _ ->
-            Async.Empty
+            match wasStreaming, stream with
+            | true, None ->
+                // Always try to remove streaming messages for the user even if they don't currenty have a streamer role.
+                // This covers cases where they had a streamer role but it was removed while they were streaming.
+                return! removeStreamingMessage after
+            | false, Some stream when hasStreamerRole ->
+                // User is streaming, announce it to the stream channel
+                let streamData = 
+                    { User = after
+                      Name = stream.Name
+                      Details = stream.Details
+                      Url = stream.Url
+                      GuildId = int64 after.Guild.Id }
+
+                return! sendStreamAnnouncementMessage streamData
+                        |> Async.Ignore
+            | _, _ ->
+                return ()
+        }
 
     let handleSetStreamChannelCommand (msg : IMessage) =
         match msg.Channel with

@@ -1,18 +1,23 @@
 namespace Dijon
 
+open Dijon.Cache
 open Dapper
 open System.Data.SqlClient
 open System.Data
 open System
 open DustyTables
 
-type DijonSqlDatabase (options : DatabaseOptions) =
+type DijonSqlDatabase (options : DatabaseOptions,
+                       streamCache : StreamCache) =
+
     let connStr = options.SqlConnectionString
+
     let memberTableName = "DIJON_MEMBER_RECORDS"
     let logChannelTableName = "DIJON_LOG_CHANNELS"
     let affixesChannelTableName = "DIJON_AFFIXES_CHANNELS"
+
     let (=>) a b = a, box b
-    let dispose (conn: IDisposable) = Async.Iter (fun _ -> conn.Dispose())
+
     let getDiscordId = function 
         | UniqueUser (discordId, _) -> match discordId with DiscordId i -> i
     let getGuildId = function 
@@ -328,43 +333,78 @@ type DijonSqlDatabase (options : DatabaseOptions) =
             |> Async.Ignore
 
         member _.SetStreamAnnouncementChannelForGuild channel =
-            Sql.connect connStr
-            |> Sql.storedProcedure "sp_SetStreamAnnouncementChannelForGuild"
-            |> Sql.parameters 
-                [ "@guildId", Sql.int64 channel.GuildId
-                  "@channelId", Sql.int64 channel.ChannelId
-                  "@streamerRoleId", Sql.int64 channel.StreamerRoleId ]
-            |> Sql.executeNonQueryAsync
-            |> Async.AwaitTask
-            |> Async.Ignore
+            let job = 
+                Sql.connect connStr
+                |> Sql.storedProcedure "sp_SetStreamAnnouncementChannelForGuild"
+                |> Sql.parameters 
+                    [ "@guildId", Sql.int64 channel.GuildId
+                      "@channelId", Sql.int64 channel.ChannelId
+                      "@streamerRoleId", Sql.int64 channel.StreamerRoleId ]
+                |> Sql.executeNonQueryAsync
+                |> Async.AwaitTask
+                |> Async.Ignore
+
+            async {
+                do! job
+
+                streamCache.AddStreamerRole(channel.StreamerRoleId)
+            }
 
         member _.GetStreamAnnouncementChannelForGuild guildId =
-            let toOption job = 
+            let guildId = match guildId with GuildId g -> g
+            let mapAndCache job = 
                 async {
                     let! result = job
-                    return Seq.tryHead result
+
+                    match Seq.tryHead result with
+                    | Some channel ->
+                        streamCache.AddStreamerRole channel.StreamerRoleId
+                        return Some channel
+                    | None ->
+                        return None
                 }
 
             Sql.connect connStr
             |> Sql.storedProcedure "sp_GetStreamAnnouncementChannelForGuild"
-            |> Sql.parameters [ "@guildId", match guildId with GuildId g -> Sql.int64 g ]
+            |> Sql.parameters [ "@guildId", Sql.int64 guildId ]
             |> Sql.executeAsync mapStreamAnnouncementChannels
             |> Async.AwaitTask
-            |> toOption
+            |> mapAndCache
 
         member _.DeleteStreamAnnouncementChannelForGuild guildId =
-            Sql.connect connStr
-            |> Sql.storedProcedure "sp_UnsetStreamAnnouncementChannelForGuild"
-            |> Sql.parameters [ "@guildId", match guildId with GuildId g -> Sql.int64 g ]
-            |> Sql.executeNonQueryAsync
-            |> Async.AwaitTask
-            |> Async.Ignore
+            let guildId = match guildId with GuildId g -> g
+
+            let job = 
+                Sql.connect connStr
+                |> Sql.storedProcedure "sp_UnsetStreamAnnouncementChannelForGuild"
+                |> Sql.parameters [ "@guildId", Sql.int64 guildId ]
+                |> Sql.executeNonQueryAsync
+                |> Async.AwaitTask
+
+            async {
+                let! _ = job
+                // TODO: if we knew the streamer role for this guild, we could remove it from the cache instead of resetting the cache entirely
+                streamCache.Reset ()
+            }
 
         member _.ListStreamAnnouncementChannels () =
             Sql.connect connStr
             |> Sql.storedProcedure "sp_ListStreamAnnouncementChannels"
             |> Sql.executeAsync mapStreamAnnouncementChannels
             |> Async.AwaitTask
+
+        member self.ListStreamerRoles () =
+            let populate () =
+                let self : IDijonDatabase = upcast self
+
+                async {
+                    let! channels = self.ListStreamAnnouncementChannels ()
+
+                    return channels
+                           |> List.map (fun channel -> channel.StreamerRoleId)
+                }
+
+            streamCache.GetAllStreamerRoles populate
 
         member _.AddStreamAnnouncementMessage message =
             Sql.connect connStr
