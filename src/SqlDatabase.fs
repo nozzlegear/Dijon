@@ -346,8 +346,7 @@ type DijonSqlDatabase (options : DatabaseOptions,
 
             async {
                 do! job
-
-                streamCache.AddStreamerRole(channel.StreamerRoleId)
+                do! streamCache.AddStreamerRole(channel.StreamerRoleId)
             }
 
         member _.GetStreamAnnouncementChannelForGuild guildId =
@@ -358,7 +357,7 @@ type DijonSqlDatabase (options : DatabaseOptions,
 
                     match Seq.tryHead result with
                     | Some channel ->
-                        streamCache.AddStreamerRole channel.StreamerRoleId
+                        do! streamCache.AddStreamerRole channel.StreamerRoleId
                         return Some channel
                     | None ->
                         return None

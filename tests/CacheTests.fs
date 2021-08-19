@@ -14,7 +14,7 @@ let ``Adds roles to the cache`` () =
         let! result = cache.GetAllStreamerRoles(populate)
 
         Assert.Equal(3, Set.count result)
-        cache.AddStreamerRole 456789L
+        do! cache.AddStreamerRole 456789L
 
         let! result = cache.GetAllStreamerRoles(populate)
 
@@ -71,7 +71,7 @@ let ``Removes roles from the cache`` () =
         let! result = cache.GetAllStreamerRoles(populate)
         
         Assert.Equal(3, Set.count result)
-        cache.RemoveStreamerRole(345678L)
+        do! cache.RemoveStreamerRole(345678L)
 
         let! result = cache.GetAllStreamerRoles(populate)
 
@@ -85,16 +85,17 @@ let ``Does not return roles added before the cache has been populated`` () =
     let populate = fun _ -> async {
         return List.empty
     }
-    cache.AddStreamerRole(123456L)
-    cache.AddStreamerRole(234567L)
-    cache.AddStreamerRole(345678L)
 
     async {
+        do! cache.AddStreamerRole(123456L)
+        do! cache.AddStreamerRole(234567L)
+        do! cache.AddStreamerRole(345678L)
+
         let! result = cache.GetAllStreamerRoles(populate)
 
         // Should not add roles before the first `GetAllStreamerRoles` is called
         Assert.Equal(0, Set.count result)
-        cache.AddStreamerRole(123456L)
+        do! cache.AddStreamerRole(123456L)
 
         let! result = cache.GetAllStreamerRoles(populate)
         

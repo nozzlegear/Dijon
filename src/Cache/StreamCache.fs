@@ -10,10 +10,12 @@ type StreamCache() =
     let allRolesKey = "AllStreamerRoles"
     let mutable hasPopulated = false
 
-    let getAllRoles () : Set<int64> =
+    let getAllRoles () : Async<Set<int64>> =
         match cache.TryGetValue(allRolesKey) with
-        | true, allRoles -> downcast allRoles
-        | false, _ -> Set.empty<int64>
+        | true, allRoles -> 
+            async { return downcast allRoles }
+        | false, _ -> 
+            async { return Set.empty<int64> }
 
     /// Resets the cache, prompting the next <see cref="GetAllStreamerRoles" /> call to repopulate it.
     member _.Reset () =
@@ -22,19 +24,23 @@ type StreamCache() =
 
     /// Adds the streamer role to the cache.
     member _.AddStreamerRole (roleId : int64) =
-        let allRoles = getAllRoles ()
-        cache.Add(allRolesKey, Set.add roleId allRoles)
+        async {
+            let! allRoles = getAllRoles ()
+            cache.Add(allRolesKey, Set.add roleId allRoles)
+        }
 
     /// Removes the streamer role from the cache.
     member _.RemoveStreamerRole (roleId : int64) =
-        let allRoles = getAllRoles ()
-        cache.Add(allRolesKey, Set.remove roleId allRoles)
+        async {
+            let! allRoles = getAllRoles ()
+            cache.Add(allRolesKey, Set.remove roleId allRoles)
+        }
 
     member _.GetAllStreamerRoles (populate : PopulateStreamerRolesFunc) =
         let populate () =
             async {
                 let! result = populate ()
-                return Set.ofSeq result
+                return Set.ofList result
             }
 
         if not hasPopulated then
