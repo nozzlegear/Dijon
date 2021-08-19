@@ -181,8 +181,11 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                           Url = stream.Url
                           GuildId = int64 after.Guild.Id }
 
-                    return! sendStreamAnnouncementMessage streamData
-                            |> Async.Ignore
+                    match! sendStreamAnnouncementMessage streamData with
+                    | Ok _ -> 
+                        ()
+                    | Error err ->
+                        logger.LogError("Failed to send streaming announcement message. Received error: {0}", err)
                 else
                     return ()
             | _, _ ->
