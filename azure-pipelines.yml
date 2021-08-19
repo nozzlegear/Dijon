@@ -25,6 +25,19 @@ steps:
   displayName: 'Print Docker version'
 - script: docker build -t '$(latestImageName)' -t '$(buildImageName)' .
   displayName: 'Build container image'
+- bash: |
+   export id=$(docker images --filter "label=test=true" -q | head -1)
+   # Create a temporary container from the test image and copy the /app/testresults files out
+   docker create --name testcontainer $id
+   docker cp testcontainer:/app/testresults ./testresults
+   docker rm testcontainer 
+  failOnStderr: true
+  displayName: 'Collect test files'
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'XUnit'
+    testResultsFiles: '**/testresults.xml'
+    failTaskOnFailedTests: true
 - script: |
     docker login -u $(dockerId) -p $pswd $(dockerId).azurecr.io
     docker push $(baseImageName)
