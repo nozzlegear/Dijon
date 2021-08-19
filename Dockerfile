@@ -11,14 +11,20 @@ COPY .paket .paket
 COPY Dijon.sln .
 COPY paket.lock .
 COPY paket.dependencies .
-COPY src/paket.references src/
 COPY src/Dijon.fsproj src/
+COPY tests/Dijon.Tests.fsproj tests/
 COPY Dijon.Migrations/Dijon.Migrations.fsproj Dijon.Migrations/
 RUN dotnet restore
 
 # Copy source files and build project
 COPY src/ src/
+COPY tests/ tests/
 COPY Dijon.Migrations/ Dijon.Migrations/
+
+# Run the tests
+RUN dotnet test --results-directory /app/testresults --logger "trx;LogFileName=testresults.xml"
+
+# Publish the project
 RUN dotnet publish -c Release -o dist -r linux-musl-x64
 
 # Switch to alpine for running the application
