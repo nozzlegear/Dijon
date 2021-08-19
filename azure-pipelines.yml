@@ -33,6 +33,7 @@ steps:
   failOnStderr: true
   displayName: 'Collect test files'
 - task: PublishTestResults@2
+  displayName: 'Publish test files'
   inputs:
     testResultsFormat: 'XUnit'
     testResultsFiles: '**/testresults.xml'
