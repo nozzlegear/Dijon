@@ -15,3 +15,12 @@ nuget cronos
 nuget TimeZoneConverter
 nuget DustyTables ~> 4
 nuget LazyCache
+
+group Tests
+    source https://nuget.org/api/v2
+    
+    nuget Microsoft.NET.Test.Sdk
+    nuget xunit.runner.visualstudio
+    nuget xunit
+    nuget fsharp.core
+    nuget coverlet.collector
