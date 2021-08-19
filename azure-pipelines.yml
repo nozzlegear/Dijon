@@ -26,9 +26,8 @@ steps:
 - script: docker build -t '$(latestImageName)' -t '$(buildImageName)' .
   displayName: 'Build container image'
 - bash: |
-   export id=$(docker images --filter "label=test=true" -q | head -1)
    # Create a temporary container from the test image and copy the /app/testresults files out
-   docker create --name testcontainer $id
+   docker create --name testcontainer $(buildImageName)
    docker cp testcontainer:/app/testresults ./testresults
    docker rm testcontainer 
   failOnStderr: true
