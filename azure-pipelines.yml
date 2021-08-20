@@ -36,7 +36,7 @@ steps:
 - task: PublishTestResults@2
   displayName: 'Publish test files'
   inputs:
-    testResultsFormat: 'XUnit'
+    testResultsFormat: 'VSTest'
     testResultsFiles: './testresults.xml'
     failTaskOnFailedTests: true
 - script: |
