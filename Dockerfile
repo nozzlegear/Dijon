@@ -25,7 +25,7 @@ COPY Dijon.Migrations/ Dijon.Migrations/
 RUN dotnet test --results-directory /app/testresults --logger "trx;LogFileName=testresults.xml"
 
 # Publish the project
-RUN dotnet publish -c Release -o dist -r linux-musl-x64
+RUN dotnet publish src/Dijon.fsproj -c Release -o dist -r linux-musl-x64
 
 # Switch to alpine for running the application
 FROM mcr.microsoft.com/dotnet/runtime:5.0.9-alpine3.13
