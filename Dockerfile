@@ -42,6 +42,7 @@ RUN apk add --no-cache tzdata
 
 # Copy the built files from Builder container
 COPY --from=0 /app/dist /app/dist
+COPY --from=0 /app/testresults /app/testresults
 RUN chmod +x /app/dist/Dijon 
 
 # Run the built executable on startup
