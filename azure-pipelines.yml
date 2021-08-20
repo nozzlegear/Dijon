@@ -28,7 +28,8 @@ steps:
 - bash: |
    # Create a temporary container from the test image and copy the /app/testresults files out
    docker create --name testcontainer $(buildImageName)
-   docker cp testcontainer:/app/testresults ./testresults
+   docker cp testcontainer:/app/testresults/testresults.xml .
+   cat ./testresults.xml
    docker rm testcontainer 
   failOnStderr: true
   displayName: 'Collect test files'
@@ -36,7 +37,7 @@ steps:
   displayName: 'Publish test files'
   inputs:
     testResultsFormat: 'XUnit'
-    testResultsFiles: 'testresults/testresults.xml'
+    testResultsFiles: './testresults.xml'
     failTaskOnFailedTests: true
 - script: |
     docker login -u $(dockerId) -p $pswd $(dockerId).azurecr.io
