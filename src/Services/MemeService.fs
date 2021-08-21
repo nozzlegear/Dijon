@@ -124,7 +124,8 @@ type MemeService(logger : ILogger<MemeService>,
                   "If only Djur could pick a class! https://i.imgflip.com/48mqi5.jpg"
                   "If only Djur could pick a class! https://cdn.discordapp.com/attachments/665392948778893333/733877683863289927/48mqln.png"
                   "https://cdn.discordapp.com/attachments/477977486857338880/666298017984544798/ezgif.com-add-text.gif"
-                  "STAMINA STAVES ARE LEGITIMATE BREWMASTER WEAPONS, WHO CARES IF THEY DON'T HAVE AGILITY?!" ]
+                  "STAMINA STAVES ARE LEGITIMATE BREWMASTER WEAPONS, WHO CARES IF THEY DON'T HAVE AGILITY?!"
+                  "No raider is safe from the long arm of the raid leader: https://cdn.discordapp.com/attachments/856354026509434890/878454571033309204/Gripping_Biggelbaalz.mp4" ]
                 |> Seq.randomItem
                
             let addReactions = fun _ -> 
@@ -145,18 +146,18 @@ type MemeService(logger : ILogger<MemeService>,
                   "https://az.nozzlegear.com/images/share/2019-10-23.09.15.02.png"
                   "You know him well! He's the number one member of the Loose Bois team! 🦊"
                   "_Foxy eating spicy food._ https://az.nozzlegear.com/images/share/tenor.gif"
-                  "Foxy is the kind of bear who would show his right hand. 😼💦" ]
+                  "Foxy is the kind of bear who would show his left hand. 😼💦"
+                  "Live look at Foxy after he swapped to feral: https://cdn.discordapp.com/attachments/856354026509434890/878455897838477362/Angry_Feral_GIF_-_Angry_Feral_Wolf_-_Discover__Share_GIFs_1-angry-feral.mp4" ]
                 |> Seq.randomItem
            
             MessageUtils.sendMessage msg.Channel foxyHype  
         | i when i = KnownUsers.RhunonId ->
             let rhunonHype =
-                [ "https://tenor.com/view/rihanna-crown-queen-princess-own-it-gif-4897467"
-                  "https://tenor.com/view/jon-snow-my-queen-gif-9619999"
+                [ "Hail to the Queen! https://tenor.com/view/rihanna-crown-queen-princess-own-it-gif-4897467"
                   "https://tenor.com/view/were-not-worthy-waynes-world-gif-9201571"
-                  "🎉 Hail to the Queen! 👑"
                   sprintf "%swould be lost without the Queen." (MessageUtils.mentionUser KnownUsers.DjurId)
-                  "https://tenor.com/view/the-outpost-the-outpost-series-thecw-gulman-randall-malin-gif-12842854" ]
+                  "https://tenor.com/view/the-outpost-the-outpost-series-thecw-gulman-randall-malin-gif-12842854"
+                  "https://cdn.discordapp.com/attachments/856354026509434890/878453670826635324/mistweavers.mp4" ]
                 |> Seq.randomItem
                 
             MessageUtils.sendMessage msg.Channel rhunonHype
@@ -165,7 +166,8 @@ type MemeService(logger : ILogger<MemeService>,
                 [ "Let your failure be the final word in the story of rebellion! https://tenor.com/view/palpatine-the-rise-of-skywalker-lightning-palpatine-lightning-exegol-gif-18167689"
                   sprintf "%sis a decidedly okay healer!" (MessageUtils.mentionUser KnownUsers.BiggelsId)
                   "JUST STAND IN THE MIDDLE AND HEAL THROUGH IT https://tenor.com/view/georffrey-rush-captain-of-the-ship-is-giving-orders-barbossa-pirates-of-the-caribbean-gif-9227393"
-                  "Although he masquerades as the architect of #DownWithDjur, we all know he's secretly in the benevolent leader's pocket!" ]
+                  "Although he masquerades as the architect of #DownWithDjur, we all know he's secretly in the benevolent leader's pocket!"
+                  "You're clearly guilty of tyrannicide! https://cdn.discordapp.com/attachments/856354026509434890/878455174799192104/biggs-is-guilty.mp4" ]
                 |> Seq.randomItem
             
             MessageUtils.sendMessage msg.Channel biggsHype
@@ -181,7 +183,8 @@ type MemeService(logger : ILogger<MemeService>,
                 [ "HEY https://tenor.com/view/spongebob-squarepants-chest-bust-rip-shirt-gif-4172168"
                   "https://tenor.com/view/happy-im-so-happy-happiness-joy-excited-gif-16119788"
                   "Init be like: https://tenor.com/view/pancakes-michael-scott-you-will-like-it-food-gif-16324949"
-                  "He's the original member of the Pancake Party! https://tenor.com/view/bunny-pancakes-wreck-it-ralph-gif-11221126" ]
+                  "He's the original member of the Pancake Party! https://tenor.com/view/bunny-pancakes-wreck-it-ralph-gif-11221126"
+                  "TOMATO SHRAPNEL IS REAL! THIS BOT HAS SEEN THE TRUTH!" ]
                 |> Seq.randomItem
                 
             MessageUtils.sendMessage msg.Channel initHype
