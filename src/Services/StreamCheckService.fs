@@ -155,24 +155,31 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
             let wasStreaming = isStreaming before
             let stream = tryGetStreamActivity after
 
+            logger.LogWarning("User {0} was updated. Was streaming={1}; Current stream={2}", after.Nickname, wasStreaming, stream)
+
             match wasStreaming, stream with
             | true, None ->
                 // Always try to remove streaming messages for the user even if they don't currenty have a streamer role.
                 // This covers cases where they had a streamer role but it was removed while they were streaming.
                 return! removeStreamingMessage after
             | false, Some stream ->
+                logger.LogWarning("hit 1")
                 // Fetch all streamer role IDs and then check if the user has one
                 let! allRoles = 
                     database.ListStreamerRoles ()
+                logger.LogWarning("hit 2, totalStreamerRoles={0}", Seq.length allRoles)
                 let userRoles = 
                     after.Roles
                     |> Seq.map (fun r -> int64 r.Id)
                     |> Set.ofSeq
+                logger.LogWarning("hit 3, total user roles={0}", Seq.length userRoles)
                 let hasStreamerRole = 
                     allRoles
                     |> Set.exists (fun role -> Set.contains role userRoles)
+                logger.LogWarning("hit 4, hasStreamerRole={0}", hasStreamerRole)
 
                 if hasStreamerRole then
+                    logger.LogWarning("hit 5")
                     // User is streaming and they have the streaming role. Announce the stream.
                     let streamData = 
                         { User = after
@@ -183,12 +190,15 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
 
                     match! sendStreamAnnouncementMessage streamData with
                     | Ok _ -> 
+                        logger.LogWarning("hit 6")
                         ()
                     | Error err ->
                         logger.LogError("Failed to send streaming announcement message. Received error: {0}", err)
                 else
+                    logger.LogWarning("hit 7")
                     return ()
             | _, _ ->
+                logger.LogWarning("hit 8")
                 return ()
         }
 
