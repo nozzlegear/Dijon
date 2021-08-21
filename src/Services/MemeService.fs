@@ -193,6 +193,19 @@ type MemeService(logger : ILogger<MemeService>,
                 |> Seq.randomItem
                 
             MessageUtils.sendMessage msg.Channel durzHype
+        | i when i = KnownUsers.BopittId ->
+            let bopittHype =
+                [ "https://cdn.discordapp.com/attachments/856354026509434890/878451088905342996/bopitt.mp4.mp4"
+                  "https://www.youtube.com/watch?v=jxo_K7JLZxQ" ]
+                |> Seq.randomItem
+
+            MessageUtils.sendMessage msg.Channel bopittHype
+        | i when i = KnownUsers.BoroId ->
+            let boroHype =
+                [ "He's got the motherfuckin' Halo theme song playing, LETS GOOOOO! https://www.youtube.com/watch?v=sCxv2daOwjQ" ]
+                |> Seq.randomItem
+
+            MessageUtils.sendMessage msg.Channel boroHype
         | _ -> 
             ["🇳"; "🇴"]
             |> Seq.map Emoji

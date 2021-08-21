@@ -8,3 +8,5 @@ module KnownUsers =
     let TazId = uint64 223974005948809223L
     let InitId = uint64 162728562850267138L
     let DurzId = uint64 241044004269981697L
+    let BopittId = uint64 295082384234119178L
+    let BoroId = uint64 145764069423448065L
