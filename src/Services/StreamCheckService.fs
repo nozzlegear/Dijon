@@ -60,6 +60,8 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                 builder.Value <- stream.Url)
 
     let sendStreamAnnouncementMessage (stream : StreamData) =
+        logger.LogInformation("Announcing stream for user {0} ({1})", stream.User.Username, stream.User.Id)
+
         async {
             match! database.GetStreamAnnouncementChannelForGuild (GuildId stream.GuildId) with
             | Some channelData ->
