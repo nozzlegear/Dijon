@@ -31,8 +31,15 @@ type BotClient(logger : ILogger<BotClient>, config : IConfiguration) =
             readyEvent.WaitOne() 
             |> ignore
 
-            fn arg 
-            |> Async.StartAsTask 
+            let task = async {
+                match! fn arg |> Async.Catch with
+                | Choice1Of2 _ ->
+                    ()
+                | Choice2Of2 err ->
+                    logger.LogError(err, "Single arg event listener failed: {0}", err.Message)
+            }
+
+            Async.StartAsTask task
             :> Task
         )
 
@@ -43,8 +50,15 @@ type BotClient(logger : ILogger<BotClient>, config : IConfiguration) =
             readyEvent.WaitOne() 
             |> ignore
 
-            fn a b 
-            |> Async.StartAsTask 
+            let task = async {
+                match! fn a b |> Async.Catch with
+                | Choice1Of2 _ ->
+                    ()
+                | Choice2Of2 err ->
+                    logger.LogError(err, "Double arg event listener failed: {0}", err.Message)
+            }
+
+            Async.StartAsTask task
             :> Task
         )
 
