@@ -12,6 +12,10 @@ type StreamCache() =
 
     let getAllRoles () : Async<Set<int64>> =
         match cache.TryGetValue(allRolesKey) with
+        | true, (:? AsyncLazy<Set<int64>> as allRoles) ->
+            Async.AwaitTask allRoles.Value
+        | true, (:? Lazy<Set<int64>> as allRoles) -> 
+            async { return allRoles.Value }
         | true, allRoles -> 
             async { return downcast allRoles }
         | false, _ -> 
