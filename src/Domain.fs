@@ -172,24 +172,17 @@ type IDijonDatabase =
     abstract member DeleteStreamAnnouncementMessageForStreamer: streamerId: int64 -> Async<unit>
 
 type DatabaseOptions (secrets : ConfigurationSecrets) =
-    let buildConnectionString () : string =
-        let builder = Microsoft.Data.SqlClient.SqlConnectionStringBuilder()
-        builder.CommandTimeout <- 60
-        builder.UserID <- secrets.GetValueOrFail "DIJON_SQL_DATABASE_USER"
-        builder.Password <- secrets.GetValueOrFail "DIJON_SQL_DATABASE_PASSWORD"
-        builder.Encrypt <- true
-        builder.DataSource <- 
-            let host = secrets.GetValueOrFail "DIJON_SQL_DATABASE_HOST"
-            let port = secrets.GetValueOrFail "DIJON_SQL_DATABASE_PORT"
-            sprintf "%s,%s" host port
+    member _.SqlConnectionString : string =
+        // The connection string should be provided, but a password may not be set
+        let builder = 
+            secrets.GetValueOrFail "DIJON_SQL_CONNECTION_STRING"
+            |> Microsoft.Data.SqlClient.SqlConnectionStringBuilder 
+
+        if System.String.IsNullOrEmpty builder.Password then
+            match secrets.GetValue "DIJON_SQL_DATABASE_PASSWORD" with
+            | None ->
+                failwithf "Connection string does not contain a password and no password was found in environment variables or secrets."
+            | Some password ->
+                builder.Password <- password
 
         builder.ConnectionString
-
-    member _.SqlConnectionString : string =
-        // Check if a full connection string has been set
-        match secrets.GetValue "DIJON_SQL_CONNECTION_STRING" with
-        | Some connectionString ->
-            connectionString
-        | None ->
-            // Try to build the connection string instead
-            buildConnectionString ()
