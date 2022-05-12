@@ -4,7 +4,6 @@ open Discord
 open Discord.WebSocket
 open System
 open System.Collections.Generic
-open Microsoft.Extensions.Configuration
 
 type DiscordId = DiscordId of int64
 type GuildId = GuildId of int64
@@ -172,10 +171,25 @@ type IDijonDatabase =
     abstract member ListStreamAnnouncementMessagesForGuild: guildId: int64 -> Async<StreamAnnouncementMessage list>
     abstract member DeleteStreamAnnouncementMessageForStreamer: streamerId: int64 -> Async<unit>
 
-type DatabaseOptions (config : IConfiguration) =
+type DatabaseOptions (secrets : ConfigurationSecrets) =
+    let buildConnectionString () : string =
+        let builder = Microsoft.Data.SqlClient.SqlConnectionStringBuilder()
+        builder.CommandTimeout <- 60
+        builder.UserID <- secrets.GetValueOrFail "DIJON_SQL_DATABASE_USER"
+        builder.Password <- secrets.GetValueOrFail "DIJON_SQL_DATABASE_PASSWORD"
+        builder.Encrypt <- true
+        builder.DataSource <- 
+            let host = secrets.GetValueOrFail "DIJON_SQL_DATABASE_HOST"
+            let port = secrets.GetValueOrFail "DIJON_SQL_DATABASE_PORT"
+            sprintf "%s,%s" host port
+
+        builder.ConnectionString
+
     member _.SqlConnectionString : string =
-        let key = "DIJON_SQL_CONNECTION_STRING"
-        match config.GetValue<string> key with
-        | ""
-        | null -> failwithf "%s was null or empty." key
-        | token -> token 
+        // Check if a full connection string has been set
+        match secrets.GetValue "DIJON_SQL_CONNECTION_STRING" with
+        | Some connectionString ->
+            connectionString
+        | None ->
+            // Try to build the connection string instead
+            buildConnectionString ()

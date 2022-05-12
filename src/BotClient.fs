@@ -4,7 +4,6 @@ open System
 open System.Threading.Tasks
 open Discord
 open Discord.WebSocket
-open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.Logging
 open FSharp.Control.Tasks.V2.ContextInsensitive
 
@@ -15,14 +14,10 @@ type DiscordEvent =
     | BotLeftGuild of (SocketGuild -> Async<unit>)
     | CommandReceived of (IMessage -> Command -> Async<unit>)
 
-type BotClient(logger : ILogger<BotClient>, config : IConfiguration) =
+type BotClient(logger : ILogger<BotClient>, secrets : ConfigurationSecrets) =
     let client = new DiscordSocketClient()
     let readyEvent = new System.Threading.ManualResetEvent false
-    let token =
-        match config.GetValue<string>("DIJON_BOT_TOKEN") with
-        | ""
-        | null -> failwith "DIJON_BOT_TOKEN was null or empty."
-        | token -> token 
+    let token = secrets.GetValueOrFail "DIJON_BOT_TOKEN"
 
     let singleArgFunc (fn : 'a -> Async<unit>) = 
         // Transform the F# function to a C# Func<'a, Task>

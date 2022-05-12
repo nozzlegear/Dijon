@@ -13,6 +13,7 @@ module Program =
         let host =
             Host.CreateDefaultBuilder()
                 .ConfigureServices(fun context services ->
+                    services.AddSingleton<ConfigurationSecrets>() |> ignore
                     services.AddSingleton<DatabaseOptions>() |> ignore
                     services.AddSingleton<StreamCache>() |> ignore
                     services.AddSingleton<IDijonDatabase, DijonSqlDatabase>() |> ignore

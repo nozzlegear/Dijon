@@ -3,7 +3,6 @@ namespace Dijon.Services
 open System.Threading.Tasks
 open Dijon
 open Dijon.Migrations
-open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 
