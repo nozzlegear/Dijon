@@ -26,8 +26,8 @@ function isArm64
 end
 
 # A function to format a list of secrets into `podman run` args
-function formatSecrets -a secretsList
-    for secret in $secretsList
+function formatSecrets 
+    for secret in $argv
         printf -- "--secret=$secret"
     end
 end
