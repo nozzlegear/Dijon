@@ -52,7 +52,7 @@ jobs:
         passphrase: ${{ secrets.CRYPTUM_SSH_PASSPHRASE }}
         # Use a host fingerprint to ensure we always connect to the same server
         #fingerprint: ${{ secrets.CRYPTUM_HOST_FINGERPRINT }}
-        source: ".github/scripts/deploy-dijon.sh"
+        source: ".github/scripts/deploy-dijon.fish"
         target: "~/deployments"
         # Strip the first two folder names from the deployed file (e.g. remove `.github/scripts`)
         strip_components: 2
@@ -69,4 +69,4 @@ jobs:
         #fingerprint: ${{ secrets.CRYPTUM_HOST_FINGERPRINT }}
         # Stop on errors
         script_stop: true
-        script: ./deployments/deploy-dijon.sh "${{ env.BUILD_IMAGE_NAME }}"
+        script: ./deployments/deploy-dijon.fish "${{ env.BUILD_IMAGE_NAME }}"
