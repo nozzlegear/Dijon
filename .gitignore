@@ -336,6 +336,7 @@ env.fish
 # VS Code Ionide junk
 .ionide
 .gitsecret/keys/random_seed
+.vim
 
 # Docker volumes
 volumes
