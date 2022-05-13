@@ -28,14 +28,14 @@ end
 # A function to format a list of secrets into `podman run` args
 function formatSecrets 
     for secret in $argv
-        printf -- "--secret=$secret"
+        echo "--secret=$secret"
     end
 end
 
 # Formats the database container's system user. If the host is arm64, this will set the user to root, which is required for the Azure SQL Edge db image. 
 function formatDbSystemUser 
     if isArm64 
-        printf -- "-u=root"
+        echo "-u=root"
     end
 end
 
