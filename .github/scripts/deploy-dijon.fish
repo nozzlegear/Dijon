@@ -107,9 +107,12 @@ log "Pulling bot image from $BOT_IMAGE..."
 podman pull "$BOT_IMAGE"
 or exit 1
 
-log "Pulling db image from $DB_IMAGE..."
-podman pull "$DB_IMAGE"
-or exit 1
+# Remove the existing container so it can be updated
+if podman container exists "$BOT_CONTAINER_NAME"
+    log "Removing container $BOT_CONTAINER_NAME..."
+    podman stop "$BOT_CONTAINER_NAME" 
+    and podman rm "$BOT_CONTAINER_NAME"
+end
 
 # If the pod exists, stop it for updates.
 if podman pod exists "$POD_NAME"
@@ -125,16 +128,7 @@ else
     or exit 1
 end
 
-# Remove the existing containers where applicable
-log "Removing container $BOT_CONTAINER_NAME..."
-podman stop "$BOT_CONTAINER_NAME" 
-and podman rm "$BOT_CONTAINER_NAME"
-
-log "Removing container $DB_CONTAINER_NAME..."
-podman stop "$DB_CONTAINER_NAME"
-and podman rm "$DB_CONTAINER_NAME"
-
-# Create the bot and database containers but don't start them
+# Create the bot container, but don't start it.
 log "Creating container $BOT_CONTAINER_NAME..."
 podman create \
     --restart "unless-stopped" \
@@ -146,18 +140,25 @@ podman create \
     "$BOT_IMAGE"
 or exit 1
     
-log "Creating container $DB_CONTAINER_NAME..."
-podman create \
-    --restart "unless-stopped" \
-    --name "$DB_CONTAINER_NAME" \
-    --env "ACCEPT_EULA=Y" \
-    --pod "$POD_NAME" \
-    --volume "$DB_VOLUME_LOCATION:/var/opt/mssql" \
-    -it \
-    (formatDbSystemUser) \
-    (formatSecrets $DB_SECRETS_LIST) \
-    "$DB_IMAGE"
-or exit 1
+# The database image won't be updated or changed with every deployment. Only create it if it doesn't already exist.
+if ! podman container exists "$DB_CONTAINER_NAME"
+    log "Pulling db image from $DB_IMAGE..."
+    podman pull "$DB_IMAGE"
+    or exit 1
+
+    log "Creating container $DB_CONTAINER_NAME..."
+    podman create \
+        --restart "unless-stopped" \
+        --name "$DB_CONTAINER_NAME" \
+        --env "ACCEPT_EULA=Y" \
+        --pod "$POD_NAME" \
+        --volume "$DB_VOLUME_LOCATION:/var/opt/mssql" \
+        -it \
+        (formatDbSystemUser) \
+        (formatSecrets $DB_SECRETS_LIST) \
+        "$DB_IMAGE"
+    or exit 1
+end
 
 # Start the pod and containers within
 log "Starting pod $POD_NAME..."
