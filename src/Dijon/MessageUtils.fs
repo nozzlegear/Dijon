@@ -40,3 +40,13 @@ module MessageUtils =
         match user with
         | :? IGuildUser as guildUser when not (String.IsNullOrEmpty guildUser.Nickname) -> guildUser.Nickname
         | _ -> user.Username
+
+    /// Maps a message's reference (i.e. the original message if this was a reply) to an option
+    let GetReferencedMessage (msg: IMessage) : ReferencedMessage option = 
+        Option.ofObj msg.Reference
+        |> Option.map (fun reference -> 
+            {
+                GuildId = int64 <| reference.GuildId.GetValueOrDefault()
+                ChannelId = int64 reference.ChannelId
+                MessageId = int64 <| reference.MessageId.GetValueOrDefault()
+            })

@@ -70,22 +70,16 @@ type ReactionGuardService(logger : ILogger<ReactionGuardService>,
     }
 
     let addReactionGuard (msg: IMessage) =
+        let channel = msg.Channel :?> IGuildChannel
         // If the command message references (e.g. replies to) a different message, guard that message
-        let guard : PartialReactionGuardedMessage = 
-            match Option.ofObj msg.Reference with 
-            | Some targetMessage -> 
-                {
-                    GuildId = int64 <| targetMessage.GuildId.GetValueOrDefault()
-                    ChannelId = int64 targetMessage.ChannelId
-                    MessageId = int64 <| targetMessage.MessageId.GetValueOrDefault()
-                }
-            | None -> 
-                let channel = msg.Channel :?> IGuildChannel
+        let guard : ReferencedMessage = 
+            MessageUtils.GetReferencedMessage msg
+            |> Option.defaultValue (
                 {
                     GuildId = int64 channel.GuildId
                     ChannelId = int64 msg.Channel.Id
                     MessageId = int64 msg.Id
-                }
+                })
 
         async {
             do! database.AddReactionGuardedMessage guard
@@ -93,7 +87,12 @@ type ReactionGuardService(logger : ILogger<ReactionGuardService>,
         }
 
     let removeReactionGuard (msg: IMessage) = async {
-        do! database.RemoveReactionGuardedMessage (int64 msg.Id)
+        let reference = MessageUtils.GetReferencedMessage msg
+
+        if Option.isSome reference then
+            let reference = Option.get reference
+            do! database.RemoveReactionGuardedMessage (int64 reference.MessageId)
+
         do! MessageUtils.AddGreenCheckReaction msg
     }
 

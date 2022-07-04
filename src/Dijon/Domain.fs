@@ -160,7 +160,7 @@ type ReactionGuardedMessage =
         ChannelId: int64
     }
 
-type PartialReactionGuardedMessage = 
+type ReferencedMessage = 
     {
         GuildId: int64
         MessageId: int64
@@ -188,7 +188,7 @@ type IDijonDatabase =
     abstract member ListStreamAnnouncementMessagesForGuild: guildId: int64 -> Async<StreamAnnouncementMessage list>
     abstract member DeleteStreamAnnouncementMessageForStreamer: streamerId: int64 -> Async<unit>
     abstract member MessageIsReactionGuarded: messageId: int64 -> Async<bool>
-    abstract member AddReactionGuardedMessage: PartialReactionGuardedMessage -> Async<unit>
+    abstract member AddReactionGuardedMessage: ReferencedMessage -> Async<unit>
     abstract member RemoveReactionGuardedMessage: messageId: int64 -> Async<unit>
 
 type DatabaseOptions (secrets : ConfigurationSecrets) =
