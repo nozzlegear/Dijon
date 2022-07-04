@@ -90,14 +90,19 @@ type ReactionGuardService(logger : ILogger<ReactionGuardService>,
         }
 
     let removeReactionGuard (msg: IMessage) = async {
-        let reference = MessageUtils.GetReferencedMessage msg
+        let isAdmin = List.contains msg.Author.Id KnownUsers.AdminUsers
 
-        if Option.isSome reference then
-            let reference = Option.get reference
-            do! database.RemoveReactionGuardedMessage (int64 reference.MessageId)
-            do! MessageUtils.AddGreenCheckReaction msg
+        if not isAdmin then
+            do! MessageUtils.Reply msg "Only admin users can remove a reaction guard."
         else
-            do! MessageUtils.AddXReaction msg
+            let reference = MessageUtils.GetReferencedMessage msg
+
+            if Option.isSome reference then
+                let reference = Option.get reference
+                do! database.RemoveReactionGuardedMessage (int64 reference.MessageId)
+                do! MessageUtils.AddGreenCheckReaction msg
+            else
+                do! MessageUtils.AddXReaction msg
     }
 
     let commandReceived (msg: IMessage) = function
