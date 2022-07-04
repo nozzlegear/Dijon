@@ -59,3 +59,9 @@ module MessageUtils =
                 ChannelId = int64 reference.ChannelId
                 MessageId = int64 <| reference.MessageId.GetValueOrDefault()
             })
+
+    let Reply (msg : IMessage) reply =
+        let msg = msg :?> SocketUserMessage
+        msg.ReplyAsync(text = reply, allowedMentions = AllowedMentions.None)
+        |> Async.AwaitTask
+        |> Async.Ignore
