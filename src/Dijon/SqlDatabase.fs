@@ -441,3 +441,31 @@ type DijonSqlDatabase (options : DatabaseOptions,
             |> Sql.executeNonQueryAsync
             |> Async.AwaitTask
             |> Async.Ignore
+
+        member _.MessageIsReactionGuarded messageId = 
+            Sql.connect connStr
+            |> Sql.storedProcedure "sp_MessageIsReactionGuarded"
+            |> Sql.parameters
+                [ "@messageId", Sql.int64 messageId ]
+            |> Sql.executeRowAsync (fun r -> r.bool "IsReactionGuarded")
+            |> Async.AwaitTask
+
+        member _.AddReactionGuardedMessage message =
+            Sql.connect connStr
+            |> Sql.storedProcedure "sp_AddReactionGuardedMessage"
+            |> Sql.parameters 
+                [ "@guildId", Sql.int64 message.GuildId
+                  "@channelId", Sql.int64 message.ChannelId
+                  "@messageId", Sql.int64 message.MessageId ]
+            |> Sql.executeNonQueryAsync
+            |> Async.AwaitTask
+            |> Async.Ignore
+
+        member _.RemoveReactionGuardedMessage messageId =
+            Sql.connect connStr
+            |> Sql.storedProcedure "sp_RemoveReactionGuardedMessage"
+            |> Sql.parameters
+                [ "@messageId", Sql.int64 messageId ]
+            |> Sql.executeNonQueryAsync
+            |> Async.AwaitTask
+            |> Async.Ignore

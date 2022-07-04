@@ -7,12 +7,15 @@ open Discord.WebSocket
 open Microsoft.Extensions.Logging
 open FSharp.Control.Tasks.V2.ContextInsensitive
 
+type CachedUserMessage = Cacheable<IUserMessage, uint64>
+
 type DiscordEvent = 
     | UserLeft of (SocketGuildUser -> Async<unit>)
     | UserJoined of (SocketGuildUser -> Async<unit>)
     | UserUpdated of (SocketGuildUser -> SocketGuildUser -> Async<unit>)
     | BotLeftGuild of (SocketGuild -> Async<unit>)
     | CommandReceived of (IMessage -> Command -> Async<unit>)
+    | ReactionReceived of (CachedUserMessage -> IChannel -> IReaction -> Async<unit>)
 
 type BotClient(logger : ILogger<BotClient>, secrets : ConfigurationSecrets) =
     let client = new DiscordSocketClient()
@@ -51,6 +54,25 @@ type BotClient(logger : ILogger<BotClient>, secrets : ConfigurationSecrets) =
                     ()
                 | Choice2Of2 err ->
                     logger.LogError(err, "Double arg event listener failed: {0}", err.Message)
+            }
+
+            Async.StartAsTask task
+            :> Task
+        )
+
+    let tripleArgFunc (fn : 'a -> 'b -> 'c -> Async<unit>) =
+        // Transform the F# function to a C# Func<'a, 'b', Task>
+        Func<'a, 'b, 'c, Task>(fun a b c -> 
+            // Don't call the handler until we know the socket client is ready
+            readyEvent.WaitOne() 
+            |> ignore
+
+            let task = async {
+                match! fn a b c |> Async.Catch with
+                | Choice1Of2 _ ->
+                    ()
+                | Choice2Of2 err ->
+                    logger.LogError(err, "Triple arg event listener failed: {0}", err.Message)
             }
 
             Async.StartAsTask task
@@ -112,8 +134,11 @@ type BotClient(logger : ILogger<BotClient>, secrets : ConfigurationSecrets) =
     member _.GetBotUserId () = 
         client.CurrentUser.Id
 
-    member _.AddEventListener eventType =
+    member _.RemoveAllReactionsForEmoteAsync (channelId: uint64, msgId: uint64, emote: IEmote) = 
+        client.Rest.RemoveAllReactionsForEmoteAsync(channelId, msgId, emote)
+        |> Async.AwaitTask
 
+    member _.AddEventListener eventType =
         match eventType with
         | UserLeft fn ->
             singleArgFunc fn
@@ -130,5 +155,8 @@ type BotClient(logger : ILogger<BotClient>, secrets : ConfigurationSecrets) =
         | CommandReceived fn ->
             singleArgFunc (delegateCommandMessages fn)
             |> client.add_MessageReceived
+        | ReactionReceived fn ->
+            tripleArgFunc fn
+            |> client.add_ReactionAdded
 
         Async.Empty

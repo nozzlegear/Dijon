@@ -27,6 +27,8 @@ type Command =
     | SetAffixesChannel
     | SetStreamsChannel
     | UnsetStreamsChannel
+    | AddMessageReactionGuard
+    | RemoveMessageReactionGuard
 
 module RaiderIo =
     open Thoth.Json.Net
@@ -150,6 +152,21 @@ type StreamData =
         GuildId: int64
     }
 
+type ReactionGuardedMessage = 
+    {
+        Id: int
+        GuildId: int64
+        MessageId: int64
+        ChannelId: int64
+    }
+
+type PartialReactionGuardedMessage = 
+    {
+        GuildId: int64
+        MessageId: int64
+        ChannelId: int64
+    }
+
 type IDijonDatabase = 
     abstract member ListAsync: GuildId -> Async<Member list>
     abstract member ListAllAffixChannels: unit -> Async<AffixChannel list>
@@ -170,6 +187,9 @@ type IDijonDatabase =
     abstract member ListStreamAnnouncementMessagesForStreamer: streamerId: int64 -> Async<StreamAnnouncementMessage list>
     abstract member ListStreamAnnouncementMessagesForGuild: guildId: int64 -> Async<StreamAnnouncementMessage list>
     abstract member DeleteStreamAnnouncementMessageForStreamer: streamerId: int64 -> Async<unit>
+    abstract member MessageIsReactionGuarded: messageId: int64 -> Async<bool>
+    abstract member AddReactionGuardedMessage: PartialReactionGuardedMessage -> Async<unit>
+    abstract member RemoveReactionGuardedMessage: messageId: int64 -> Async<unit>
 
 type DatabaseOptions (secrets : ConfigurationSecrets) =
     member _.SqlConnectionString : string =

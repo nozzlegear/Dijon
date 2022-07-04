@@ -100,6 +100,13 @@ module CommandParser =
             | "remove streams channel"
             | "unset stream channel"
             | "unset streams channel" -> UnsetStreamsChannel
+            | "guard reactions"
+            | "guard this"
+            | "guard"
+            | "good vibes only" -> AddMessageReactionGuard
+            | "remove guard"
+            | "unguard reactions"
+            | "stop guarding" -> RemoveMessageReactionGuard
             | "affix"
             | "what are the affixes"
             | "affixes" -> GetAffix

@@ -24,6 +24,7 @@
     <Compile Include="Services\StatusChangeService.fs" />
     <Compile Include="Services\HelpService.fs" />
     <Compile Include="Services\MemeService.fs" />
+    <Compile Include="Services\ReactionGuardService.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
