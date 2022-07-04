@@ -13,8 +13,8 @@ type ReactionGuardService(logger : ILogger<ReactionGuardService>,
                  database : IDijonDatabase) =
 
     let whitelist = [
-        "❤️ "
-        "♥️ "
+        "❤️"
+        "♥️"
         "❤️‍🔥"
         "🖤"
         "💙"
