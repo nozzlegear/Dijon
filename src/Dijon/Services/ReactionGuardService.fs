@@ -48,6 +48,7 @@ type ReactionGuardService(logger : ILogger<ReactionGuardService>,
         "happybear"
         "HapyBear"
         "my_man"
+        "sogud"
         "100rogue"
         "toastleft"
         "toastright"
