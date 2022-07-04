@@ -20,6 +20,7 @@ module Program =
                     services.AddSingleton<BotClient>() |> ignore 
                     services.AddHostedService<DatabaseMigratorService>() |> ignore
                     services.AddHostedService<StreamCheckService>() |> ignore
+                    services.AddHostedService<ReactionGuardService>() |> ignore
                     services.AddHostedService<AffixCheckService>() |> ignore
                     services.AddHostedService<UserMonitorService>() |> ignore
                     services.AddHostedService<HelpService>() |> ignore
