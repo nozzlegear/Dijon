@@ -93,8 +93,9 @@ type ReactionGuardService(logger : ILogger<ReactionGuardService>,
         if Option.isSome reference then
             let reference = Option.get reference
             do! database.RemoveReactionGuardedMessage (int64 reference.MessageId)
-
-        do! MessageUtils.AddGreenCheckReaction msg
+            do! MessageUtils.AddGreenCheckReaction msg
+        else
+            do! MessageUtils.AddXReaction msg
     }
 
     let commandReceived (msg: IMessage) = function

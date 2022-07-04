@@ -38,6 +38,12 @@ module MessageUtils =
     let AddShrugReaction (msg : IMessage) = 
         msg.AddReactionAsync (Emoji "🤷")
         |> Async.AwaitTask
+
+    /// Adds the ❌ emoji reaction to the message. Generally used when user input is invalid.
+    let AddXReaction (msg : IMessage) =
+        msg.AddReactionAsync (Emoji "❌")
+        |> Async.AwaitTask
+
     /// Get's the user's Nickname if available, else their Discord username.
     let GetNickname (user : IUser) = 
         match user with
