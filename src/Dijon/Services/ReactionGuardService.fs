@@ -51,6 +51,8 @@ type ReactionGuardService(logger : ILogger<ReactionGuardService>,
         "100rogue"
         "toastleft"
         "toastright"
+        "perfect"
+        "tde"
     ]
 
     let handleReaction (msg : CachedUserMessage) (channel: IChannel) (reaction: IReaction) =  async {
