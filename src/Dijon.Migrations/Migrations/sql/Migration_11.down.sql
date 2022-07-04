@@ -1,4 +1,4 @@
-ALTER PROC [sp_MessageIsReactionGuarded]
+CREATE PROC [sp_MessageIsReactionGuarded]
     (@messageId bigint)
 AS
 BEGIN

@@ -15,6 +15,7 @@
     <Compile Include="Migrations\Migration_08.fs" />
     <Compile Include="Migrations\Migration_09.fs" />
     <Compile Include="Migrations\Migration_10.fs" />
+    <Compile Include="Migrations\Migration_11.fs" />
     <Compile Include="Migrator.fs" />
   </ItemGroup>
   <ItemGroup>
