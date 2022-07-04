@@ -35,6 +35,9 @@ module MessageUtils =
         msg.AddReactionAsync (Emoji "✅")
         |> Async.AwaitTask
 
+    let AddShrugReaction (msg : IMessage) = 
+        msg.AddReactionAsync (Emoji "🤷")
+        |> Async.AwaitTask
     /// Get's the user's Nickname if available, else their Discord username.
     let GetNickname (user : IUser) = 
         match user with

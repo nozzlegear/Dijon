@@ -74,8 +74,7 @@ type HelpService(logger : ILogger<HelpService>,
         |> Async.Ignore
 
     let handleUnknownCommand (msg: IMessage) = 
-        let msg = msg :?> SocketUserMessage
-        MessageUtils.react msg (Emoji "\uD83E\uDD37")
+        MessageUtils.AddShrugReaction msg
 
     let handleCommand (msg : IMessage) = function
         | Help -> handleHelpCommand msg
