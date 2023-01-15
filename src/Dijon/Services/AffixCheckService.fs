@@ -191,6 +191,14 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
                 props.Embed <- Optional.Create embed
                     
             do! editable.ModifyAsync (Action<MessageProperties> editMessage) |> Async.AwaitTask
+            
+            match msg.Channel, affixList with
+            | :? IGuildChannel as channel, Ok affixes ->
+                // Save this list of affixes as the guild's latest seen version
+                do! database.SetLastAffixesPostedForGuild (GuildId <| int64 channel.GuildId) affixes.title
+                logger.LogInformation("Updated latest affixes for guild {0} to {1}", channel.Guild.Name, affixes.title)
+            | _ ->
+                ()
         }
 
     let commandReceived (msg : IMessage) = function
