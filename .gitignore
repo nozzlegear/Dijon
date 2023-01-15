@@ -340,3 +340,6 @@ env.fish
 
 # Docker volumes
 volumes
+
+# Misc
+.DS_Store
