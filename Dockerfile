@@ -1,16 +1,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:5.0.203-focal as Builder
 WORKDIR /app
 
-# Configure dotnet and paket
+# Configure dotnet
 ENV DOTNET_USE_POLLING_FILE_WATCHER 1
-RUN dotnet tool install -g paket
 ENV PATH="${PATH}:/root/.dotnet/tools"
 
 # Restore package dependencies
-COPY .paket .paket
+COPY Directory.Packages.props
 COPY Dijon.sln .
-COPY paket.lock .
-COPY paket.dependencies .
 COPY src/Dijon/Dijon.fsproj src/Dijon/
 COPY src/tests/Dijon.Tests.fsproj src/tests/
 COPY src/Dijon.Migrations/Dijon.Migrations.fsproj src/Dijon.Migrations/

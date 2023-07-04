@@ -1,6 +1,0 @@
-group Tests
-    Microsoft.NET.Test.Sdk
-    xunit.runner.visualstudio
-    xunit
-    fsharp.core
-    coverlet.collector

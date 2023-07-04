@@ -28,7 +28,20 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="FSharp.Core" />
+    <PackageReference Include="dapper" />
+    <PackageReference Include="discord.net" />
+    <PackageReference Include="FSharp.Control.AsyncSeq" />
+    <PackageReference Include="thoth.json.net" />
+    <PackageReference Include="microsoft.extensions.hosting" />
+    <PackageReference Include="microsoft.extensions.logging" />
+    <PackageReference Include="taskbuilder.fs" />
+    <PackageReference Include="cronos" />
+    <PackageReference Include="TimeZoneConverter" />
+    <PackageReference Include="DustyTables" />
+    <PackageReference Include="LazyCache" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Dijon.Migrations\Dijon.Migrations.fsproj" />
   </ItemGroup>
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
