@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:5.0.203-focal as Builder
+FROM mcr.microsoft.com/dotnet/sdk:7.0-alpine3.18 as Builder
 WORKDIR /app
 
 # Configure dotnet
@@ -25,7 +25,7 @@ RUN dotnet test --results-directory /app/testresults --logger "trx;LogFileName=t
 RUN dotnet publish src/Dijon/Dijon.fsproj -c Release -o dist -r linux-musl-x64
 
 # Switch to alpine for running the application
-FROM mcr.microsoft.com/dotnet/runtime:5.0.9-alpine3.13
+FROM mcr.microsoft.com/dotnet/runtime:7.0-alpine3.18
 WORKDIR /app
 
 # Fix SqlClient invariant errors when dotnet core runs in an alpine container
