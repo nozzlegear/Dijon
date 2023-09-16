@@ -343,3 +343,6 @@ volumes
 
 # Misc
 .DS_Store
+
+# Ignore the appsettings.local.json file
+appsettings.local.json

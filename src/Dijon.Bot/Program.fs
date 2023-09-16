@@ -20,8 +20,9 @@ module Program =
         let host =
             Host.CreateDefaultBuilder()
                 .ConfigureHostConfiguration(fun builder ->
-                    // Add Podman secret files to bindable configurations
-                    builder.AddKeyPerFile("/run/secrets", optional = true) |> ignore)
+                    builder.AddJsonFile("appsettings.local.json", optional = true)
+                        // Add Podman secret files to bindable configurations
+                        .AddKeyPerFile("/run/secrets", optional = true) |> ignore)
                 .ConfigureServices(fun context services ->
 
                     services.AddOptions<DatabaseOptions>()
