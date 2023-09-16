@@ -6,7 +6,7 @@ ENV DOTNET_USE_POLLING_FILE_WATCHER 1
 ENV PATH="${PATH}:/root/.dotnet/tools"
 
 # Restore package dependencies
-COPY Directory.Packages.props
+COPY Directory.Packages.props .
 COPY Dijon.sln .
 COPY src/Dijon/Dijon.fsproj src/Dijon/
 COPY src/tests/Dijon.Tests.fsproj src/tests/
