@@ -6,11 +6,12 @@ open System.Data.SqlClient
 open System.Data
 open System
 open DustyTables
+open Microsoft.Extensions.Options
 
-type DijonSqlDatabase (options : DatabaseOptions,
+type DijonSqlDatabase (options : IOptions<DatabaseOptions>,
                        streamCache : StreamCache) =
 
-    let connStr = options.SqlConnectionString
+    let connStr = options.Value.ConnectionString
 
     let memberTableName = "DIJON_MEMBER_RECORDS"
     let logChannelTableName = "DIJON_LOG_CHANNELS"

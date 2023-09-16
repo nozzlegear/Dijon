@@ -6,6 +6,7 @@ open Discord
 open Discord.WebSocket
 open Microsoft.Extensions.Logging
 open FSharp.Control.Tasks.V2.ContextInsensitive
+open Microsoft.Extensions.Options
 
 type CachedUserMessage = Cacheable<IUserMessage, uint64>
 
@@ -17,10 +18,12 @@ type DiscordEvent =
     | CommandReceived of (IMessage -> Command -> Async<unit>)
     | ReactionReceived of (CachedUserMessage -> IChannel -> IReaction -> Async<unit>)
 
-type BotClient(logger : ILogger<BotClient>, secrets : ConfigurationSecrets) =
+type BotClient(options: IOptions<BotClientOptions>,
+               logger : ILogger<BotClient>) =
+
     let client = new DiscordSocketClient()
     let readyEvent = new System.Threading.ManualResetEvent false
-    let token = secrets.GetValueOrFail "DIJON_BOT_TOKEN"
+    let token = options.Value.ApiToken
 
     let singleArgFunc (fn : 'a -> Async<unit>) = 
         // Transform the F# function to a C# Func<'a, Task>

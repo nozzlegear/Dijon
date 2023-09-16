@@ -1,5 +1,6 @@
 namespace Dijon
 
+open System.ComponentModel.DataAnnotations
 open Discord
 open Discord.WebSocket
 open System
@@ -191,18 +192,12 @@ type IDijonDatabase =
     abstract member AddReactionGuardedMessage: ReferencedMessage -> Async<unit>
     abstract member RemoveReactionGuardedMessage: messageId: int64 -> Async<unit>
 
-type DatabaseOptions (secrets : ConfigurationSecrets) =
-    member _.SqlConnectionString : string =
-        // The connection string should be provided, but a password may not be set
-        let builder = 
-            secrets.GetValueOrFail "DIJON_SQL_CONNECTION_STRING"
-            |> Microsoft.Data.SqlClient.SqlConnectionStringBuilder 
+type DatabaseOptions = {
+    [<Required>]
+    ConnectionString: string
+}
 
-        if System.String.IsNullOrEmpty builder.Password then
-            match secrets.GetValue "DIJON_SQL_DATABASE_PASSWORD" with
-            | None ->
-                failwithf "Connection string does not contain a password and no password was found in environment variables or secrets."
-            | Some password ->
-                builder.Password <- password
-
-        builder.ConnectionString
+type BotClientOptions = {
+    [<Required>]
+    ApiToken: string
+}

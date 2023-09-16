@@ -8,7 +8,6 @@
     <Compile Include="Extensions/Seq.fs" />
     <Compile Include="Extensions/Strings.fs" />
     <Compile Include="Extensions/Messages.fs" />
-    <Compile Include="ConfigurationSecrets.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="CommandParser.fs" />
     <Compile Include="Cache/StreamCache.fs" />
@@ -32,6 +31,12 @@
     <PackageReference Include="dapper" />
     <PackageReference Include="discord.net" />
     <PackageReference Include="FSharp.Control.AsyncSeq" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.KeyPerFile" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
     <PackageReference Include="thoth.json.net" />
     <PackageReference Include="microsoft.extensions.hosting" />
     <PackageReference Include="microsoft.extensions.logging" />

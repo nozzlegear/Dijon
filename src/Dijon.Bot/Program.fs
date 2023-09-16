@@ -3,21 +3,38 @@
 open Dijon.Cache
 open Dijon.Services
 
+open Microsoft.Extensions.Options;
+open Microsoft.Extensions.Configuration;
+open Microsoft.Extensions.DependencyInjection;
+open Microsoft.Extensions.Logging;
+
+open Microsoft.Extensions.Options
+open Microsoft.Extensions.Configuration
+open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
-open Microsoft.Extensions.DependencyInjection
 
-module Program = 
+module Program =
     [<EntryPoint>]
     let main _ =
         let host =
             Host.CreateDefaultBuilder()
+                .ConfigureHostConfiguration(fun builder ->
+                    // Add Podman secret files to bindable configurations
+                    builder.AddKeyPerFile("/run/secrets", optional = true) |> ignore)
                 .ConfigureServices(fun context services ->
-                    services.AddSingleton<ConfigurationSecrets>() |> ignore
-                    services.AddSingleton<DatabaseOptions>() |> ignore
+
+                    services.AddOptions<DatabaseOptions>()
+                        .BindConfiguration("Database")
+                        .ValidateDataAnnotations() |> ignore
+
+                    services.AddOptions<BotClientOptions>()
+                        .BindConfiguration("BotClient")
+                        .ValidateDataAnnotations() |> ignore
+
                     services.AddSingleton<StreamCache>() |> ignore
                     services.AddSingleton<IDijonDatabase, DijonSqlDatabase>() |> ignore
-                    services.AddSingleton<BotClient>() |> ignore 
+                    services.AddSingleton<BotClient>() |> ignore
                     services.AddHostedService<DatabaseMigratorService>() |> ignore
                     services.AddHostedService<StreamCheckService>() |> ignore
                     services.AddHostedService<ReactionGuardService>() |> ignore
@@ -35,7 +52,7 @@ module Program =
         host.Services.GetRequiredService<BotClient>().InitAsync()
         |> Async.AwaitTask
         |> Async.RunSynchronously
-                
+
         //host.RunConsoleAsync()
         host.RunAsync()
         |> Async.AwaitTask

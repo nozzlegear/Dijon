@@ -11,7 +11,7 @@ type DatabaseMigratorService (logger: ILogger<DatabaseMigratorService>, dbOption
     interface IHostedService with
         member x.StartAsync cancellation =
             logger.LogInformation "Migrating database to latest version."
-            Migrator.migrate Migrator.Latest dbOptions.SqlConnectionString
+            Migrator.migrate Migrator.Latest dbOptions.ConnectionString
             Task.CompletedTask
 
         member x.StopAsync cancellation =
