@@ -17,6 +17,6 @@
     <PackageReference Include="coverlet.collector" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Dijon.Bot\Dijon.Bot.fsproj" />
+    <ProjectReference Include="..\..\src\Dijon.Bot\Dijon.Bot.fsproj" />
   </ItemGroup>
 </Project>
