@@ -1,4 +1,4 @@
-namespace Dijon
+namespace Dijon.Bot
 
 module KnownUsers =
     let DjurId = uint64 204665846386262016L

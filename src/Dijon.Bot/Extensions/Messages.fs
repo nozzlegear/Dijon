@@ -1,5 +1,6 @@
-namespace Dijon
+namespace Dijon.Bot
 
+open Dijon.Shared
 open Discord
 
 module Messages =

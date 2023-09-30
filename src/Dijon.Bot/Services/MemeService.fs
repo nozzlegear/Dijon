@@ -1,17 +1,17 @@
-namespace Dijon.Services
+namespace Dijon.Bot.Services
 
-open Dijon
+open Dijon.Bot
+open Dijon.Shared
+
 open Discord
 open Discord.WebSocket
 open System
 open System.Threading.Tasks
 open Microsoft.Extensions.Hosting
-open Microsoft.Extensions.Logging
-open FSharp.Control.Tasks.V2.ContextInsensitive
 
-type MemeService(logger : ILogger<MemeService>, 
-                 bot : Dijon.BotClient, 
-                 database : IDijonDatabase) =
+type MemeService(
+    bot: IBotClient
+) =
 
     let randomSlanderResponse () = 
         [ "https://tenor.com/view/palpatine-treason-star-wars-emperor-gif-8547403"
@@ -228,11 +228,9 @@ type MemeService(logger : ILogger<MemeService>,
             ()
 
     interface IHostedService with
-        member _.StartAsync cancellation =
-            task {
-                do! bot.AddEventListener (DiscordEvent.CommandReceived handleCommand)
-            }
-            :> Task
+        member _.StartAsync _ =
+            bot.AddEventListener (DiscordEvent.CommandReceived handleCommand)
+            Task.CompletedTask
 
         member _.StopAsync _ =
             Task.CompletedTask

@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Models.fs" />
+        <Compile Include="Operators.fs" />
+        <Compile Include="DapperHelpers.fs" />
+        <Compile Include="StreamAnnouncements\Models.fs" />
+        <Compile Include="StreamAnnouncements\StreamAnnouncementsDatabase.fs" />
+        <Compile Include="LogChannels\LogChannelsDatabase.fs" />
+        <Compile Include="GuildMembers\Models.fs" />
+        <Compile Include="GuildMembers\GuildMembersDatabase.fs" />
+        <Compile Include="AffixChannels\Models.fs" />
+        <Compile Include="AffixChannels\AffixChannelsDatabase.fs" />
+        <Compile Include="MessageReactionGuards\Models.fs" />
+        <Compile Include="MessageReactionGuards\MessageReactionGuardsDatabase.fs" />
+        <Compile Include="ServiceCollectionExtensions.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Dapper" />
+      <PackageReference Include="DustyTables" />
+      <PackageReference Include="FSharp.Core" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+      <PackageReference Include="Microsoft.Extensions.Hosting" />
+      <PackageReference Include="microsoft.extensions.logging" />
+      <PackageReference Include="Microsoft.Extensions.Options" />
+      <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+      <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Dijon.Shared\Dijon.Shared.fsproj" />
+    </ItemGroup>
+
+</Project>

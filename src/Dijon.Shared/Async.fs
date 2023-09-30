@@ -1,9 +1,10 @@
-namespace Dijon
+namespace Dijon.Shared
 
 open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
-    
+
+[<RequireQualifiedAccess>]
 module Async =
     let Empty = async {()}
 
@@ -35,25 +36,6 @@ module Async =
         let! result = computation 
         return Seq.collect fn result 
     }
-
-    /// <summary>
-    /// Enumerates over a <see cref="IAsyncEnumerable" />, reading all items and mapping them to an F# sequence.
-    /// </summary>
-    let EnumerateCollection (collection: IAsyncEnumerable<_ IReadOnlyCollection>) =
-        let cancellationToken = CancellationToken()
-        let asTask (task : ValueTask<_>) = task.AsTask()
-        let rec iterate (enumerator: IAsyncEnumerator<_ IReadOnlyCollection>) (gathered: _ seq) = async {
-            let! shouldContinue =
-                enumerator.MoveNextAsync cancellationToken
-                |> asTask
-                |> Async.AwaitTask
-
-            if not shouldContinue then 
-                return gathered
-            else
-                return! iterate enumerator (Seq.concat [gathered; seq enumerator.Current])
-        }
-        iterate (collection.GetAsyncEnumerator()) []
 
     /// <summary>
     /// Iterates over a list of async computations, executing them sequentially.

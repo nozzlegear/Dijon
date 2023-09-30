@@ -1,17 +1,20 @@
-namespace Dijon.Services
+namespace Dijon.Bot.Services
 
-open Dijon
+open Dijon.Bot
+open Dijon.Database
+open Dijon.Database.StreamAnnouncements
+open Dijon.Shared
+
 open System
 open System.Threading.Tasks
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
-open FSharp.Control.Tasks.V2.ContextInsensitive
 open Discord
 open Discord.WebSocket
 
 type StreamCheckService(logger : ILogger<StreamCheckService>, 
-                        database : IDijonDatabase, 
-                        bot : Dijon.BotClient) =
+                        database : IStreamAnnouncementsDatabase,
+                        bot : IBotClient) =
             
     /// Tries to get the user's stream activity. Returns None if the user is not streaming.
     let tryGetStreamActivity (user : IGuildUser): Option<StreamingGame> = 
@@ -266,12 +269,10 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
             ()
             
     interface IHostedService with
-        member _.StartAsync cancellation =
-            task {
-                do! bot.AddEventListener (DiscordEvent.UserUpdated userUpdated)
-                do! bot.AddEventListener (DiscordEvent.CommandReceived commandReceived)
-            }
-            :> Task
-            
+        member _.StartAsync _ =
+            bot.AddEventListener (DiscordEvent.UserUpdated userUpdated)
+            bot.AddEventListener (DiscordEvent.CommandReceived commandReceived)
+            Task.CompletedTask
+
         member _.StopAsync _ =
             Task.CompletedTask

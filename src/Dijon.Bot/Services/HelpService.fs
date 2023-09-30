@@ -1,17 +1,24 @@
-namespace Dijon.Services
+namespace Dijon.Bot.Services
 
-open Dijon
+open Dijon.Bot
+open Dijon.Shared
+open Dijon.Database
+open Dijon.Database.AffixChannels
+open Dijon.Database.LogChannels
+open Dijon.Database.StreamAnnouncements
+
 open Discord
 open Discord.WebSocket
 open System
 open System.Threading.Tasks
 open Microsoft.Extensions.Hosting
-open Microsoft.Extensions.Logging
-open FSharp.Control.Tasks.V2.ContextInsensitive
 
-type HelpService(logger : ILogger<HelpService>, 
-                 bot : Dijon.BotClient, 
-                 database : IDijonDatabase) =
+type HelpService(
+    bot: IBotClient,
+    logChannelDatabase: ILogChannelsDatabase,
+    affixChannelDatabase: IAffixChannelsDatabase,
+    streamAnnouncementsDatabase: IStreamAnnouncementsDatabase
+) =
 
     let handleStatusCommand (msg: IMessage) =
         let embed = EmbedBuilder()
@@ -25,19 +32,19 @@ type HelpService(logger : ILogger<HelpService>,
             let guildId = GuildId (int64 guildChannel.Guild.Id)
 
             async {
-                let! logChannelId = database.GetLogChannelForGuild guildId
+                let! logChannelId = logChannelDatabase.GetLogChannelForGuild guildId
                 let logChannelMessage = 
                     logChannelId
                     |> Option.map (sprintf "Membership logs for this server are sent to the <#%i> channel.")
                     |> Option.defaultValue "Member logs are **not set up** for this server. Use `!dijon log here` to set the log channel."
 
-                let! affixChannel = database.GetAffixChannelForGuild guildId
+                let! affixChannel = affixChannelDatabase.GetAffixChannelForGuild guildId
                 let affixChannelMessage =
                     affixChannel
                     |> Option.map (fun channel -> sprintf "Mythic Plus affixes messages for this server are sent to the <#%i> channel." channel.ChannelId)
                     |> Option.defaultValue "Mythic Plus affixes are **not set up** for this server. Use `!dijon set affixes here` to set the affix channel."
 
-                let! streamChannel = database.GetStreamAnnouncementChannelForGuild guildId
+                let! streamChannel = streamAnnouncementsDatabase.GetStreamAnnouncementChannelForGuild guildId
                 let streamChannelMessage =
                     streamChannel
                     |> Option.map (fun channel -> sprintf "Stream announcement messages for this server are sent to the <#%i> channel when a user with the role %s role goes live." channel.ChannelId (MentionUtils.MentionRole <| uint64 channel.StreamerRoleId))
@@ -87,11 +94,9 @@ type HelpService(logger : ILogger<HelpService>,
             ()
 
     interface IHostedService with
-        member _.StartAsync cancellation =
-            task {
-                do! bot.AddEventListener (DiscordEvent.CommandReceived handleCommand)
-            }
-            :> Task
+        member _.StartAsync _ =
+            bot.AddEventListener (DiscordEvent.CommandReceived handleCommand)
+            Task.CompletedTask
 
         member _.StopAsync _ =
             Task.CompletedTask

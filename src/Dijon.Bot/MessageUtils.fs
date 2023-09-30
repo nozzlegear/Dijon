@@ -1,4 +1,7 @@
-namespace Dijon
+namespace Dijon.Bot
+
+open Dijon.Database.MessageReactionGuards
+open Dijon.Shared
 
 open System
 open Discord

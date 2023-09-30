@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Core" />
+    <PackageReference Include="microsoft.extensions.logging" />
     <PackageReference Include="Simple.Migrations" />
     <PackageReference Include="System.Data.SqlClient" />
   </ItemGroup>
@@ -27,5 +28,8 @@
     <Content Include="Migrations\sql\*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Dijon.Shared\Dijon.Shared.fsproj" />
   </ItemGroup>
 </Project>

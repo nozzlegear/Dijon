@@ -1,17 +1,30 @@
-namespace Dijon.Services
+namespace Dijon.Bot.Services
 
-open Dijon
-open System
-open System.Threading.Tasks
-open Microsoft.Extensions.Hosting
-open Microsoft.Extensions.Logging
+open Dijon.Bot
+open Dijon.Database
+open Dijon.Shared
+open Dijon.Database.GuildMembers
+open Dijon.Database.LogChannels
+
 open Discord
 open Discord.WebSocket
-open FSharp.Control.Tasks.V2.ContextInsensitive
+open Microsoft.Extensions.Hosting
+open Microsoft.Extensions.Logging
+open System
+open System.Threading.Tasks
 
-type UserMonitorService(logger : ILogger<UserMonitorService>, 
-                        bot : Dijon.BotClient, 
-                        database : IDijonDatabase) =
+type UserMonitorService(
+    logger : ILogger<UserMonitorService>,
+    bot : IBotClient,
+    guildMemberDatabase : IGuildMembersDatabase,
+    logChannelDatabase: ILogChannelsDatabase
+) =
+    let toMemberUpdate (guildUser: IGuildUser): MemberUpdate =
+        { DiscordId = int64 guildUser.Id
+          GuildId = int64 guildUser.GuildId
+          Username = guildUser.Username
+          Discriminator = guildUser.Discriminator
+          Nickname = guildUser.Nickname }
 
     let mapUsersToMembers (guild: IGuild) =
         async {
@@ -19,8 +32,7 @@ type UserMonitorService(logger : ILogger<UserMonitorService>,
                 guild.GetUsersAsync()
                 |> Async.AwaitTask
 
-            return users
-                   |> Seq.map MemberUpdate.FromGuildUser
+            return Seq.map toMemberUpdate users
         }
 
     let sendUserLeftMessage channel user = 
@@ -35,8 +47,8 @@ type UserMonitorService(logger : ILogger<UserMonitorService>,
         MessageUtils.sendEmbed channel embed 
         |> Async.Ignore
 
-    let userJoined (user : SocketGuildUser) = 
-        database.BatchSetAsync [MemberUpdate.FromGuildUser user]
+    let userJoined (user : SocketGuildUser) =
+        guildMemberDatabase.BatchSetAsync [toMemberUpdate user]
 
     let userLeft (user : SocketGuildUser) = 
         let userData: GuildUser = {
@@ -50,7 +62,7 @@ type UserMonitorService(logger : ILogger<UserMonitorService>,
             let! logChannelId = 
                 int64 user.Guild.Id
                 |> GuildId
-                |> database.GetLogChannelForGuild 
+                |> logChannelDatabase.GetLogChannelForGuild
 
             do! 
                 match logChannelId with 
@@ -61,13 +73,14 @@ type UserMonitorService(logger : ILogger<UserMonitorService>,
                     Async.Empty
             
             // Delete the user so the app doesn't find it at next startup
-            do! database.DeleteAsync (UniqueUser.FromSocketGuildUser user)
+            do! UniqueUser ( DiscordId (int64 user.Id), GuildId (int64 user.Guild.Id) )
+                |> guildMemberDatabase.DeleteAsync
         }
 
     let botLeftGuild (guild : SocketGuild) = 
         int64 guild.Id
         |> GuildId
-        |> database.UnsetLogChannelForGuild 
+        |> logChannelDatabase.UnsetLogChannelForGuild
 
     let userUpdated (before : SocketGuildUser) (after : SocketGuildUser) =
         // Check if this user was just assigned a raider/team role
@@ -121,7 +134,7 @@ type UserMonitorService(logger : ILogger<UserMonitorService>,
                 async {
                     let guildId = GuildId (int64 guildChannel.Guild.Id)
 
-                    do! database.SetLogChannelForGuild guildId (int64 msg.Channel.Id)
+                    do! logChannelDatabase.SetLogChannelForGuild guildId (int64 msg.Channel.Id)
                     do! MessageUtils.sendMessage msg.Channel "Messages will be sent to this channel when a user leaves the server."
                 }
         | :? ISocketPrivateChannel -> 
@@ -153,11 +166,11 @@ type UserMonitorService(logger : ILogger<UserMonitorService>,
         member _.StartAsync _ = 
             task {
                 // Wire event listeners
-                do! bot.AddEventListener (DiscordEvent.UserJoined userJoined)
-                do! bot.AddEventListener (DiscordEvent.UserLeft userLeft)
-                do! bot.AddEventListener (DiscordEvent.UserUpdated userUpdated)
-                do! bot.AddEventListener (DiscordEvent.BotLeftGuild botLeftGuild)
-                do! bot.AddEventListener (DiscordEvent.CommandReceived handleCommand)
+                bot.AddEventListener (DiscordEvent.UserJoined userJoined)
+                bot.AddEventListener (DiscordEvent.UserLeft userLeft)
+                bot.AddEventListener (DiscordEvent.UserUpdated userUpdated)
+                bot.AddEventListener (DiscordEvent.BotLeftGuild botLeftGuild)
+                bot.AddEventListener (DiscordEvent.CommandReceived handleCommand)
 
                 // Update the list of guild members
                 let! allGuilds = 
@@ -169,13 +182,12 @@ type UserMonitorService(logger : ILogger<UserMonitorService>,
                     |> Async.Parallel
                     |> Async.Map Seq.concat
 
-                do! database.BatchSetAsync guildMembers
+                do! guildMemberDatabase.BatchSetAsync guildMembers
 
                 logger.LogInformation "Updated list of current guild members"
 
                 // TODO: the bot should look for members that may have left while it was offline and announce them to the configured channel
-
-            } 
+            }
             :> Task
             
         member _.StopAsync _ =

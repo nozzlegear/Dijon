@@ -1,6 +1,8 @@
-module Affixes
-    open Dijon
-    open System 
+namespace Dijon.Bot
+
+module Affixes =
+    open Dijon.Bot
+    open System
     open System.Net.Http
     
     let list () : Async<Result<RaiderIo.ListAffixesResponse, string>> =

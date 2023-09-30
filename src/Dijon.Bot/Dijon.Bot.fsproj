@@ -5,18 +5,15 @@
     <LangVersion>latestmajor</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Extensions/Async.fs" />
-    <Compile Include="Extensions/Seq.fs" />
-    <Compile Include="Extensions/Strings.fs" />
-    <Compile Include="Extensions/Messages.fs" />
+    <Compile Include="Extensions\Messages.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="CommandParser.fs" />
     <Compile Include="Cache/StreamCache.fs" />
-    <Compile Include="SqlDatabase.fs" />
     <Compile Include="Affixes.fs" />
     <Compile Include="KnownUsers.fs" />
     <Compile Include="MessageUtils.fs" />
-    <Compile Include="BotClient.fs" />
+    <Compile Include="Bot\BotClient.fs" />
+    <Compile Include="Bot\ServiceCollectionExtensions.fs" />
     <Compile Include="Services\StreamCheckService.fs" />
     <Compile Include="Services\DatabaseMigratorService.fs" />
     <Compile Include="Services\AffixCheckService.fs" />
@@ -25,6 +22,7 @@
     <Compile Include="Services\HelpService.fs" />
     <Compile Include="Services\MemeService.fs" />
     <Compile Include="Services\ReactionGuardService.fs" />
+    <Compile Include="Services\ServiceCollectionExtensions.fs" />
     <Compile Include="Program.fs" />
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -36,7 +34,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Core" />
-    <PackageReference Include="dapper" />
     <PackageReference Include="discord.net" />
     <PackageReference Include="FSharp.Control.AsyncSeq" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
@@ -55,6 +52,8 @@
     <PackageReference Include="LazyCache" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Dijon.Database\Dijon.Database.fsproj" />
     <ProjectReference Include="..\Dijon.Migrations\Dijon.Migrations.fsproj" />
+    <ProjectReference Include="..\Dijon.Shared\Dijon.Shared.fsproj" />
   </ItemGroup>
 </Project>

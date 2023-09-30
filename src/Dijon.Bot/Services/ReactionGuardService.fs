@@ -1,16 +1,20 @@
-namespace Dijon.Services
+namespace Dijon.Bot.Services
 
-open Dijon
+open Dijon.Bot
+open Dijon.Shared
+open Dijon.Database.MessageReactionGuards
+
 open Discord
 open System
 open System.Threading.Tasks
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
-open FSharp.Control.Tasks.V2.ContextInsensitive
 
-type ReactionGuardService(logger : ILogger<ReactionGuardService>, 
-                 bot : Dijon.BotClient, 
-                 database : IDijonDatabase) =
+type ReactionGuardService(
+    logger: ILogger<ReactionGuardService>,
+    bot: IBotClient,
+    database: IMessageReactionGuardDatabase
+) =
 
     let whitelist = [
         "❤️"
@@ -59,8 +63,8 @@ type ReactionGuardService(logger : ILogger<ReactionGuardService>,
         "gingerscheme"
     ]
 
-    let handleReaction (msg : CachedUserMessage) (channel: IChannel) (reaction: IReaction) =  async {
-        let reactionIsWhitelisted = 
+    let handleReaction (msg : CachedUserMessage) (channel: IChannel) (reaction: IReaction) = async {
+        let reactionIsWhitelisted =
             List.contains reaction.Emote.Name whitelist
 
         if not reactionIsWhitelisted then
@@ -68,21 +72,20 @@ type ReactionGuardService(logger : ILogger<ReactionGuardService>,
             | true ->
                 logger.LogInformation("Emote {0} is not whitelisted, removing", reaction.Emote.Name)
                 do! bot.RemoveAllReactionsForEmoteAsync(channel.Id, msg.Id, reaction.Emote)
-            | false -> 
+                    |> Async.AwaitTask
+            | false ->
                 ()
     }
 
     let addReactionGuard (msg: IMessage) =
         let channel = msg.Channel :?> IGuildChannel
         // If the command message references (e.g. replies to) a different message, guard that message
-        let guard : ReferencedMessage = 
+        let guard : ReferencedMessage =
             MessageUtils.GetReferencedMessage msg
-            |> Option.defaultValue (
-                {
-                    GuildId = int64 channel.GuildId
-                    ChannelId = int64 msg.Channel.Id
-                    MessageId = int64 msg.Id
-                })
+            |> Option.defaultValue
+                { GuildId = int64 channel.GuildId
+                  ChannelId = int64 msg.Channel.Id
+                  MessageId = int64 msg.Id }
 
         async {
             do! database.AddReactionGuardedMessage guard
@@ -106,7 +109,7 @@ type ReactionGuardService(logger : ILogger<ReactionGuardService>,
     }
 
     let commandReceived (msg: IMessage) = function
-        | Command.AddMessageReactionGuard -> 
+        | Command.AddMessageReactionGuard ->
             addReactionGuard msg
         | Command.RemoveMessageReactionGuard ->
             removeReactionGuard msg
@@ -114,16 +117,14 @@ type ReactionGuardService(logger : ILogger<ReactionGuardService>,
             Async.Empty
 
     interface IDisposable with
-        member _.Dispose() = 
+        member _.Dispose() =
             ()
 
     interface IHostedService with
-        member _.StartAsync cancellation =
-            task {
-                do! bot.AddEventListener (DiscordEvent.ReactionReceived handleReaction)
-                do! bot.AddEventListener (DiscordEvent.CommandReceived commandReceived)
-            }
-            :> Task
+        member _.StartAsync _ =
+            bot.AddEventListener (DiscordEvent.ReactionReceived handleReaction)
+            bot.AddEventListener (DiscordEvent.CommandReceived commandReceived)
+            Task.CompletedTask
 
         member _.StopAsync _ =
             Task.CompletedTask

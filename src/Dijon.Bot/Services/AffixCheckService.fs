@@ -1,25 +1,28 @@
-namespace Dijon.Services
+namespace Dijon.Bot.Services
+
+open Dijon.Database
+open Dijon.Database.AffixChannels
+open Dijon.Bot
+open Dijon.Bot.RaiderIo
+open Dijon.Shared
 
 open System
 open System.Threading.Tasks
 open System.Threading
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
-open Dijon
-open Dijon.RaiderIo
 open Cronos
 open TimeZoneConverter
 open Discord
 open Discord.WebSocket
-open FSharp.Control.Tasks.V2.ContextInsensitive
 
 type private NextSchedule = 
     | FromTimeSpan of TimeSpan
     | FromCron
 
 type AffixCheckService(logger : ILogger<AffixCheckService>, 
-                       bot : Dijon.BotClient, 
-                       database : IDijonDatabase) =
+                       bot : IBotClient,
+                       database : IAffixChannelsDatabase) =
 
     let mutable timer : System.Timers.Timer option = None
     
@@ -214,9 +217,8 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
     interface IHostedService with
         member _.StartAsync cancellationToken =
             task {
-                do! checkAffixes () 
-                    |> Async.Ignore
-                do! bot.AddEventListener (DiscordEvent.CommandReceived commandReceived)
+                let! _ = checkAffixes ()
+                bot.AddEventListener (DiscordEvent.CommandReceived commandReceived)
 
                 scheduleJob cancellationToken FromCron
             }

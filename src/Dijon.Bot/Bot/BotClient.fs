@@ -1,4 +1,6 @@
-namespace Dijon
+namespace Dijon.Bot
+
+open Dijon.Shared
 
 open System
 open System.Threading.Tasks
@@ -17,6 +19,16 @@ type DiscordEvent =
     | BotLeftGuild of (SocketGuild -> Async<unit>)
     | CommandReceived of (IMessage -> Command -> Async<unit>)
     | ReactionReceived of (CachedUserMessage -> IChannel -> IReaction -> Async<unit>)
+
+type IBotClient =
+    abstract member InitAsync: unit -> Task<unit>
+    abstract member GetChannel: channelId: int64 -> SocketChannel
+    abstract member ListGuildsAsync: unit -> Task<Collections.Generic.IReadOnlyCollection<IGuild>>
+    abstract member SetActivityStatusAsync: message: string -> Task
+    abstract member GetLatency: unit -> int64;
+    abstract member GetBotUserId: unit -> uint64;
+    abstract member RemoveAllReactionsForEmoteAsync: channelId: uint64 * msgId: uint64 * emote: IEmote -> Task
+    abstract member AddEventListener: eventType: DiscordEvent -> unit
 
 type BotClient(options: IOptions<BotClientOptions>,
                logger : ILogger<BotClient>) =
@@ -106,60 +118,60 @@ type BotClient(options: IOptions<BotClientOptions>,
             readyEvent.Dispose()
             client.StopAsync()
             |> ValueTask
+    end
 
-    member _.InitAsync () = 
-        task {
-            do! client.LoginAsync(TokenType.Bot, token) 
-            do! client.StartAsync() 
-            do! client.SetGameAsync "This Is Legal But We Question The Ethics" 
+    interface IBotClient with
+        member _.InitAsync () =
+            task {
+                do! client.LoginAsync(TokenType.Bot, token)
+                do! client.StartAsync()
+                do! client.SetGameAsync "This Is Legal But We Question The Ethics"
 
-            // Trip the ready event once the client indicates it's ready
-            let func = Func<Task>(fun _ -> readyEvent.Set() |> ignore; Task.CompletedTask)
-            client.add_Ready func 
+                // Trip the ready event once the client indicates it's ready
+                let func = Func<Task>(fun _ -> readyEvent.Set() |> ignore; Task.CompletedTask)
+                client.add_Ready func
 
-            readyEvent.WaitOne()
-            |> ignore
-        }
+                readyEvent.WaitOne()
+                |> ignore
+            }
 
-    member _.GetChannel (channelId : int64) = 
-        client.GetChannel (uint64 channelId)
+        member _.GetChannel (channelId : int64) =
+            client.GetChannel (uint64 channelId)
 
-    member _.ListGuildsAsync () = 
-        let client = client :> IDiscordClient
-        client.GetGuildsAsync(CacheMode.CacheOnly, RequestOptions.Default)
-    
-    member _.UpdateGameAsync message =
-        client.SetGameAsync(message)
+        member _.ListGuildsAsync () =
+            let client = client :> IDiscordClient
+            client.GetGuildsAsync(CacheMode.CacheOnly, RequestOptions.Default)
 
-    member _.GetLatency () = 
-        client.Latency
+        member _.SetActivityStatusAsync message =
+            client.SetGameAsync(message)
 
-    member _.GetBotUserId () = 
-        client.CurrentUser.Id
+        member _.GetLatency () =
+            client.Latency
 
-    member _.RemoveAllReactionsForEmoteAsync (channelId: uint64, msgId: uint64, emote: IEmote) = 
-        client.Rest.RemoveAllReactionsForEmoteAsync(channelId, msgId, emote)
-        |> Async.AwaitTask
+        member _.GetBotUserId () =
+            client.CurrentUser.Id
 
-    member _.AddEventListener eventType =
-        match eventType with
-        | UserLeft fn ->
-            singleArgFunc fn
-            |> client.add_UserLeft
-        | UserJoined fn ->
-            singleArgFunc fn
-            |> client.add_UserJoined
-        | UserUpdated fn ->
-            doubleArgFunc fn
-            |> client.add_GuildMemberUpdated
-        | BotLeftGuild fn ->
-            singleArgFunc fn
-            |> client.add_LeftGuild
-        | CommandReceived fn ->
-            singleArgFunc (delegateCommandMessages fn)
-            |> client.add_MessageReceived
-        | ReactionReceived fn ->
-            tripleArgFunc fn
-            |> client.add_ReactionAdded
+        member _.RemoveAllReactionsForEmoteAsync (channelId: uint64, msgId: uint64, emote: IEmote) =
+            client.Rest.RemoveAllReactionsForEmoteAsync(channelId, msgId, emote)
 
-        Async.Empty
+        member _.AddEventListener eventType =
+            match eventType with
+            | UserLeft fn ->
+                singleArgFunc fn
+                |> client.add_UserLeft
+            | UserJoined fn ->
+                singleArgFunc fn
+                |> client.add_UserJoined
+            | UserUpdated fn ->
+                doubleArgFunc fn
+                |> client.add_GuildMemberUpdated
+            | BotLeftGuild fn ->
+                singleArgFunc fn
+                |> client.add_LeftGuild
+            | CommandReceived fn ->
+                singleArgFunc (delegateCommandMessages fn)
+                |> client.add_MessageReceived
+            | ReactionReceived fn ->
+                tripleArgFunc fn
+                |> client.add_ReactionAdded
+        end

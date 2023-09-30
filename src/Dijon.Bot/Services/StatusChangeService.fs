@@ -1,13 +1,15 @@
-namespace Dijon.Services
+namespace Dijon.Bot.Services
 
-open Dijon
+open Dijon.Bot
+
 open System
 open System.Threading
 open System.Threading.Tasks
 open Microsoft.Extensions.Hosting
-open Microsoft.Extensions.Logging
 
-type StatusChangeService(logger : ILogger<StatusChangeService>, bot : Dijon.BotClient) =
+type StatusChangeService(
+    bot: IBotClient
+) =
     let mutable timer : System.Timers.Timer option = None
     
     let changeStatus () : unit =
@@ -29,7 +31,7 @@ type StatusChangeService(logger : ILogger<StatusChangeService>, bot : Dijon.BotC
                   "Decentralize me, daddy" ]
                 |> Seq.sortBy (fun _ -> Guid.NewGuid())
                 |> Seq.head
-            do! bot.UpdateGameAsync status |> Async.AwaitTask
+            do! bot.SetActivityStatusAsync status |> Async.AwaitTask
         } |> Async.Start
         
     let rec scheduleJob (cancellation : CancellationToken) startNow =

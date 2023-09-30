@@ -1,9 +1,18 @@
-namespace Dijon.Cache
+namespace Dijon.Bot.Cache
 
-open Dijon
 open LazyCache
 
 type PopulateStreamerRolesFunc = unit -> Async<int64 list>
+
+type IStreamCache =
+    /// Resets the cache, prompting the next <see cref="GetAllStreamerRoles" /> call to repopulate it.
+    abstract member Reset: unit -> unit
+    /// Adds the streamer role to the cache.
+    abstract member AddStreamerRole: roleId: int64 -> Async<unit>
+    /// Removes the streamer role from the cache.
+    abstract member RemoveStreamerRole: roleId: int64 -> Async<unit>
+    /// Calls the given populate function to list all of known streamer roles and add them to the cache.
+    abstract member GetAllStreamerRoles: populateFunc: PopulateStreamerRolesFunc -> Async<Set<int64>>
 
 type StreamCache() =
     let cache : IAppCache = upcast CachingService()
@@ -21,41 +30,43 @@ type StreamCache() =
         | false, _ -> 
             async { return Set.empty<int64> }
 
-    /// Resets the cache, prompting the next <see cref="GetAllStreamerRoles" /> call to repopulate it.
-    member _.Reset () =
-        cache.Add(allRolesKey, Set.empty<int64>)
-        hasPopulated <- false
+    interface IStreamCache with
+        /// Resets the cache, prompting the next <see cref="GetAllStreamerRoles" /> call to repopulate it.
+        member _.Reset () =
+            cache.Add(allRolesKey, Set.empty<int64>)
+            hasPopulated <- false
 
-    /// Adds the streamer role to the cache.
-    member _.AddStreamerRole (roleId : int64) =
-        async {
-            let! allRoles = getAllRoles ()
-            cache.Add(allRolesKey, Set.add roleId allRoles)
-        }
-
-    /// Removes the streamer role from the cache.
-    member _.RemoveStreamerRole (roleId : int64) =
-        async {
-            let! allRoles = getAllRoles ()
-            cache.Add(allRolesKey, Set.remove roleId allRoles)
-        }
-
-    member _.GetAllStreamerRoles (populate : PopulateStreamerRolesFunc) =
-        let populate () =
+        /// Adds the streamer role to the cache.
+        member _.AddStreamerRole (roleId : int64) =
             async {
-                let! result = populate ()
-                return Set.ofList result
+                let! allRoles = getAllRoles ()
+                cache.Add(allRolesKey, Set.add roleId allRoles)
             }
 
-        if not hasPopulated then
+        /// Removes the streamer role from the cache.
+        member _.RemoveStreamerRole (roleId : int64) =
             async {
-                let! allRoles = populate ()
-
-                cache.Add(allRolesKey, allRoles)
-                hasPopulated <- true
-
-                return allRoles
+                let! allRoles = getAllRoles ()
+                cache.Add(allRolesKey, Set.remove roleId allRoles)
             }
-        else
-            cache.GetOrAddAsync<Set<int64>>(allRolesKey, populate >> Async.StartAsTask)
-            |> Async.AwaitTask
+
+        member _.GetAllStreamerRoles (populate : PopulateStreamerRolesFunc) =
+            let populate () =
+                async {
+                    let! result = populate ()
+                    return Set.ofList result
+                }
+
+            if not hasPopulated then
+                async {
+                    let! allRoles = populate ()
+
+                    cache.Add(allRolesKey, allRoles)
+                    hasPopulated <- true
+
+                    return allRoles
+                }
+            else
+                cache.GetOrAddAsync<Set<int64>>(allRolesKey, populate >> Async.StartAsTask)
+                |> Async.AwaitTask
+    end
