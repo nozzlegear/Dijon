@@ -1,6 +1,7 @@
 namespace Dijon.Bot.Services
 
 open Dijon.Bot
+open Dijon.Bot.Cache
 open Dijon.Database
 open Dijon.Database.StreamAnnouncements
 open Dijon.Shared
@@ -167,15 +168,16 @@ type StreamCheckService(
                 // This covers cases where they had a streamer role but it was removed while they were streaming.
                 return! removeStreamingMessage after
             | false, Some stream ->
-                // Fetch all streamer role IDs and then check if the user has one
-                let! allRoles = database.ListStreamerRoles ()
+                // Fetch the guild's streamer role id and then check if the user has it
+                let! guildStreamData = streamCache.LoadStreamDataForGuild guildId
                 let userRoles =
                     after.Roles
                     |> Seq.map (fun r -> int64 r.Id)
                     |> Set
                 let hasStreamerRole = 
-                    allRoles
-                    |> Set.exists (fun role -> Set.contains role userRoles)
+                    guildStreamData
+                    |> Option.map (fun x -> userRoles.Contains x.StreamerRoleId)
+                    |> Option.defaultValue false
 
                 if hasStreamerRole then
                     // User is streaming and they have the streaming role. Announce the stream.
@@ -221,6 +223,8 @@ type StreamCheckService(
 
                 task {
                     do! database.SetStreamAnnouncementChannelForGuild channel
+                    // Clear the stream cache so it will update from the database on the next pull
+                    streamCache.ReleaseStreamDataForGuild guildId
 
                     let returnMessage = 
                         "Stream announcement messages from streamers with the role "
@@ -249,6 +253,8 @@ type StreamCheckService(
 
                 task {
                     do! database.DeleteStreamAnnouncementChannelForGuild guildId
+                    // Clear the stream cache so it will update from the database on the next pull
+                    streamCache.ReleaseStreamDataForGuild guildId
                     return! MessageUtils.AddGreenCheckReaction msg
                 }
         | :? ISocketPrivateChannel ->
