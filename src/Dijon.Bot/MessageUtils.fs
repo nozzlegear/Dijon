@@ -9,10 +9,11 @@ open Discord
 open Discord.WebSocket
 
 module MessageUtils =
+    let mentionUser (userId : uint64) =
+        $"<@%i{userId}> "
 
-    let mentionUser (userId : uint64) = sprintf "<@%i> " userId
-
-    let embedField title value = EmbedFieldBuilder().WithName(title).WithValue(value)
+    let embedField title value =
+        EmbedFieldBuilder().WithName(title).WithValue(value)
 
     let sendEditableMessage (channel : IMessageChannel) msg =
         channel.SendMessageAsync msg
@@ -29,7 +30,7 @@ module MessageUtils =
         msg.AddReactionAsync emote
         |> Task.toEmpty
 
-    let multiReact (msg: SocketUserMessage) (emotes: IEmote seq) = 
+    let multiReact (msg: SocketUserMessage) (emotes: IEmote seq) =
         emotes
         |> Seq.map (react msg)
         |> Task.sequential
@@ -38,7 +39,7 @@ module MessageUtils =
         msg.AddReactionAsync (Emoji "✅")
         |> Task.toEmpty
 
-    let AddShrugReaction (msg : IMessage) = 
+    let AddShrugReaction (msg : IMessage) =
         msg.AddReactionAsync (Emoji "🤷")
         |> Task.toEmpty
 
@@ -47,8 +48,8 @@ module MessageUtils =
         msg.AddReactionAsync (Emoji "❌")
         |> Task.toEmpty
 
-    /// Get's the user's Nickname if available, else their Discord username.
-    let GetNickname (user : IUser) = 
+    /// Gets the user's Nickname if available, else their Discord username.
+    let GetNickname (user : IUser) =
         match user with
         | :? IGuildUser as guildUser when not (String.IsNullOrEmpty guildUser.Nickname) -> guildUser.Nickname
         | _ -> user.Username

@@ -30,9 +30,10 @@ type IBotClient =
     abstract member RemoveAllReactionsForEmoteAsync: channelId: uint64 * msgId: uint64 * emote: IEmote -> Task
     abstract member AddEventListener: eventType: DiscordEvent -> unit
 
-type BotClient(options: IOptions<BotClientOptions>,
-               logger : ILogger<BotClient>) =
-
+type BotClient(
+    options: IOptions<BotClientOptions>,
+    logger: ILogger<BotClient>
+) =
     let client = new DiscordSocketClient()
     let readyEvent = new System.Threading.ManualResetEvent false
     let token = options.Value.ApiToken
@@ -93,8 +94,7 @@ type BotClient(options: IOptions<BotClientOptions>,
 
     let handleLogMessage (logMessage: LogMessage) =
         let now = DateTimeOffset.UtcNow.ToString()
-        printfn "[%s] %s: %s" now logMessage.Source logMessage.Message
-    }
+        printfn $"[%s{now}] %s{logMessage.Source}: %s{logMessage.Message}"
 
     let delegateCommandMessages (fn : IMessage -> Command -> Task<unit>) (msg : IMessage) =
         match CommandParser.ParseCommand msg with
@@ -106,7 +106,7 @@ type BotClient(options: IOptions<BotClientOptions>,
                 | Choice1Of2 _ -> 
                     ()
                 | Choice2Of2 err ->
-                    logger.LogError(err, sprintf "Command message delegate failed to handle command %A" cmd)
+                    logger.LogError(err, $"Command message delegate failed to handle command %A{cmd}")
             }
 
     interface IAsyncDisposable with

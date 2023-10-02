@@ -12,9 +12,12 @@ open Microsoft.Extensions.Logging
 open System
 open System.Threading.Tasks
 
-type StreamCheckService(logger : ILogger<StreamCheckService>, 
-                        database : IStreamAnnouncementsDatabase,
-                        bot : IBotClient) =
+type StreamCheckService(
+    logger: ILogger<StreamCheckService>,
+    database: IStreamAnnouncementsDatabase,
+    streamCache: IStreamCache,
+    bot: IBotClient
+) =
             
     /// Tries to get the user's stream activity. Returns None if the user is not streaming.
     let tryGetStreamActivity (user : IGuildUser): Option<StreamingGame> = 
@@ -52,21 +55,21 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
         let twitchUsername = getTwitchUsernameFromUrl stream.Url
         let discordNickname = MessageUtils.GetNickname stream.User
         let embed = EmbedBuilder()
-        embed.Title <- sprintf "%s is live on %s right now!" discordNickname stream.Name
+        embed.Title <- $"%s{discordNickname} is live on %s{stream.Name} right now!"
         embed.Color <- Nullable Color.Green
         embed.Description <- stream.Details
         embed.ThumbnailUrl <- stream.User.GetAvatarUrl(size = uint16 256)
-        embed.ImageUrl <- sprintf "https://static-cdn.jtvnw.net/previews-ttv/live_user_%s-1280x740.jpg" twitchUsername
+        embed.ImageUrl <- $"https://static-cdn.jtvnw.net/previews-ttv/live_user_%s{twitchUsername}-1280x740.jpg"
         embed.Url <- stream.Url
         embed.AddField (fun builder ->  
                 builder.Name <- "Stream URL"
                 builder.Value <- stream.Url)
 
     let sendStreamAnnouncementMessage (stream : StreamData) =
-        logger.LogInformation("Announcing stream for user {0} ({1})", stream.User.Username, stream.User.Id)
+        logger.LogInformation("Announcing stream for user {DiscordUsername} ({DiscordUserId})", stream.User.Username, stream.User.Id)
 
         task {
-            match! database.GetStreamAnnouncementChannelForGuild (GuildId stream.GuildId) with
+            match! streamCache.LoadStreamDataForGuild (GuildId stream.GuildId) with
             | Some channelData ->
                 let channel = bot.GetChannel channelData.ChannelId
                 let! messageId = 
@@ -79,7 +82,6 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                       StreamerId = int64 stream.User.Id }
 
                 do! database.AddStreamAnnouncementMessage announcementMessage
-
                 return Ok messageId
             | None ->
                 return Error "Guild does not have a stream announcements channel set."
@@ -88,7 +90,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
     let removeStreamingMessage (user : IUser) : Task<unit> =
         let userId = int64 user.Id
 
-        logger.LogInformation("Removing streaming message for user {0} ({1})", user.Username, userId)
+        logger.LogInformation("Removing streaming message for user {DiscordUsername} ({DiscordUserId})", user.Username, userId)
 
         task {
             let options = 
@@ -135,7 +137,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                 | Ok _ ->
                     return! MessageUtils.AddGreenCheckReaction msg
                 | Error err ->
-                    return! sprintf "Error: %s" err
+                    return! $"Error: %s{err}"
                             |> MessageUtils.sendMessage msg.Channel
             }
         | :? ISocketPrivateChannel ->
@@ -148,7 +150,6 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
         | :? SocketGuildChannel ->
             task {
                 do! removeStreamingMessage msg.Author
-
                 return! MessageUtils.AddGreenCheckReaction msg
             }
         | _ ->
@@ -161,17 +162,16 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
 
             match wasStreaming, stream with
             | true, None ->
-                // Always try to remove streaming messages for the user even if they don't currenty have a streamer role.
+                // Always try to remove streaming messages for the user even if they don't currently have a streamer role.
                 // This covers cases where they had a streamer role but it was removed while they were streaming.
                 return! removeStreamingMessage after
             | false, Some stream ->
                 // Fetch all streamer role IDs and then check if the user has one
-                let! allRoles = 
-                    database.ListStreamerRoles ()
-                let userRoles = 
+                let! allRoles = database.ListStreamerRoles ()
+                let userRoles =
                     after.Roles
                     |> Seq.map (fun r -> int64 r.Id)
-                    |> Set.ofSeq
+                    |> Set
                 let hasStreamerRole = 
                     allRoles
                     |> Set.exists (fun role -> Set.contains role userRoles)
@@ -202,8 +202,8 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
             if msg.Author.Id <> KnownUsers.DjurId then
                 let djurMention = MentionUtils.MentionUser KnownUsers.DjurId
 
-                sprintf "Only %s may set the stream channel at this time." djurMention
-                |> MessageUtils.sendMessage msg.Channel 
+                $"Only %s{djurMention} may set the stream channel at this time."
+                |> MessageUtils.sendMessage msg.Channel
             elif Seq.length msg.MentionedRoleIds <> 1 then
                 MessageUtils.sendMessage msg.Channel "You must mention exactly 1 role to use as the streamer role."
             elif Seq.length msg.MentionedChannelIds <> 1 then
@@ -222,7 +222,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                     do! database.SetStreamAnnouncementChannelForGuild channel
 
                     let returnMessage = 
-                        sprintf "Stream announcement messages from streamers with the role "
+                        "Stream announcement messages from streamers with the role "
                         + MentionUtils.MentionRole streamerRoleId
                         + " will be sent to the channel "
                         + MentionUtils.MentionChannel channelId
@@ -241,13 +241,12 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
             if msg.Author.Id <> KnownUsers.DjurId then
                 let djurMention = MentionUtils.MentionUser KnownUsers.DjurId
 
-                sprintf "Only %s may unset the stream channel at this time." djurMention
-                |> MessageUtils.sendMessage msg.Channel 
+                $"Only %s{djurMention} may unset the stream channel at this time."
+                |> MessageUtils.sendMessage msg.Channel
             else
 
                 task {
                     do! database.DeleteStreamAnnouncementChannelForGuild guildId
-
                     return! MessageUtils.AddGreenCheckReaction msg
                 }
         | :? ISocketPrivateChannel ->

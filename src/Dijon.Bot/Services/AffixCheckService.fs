@@ -51,7 +51,7 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
             // Wait for the bot's ready event to fire. If the bot is not yet ready, the channel will be null
             //readyEvent.WaitOne() |> ignore
             
-            sprintf "Posting affixes to channel %i" channelId 
+            $"Posting affixes to channel %i{channelId}"
             |> logger.LogInformation
             
             let channel = bot.GetChannel channelId
@@ -88,15 +88,15 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
             let! channels = database.ListAllAffixChannels()
             
             if List.isEmpty channels then
-                logger.LogInformation(sprintf "No guilds have enabled the affixes channel, no reason to check affixes")
+                logger.LogInformation("No guilds have enabled the affixes channel, no reason to check affixes")
                 return true
             else
                 match! Affixes.list() with
                 | Error err ->
-                    logger.LogError(sprintf "Failed to get new affixes due to reason: %s" err)
+                    logger.LogError $"Failed to get new affixes due to reason: %s{err}"
                     return false
                 | Ok affixes ->
-                    logger.LogInformation(sprintf "Got affixes: %s" affixes.title)
+                    logger.LogInformation $"Got affixes: %s{affixes.title}"
                     return! postAffixes affixes channels
         } 
    

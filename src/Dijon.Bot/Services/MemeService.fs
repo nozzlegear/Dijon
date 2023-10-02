@@ -75,7 +75,7 @@ type MemeService(
             | _ -> 
                 Task.empty
 
-    let handleFoxyLocation (msg : IMessage) = 
+    let handleFoxyLocation (msg : IMessage) =
         match msg with 
         | CommandParser.Mentioned -> 
             // Send the Twitch clip embed

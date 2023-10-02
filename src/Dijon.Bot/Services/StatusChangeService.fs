@@ -49,7 +49,7 @@ type StatusChangeService(
             
             if not cancellation.IsCancellationRequested then
                 changeStatus()
-            
+
             // Schedule the next job as soon as this one fires
             if not cancellation.IsCancellationRequested then
                 scheduleJob cancellation false
