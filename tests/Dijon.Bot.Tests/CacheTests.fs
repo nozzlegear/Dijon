@@ -1,104 +1,89 @@
 module CacheTests
 
+open Dijon.Bot.Tests
+open Dijon.Bot.Cache
+open Dijon.Database
+open Dijon.Database.StreamAnnouncements
+
+open Faqt
+open Faqt.Operators
+open LazyCache
+open Microsoft.Extensions.Caching.Memory
+open Moq
+open System
+open System.Threading.Tasks
 open Xunit
-open Dijon.Cache
 
-[<Fact>]
-let ``Adds roles to the cache`` () =
-    let cache = StreamCache()
-    let populate = fun _ -> async {
-        return [ 123456L; 234567L; 345678L ]
+type CacheTests() =
+    let guildId = GuildId 12345L
+    let guildIdKey = $"StreamAnnouncementsChannel:Guild:{guildId.AsInt64}"
+
+    let moqAppCache = Mock<IAppCache>(MockBehavior.Strict).SetupAllProperties()
+    let databaseMock = Mock<IStreamAnnouncementsDatabase>(MockBehavior.Strict).SetupAllProperties()
+
+    let service: IStreamCache = StreamCache(
+        moqAppCache.Object,
+        databaseMock.Object
+    )
+
+    [<Fact>]
+    let ``FormatStreamAnnouncementChannelKey returns a string with the guild id`` () =
+        let expectedKey = "StreamAnnouncementsChannel:Guild:12345"
+        let actualKey = service.FormatStreamAnnouncementChannelKey guildId
+        Assert.Equal(expectedKey, actualKey)
+
+    [<Fact>]
+    let ``LoadStreamDataForGuild returns stream data from the cache`` () = task {
+        let expectedStreamData: StreamAnnouncementChannel = {
+            Id = 2
+            GuildId = 3
+            ChannelId = 5
+            StreamerRoleId = 7
+        }
+
+        moqAppCache.Setup(fun x -> x.GetOrAddAsync<StreamAnnouncementChannel option>(guildIdKey, It.IsAny<Func<ICacheEntry, Task<StreamAnnouncementChannel option>>>()))
+            .ReturnsAsync(Some expectedStreamData)
+            .Verifiable()
+
+        let! actualStreamData = service.LoadStreamDataForGuild(guildId)
+
+        %actualStreamData.Should()
+            .BeSome()
+            .That
+            .Should()
+            .Be(expectedStreamData)
     }
 
-    async {
-        let! result = cache.GetAllStreamerRoles(populate)
+    [<Fact>]
+    let ``LoadStreamDataForGuild loads stream data from the database when it it cannot be found in the cache`` () = task {
+        let expectedStreamData: StreamAnnouncementChannel = {
+            Id = 2
+            GuildId = 3
+            ChannelId = 5
+            StreamerRoleId = 7
+        }
 
-        Assert.Equal(3, Set.count result)
-        do! cache.AddStreamerRole 456789L
+        moqAppCache.Setup(fun x -> x.GetOrAddAsync<StreamAnnouncementChannel option>(guildIdKey, It.IsAny<Func<ICacheEntry, Task<StreamAnnouncementChannel option>>>()))
+            .ReturnsAsync(Some expectedStreamData)
+            .Verifiable()
 
-        let! result = cache.GetAllStreamerRoles(populate)
+        let act () = service.LoadStreamDataForGuild(guildId)
 
-        Assert.Equal(4, Set.count result)
-        Assert.True(Set.contains 456789L result)
+        %act.Should()
+            .NotThrowAsync()
+            .WhoseValue
+            .Should()
+            .Be(Some expectedStreamData)
     }
 
-[<Fact>]
-let ``Populates roles when the cache is empty`` () = 
-    let cache = StreamCache()
-    let mutable populated = false
-    let populate = fun _ -> async {
-        populated <- true
-        return [ 123456L; 234567L; 345678L; ]
-    }
+    [<Fact>]
+    let ``ReleaseStreamDataForGuild removes the cached stream data for the guild`` () =
+        moqAppCache.Setup(fun x -> x.Remove(guildIdKey))
+            .Verifiable(Times.Once)
 
-    async {
-        let! _ = cache.GetAllStreamerRoles(populate)
+        let act _ = service.ReleaseStreamDataForGuild guildId
 
-        Assert.True(populated)
+        %act.Should()
+             .NotThrow()
 
-        populated <- false
-
-        let! _ = cache.GetAllStreamerRoles(populate)
-
-        Assert.False(populated)
-    }
-
-[<Fact>]
-let ``Lists roles in the cache`` () =
-    let cache = StreamCache()
-    let mutable populated = false
-    let populate = fun _ -> async {
-        populated <- true
-        return [ 123456L; 234567L; 345678L; ]
-    }
-
-    async {
-        let! result = cache.GetAllStreamerRoles(populate)
-
-        Assert.True(populated)
-        Assert.Equal(3, Set.count result)
-        Assert.True(Set.ofList [ 123456L; 234567L; 345678L ] = result)
-    }
-
-[<Fact>]
-let ``Removes roles from the cache`` () =
-    let cache = StreamCache()
-    let populate = fun _ -> async {
-        return [ 123456L; 234567L; 345678L; ]
-    }
-
-    async {
-        let! result = cache.GetAllStreamerRoles(populate)
-        
-        Assert.Equal(3, Set.count result)
-        do! cache.RemoveStreamerRole(345678L)
-
-        let! result = cache.GetAllStreamerRoles(populate)
-
-        Assert.Equal(2, Set.count result)
-        Assert.False(Set.contains 345678L result)
-    }
-
-[<Fact>]
-let ``Does not return roles added before the cache has been populated`` () =
-    let cache = StreamCache()
-    let populate = fun _ -> async {
-        return List.empty
-    }
-
-    async {
-        do! cache.AddStreamerRole(123456L)
-        do! cache.AddStreamerRole(234567L)
-        do! cache.AddStreamerRole(345678L)
-
-        let! result = cache.GetAllStreamerRoles(populate)
-
-        // Should not add roles before the first `GetAllStreamerRoles` is called
-        Assert.Equal(0, Set.count result)
-        do! cache.AddStreamerRole(123456L)
-
-        let! result = cache.GetAllStreamerRoles(populate)
-        
-        Assert.Equal(1, Set.count result)
-        Assert.True(Set.contains 123456L result)
-    }
+        Mock.Verify(moqAppCache)

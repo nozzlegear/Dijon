@@ -1,74 +1,56 @@
 namespace Dijon.Bot.Cache
 
-open LazyCache
+open Dijon.Database
+open Dijon.Database.StreamAnnouncements
 
-type PopulateStreamerRolesFunc = unit -> Async<int64 list>
+open LazyCache
+open Microsoft.Extensions.Caching.Memory
 open System
 open System.Threading.Tasks
 
 type IStreamCache =
-    /// Resets the cache, prompting the next <see cref="GetAllStreamerRoles" /> call to repopulate it.
-    abstract member Reset: unit -> unit
-    /// Adds the streamer role to the cache.
-    abstract member AddStreamerRole: roleId: int64 -> Async<unit>
-    /// Removes the streamer role from the cache.
-    abstract member RemoveStreamerRole: roleId: int64 -> Async<unit>
-    /// Calls the given populate function to list all of known streamer roles and add them to the cache.
-    abstract member GetAllStreamerRoles: populateFunc: PopulateStreamerRolesFunc -> Async<Set<int64>>
+    /// Formats a cache key for the guild's stream announcements channel.
+    abstract member FormatStreamAnnouncementChannelKey: guildId: GuildId -> string
+    /// Loads the guild's streamer role and stream announcement channel from memory. If it the data isn't found, the
+    /// <see cref="IStreamAnnouncementsDatabase"/> will be called to attempt to load it from there.
+    abstract member LoadStreamDataForGuild: guildId: GuildId -> Task<StreamAnnouncementChannel option>
+    /// Releases the guild's stream data from memory.
+    abstract member ReleaseStreamDataForGuild: guildId: GuildId -> unit
 
-type StreamCache() =
-    let cache : IAppCache = upcast CachingService()
-    let allRolesKey = "AllStreamerRoles"
-    let mutable hasPopulated = false
+type StreamCache(
+    cache: IAppCache,
+    database: IStreamAnnouncementsDatabase
+) =
+    let [<Literal>] streamAnnouncementsChannelIdPrefix = "StreamAnnouncementsChannel:Guild"
+    let OneHour = TimeSpan.FromHours 1
 
-    let getAllRoles () : Async<Set<int64>> =
-        match cache.TryGetValue(allRolesKey) with
-        | true, (:? AsyncLazy<Set<int64>> as allRoles) ->
-            Async.AwaitTask allRoles.Value
-        | true, (:? Lazy<Set<int64>> as allRoles) -> 
-            async { return allRoles.Value }
-        | true, allRoles -> 
-            async { return downcast allRoles }
-        | false, _ -> 
-            async { return Set.empty<int64> }
+    // let getAllRoles () : Async<Set<int64>> =
+    //     match cache.TryGetValue(allRolesKey) with
+    //     | true, (:? AsyncLazy<Set<int64>> as allRoles) ->
+    //         Async.AwaitTask allRoles.Value
+    //     | true, (:? Lazy<Set<int64>> as allRoles) ->
+    //         async { return allRoles.Value }
+    //     | true, allRoles ->
+    //         async { return downcast allRoles }
+    //     | false, _ ->
+    //         async { return Set.empty<int64> }
 
     interface IStreamCache with
-        /// Resets the cache, prompting the next <see cref="GetAllStreamerRoles" /> call to repopulate it.
-        member _.Reset () =
-            cache.Add(allRolesKey, Set.empty<int64>)
-            hasPopulated <- false
+        member _.FormatStreamAnnouncementChannelKey (guildId: GuildId) =
+            $"{streamAnnouncementsChannelIdPrefix}:{guildId.AsInt64}"
 
-        /// Adds the streamer role to the cache.
-        member _.AddStreamerRole (roleId : int64) =
-            async {
-                let! allRoles = getAllRoles ()
-                cache.Add(allRolesKey, Set.add roleId allRoles)
-            }
+        member this.LoadStreamDataForGuild (guildId: GuildId) =
+            let this = this :> IStreamCache
+            let key = this.FormatStreamAnnouncementChannelKey(guildId)
 
-        /// Removes the streamer role from the cache.
-        member _.RemoveStreamerRole (roleId : int64) =
-            async {
-                let! allRoles = getAllRoles ()
-                cache.Add(allRolesKey, Set.remove roleId allRoles)
-            }
+            cache.GetOrAddAsync<StreamAnnouncementChannel option>(key, Func<ICacheEntry, Task<StreamAnnouncementChannel option>>(fun (entry: ICacheEntry) ->
+                // Cache the result for one hour, as stream role ids are unlikely to change often
+                entry.AbsoluteExpirationRelativeToNow <- OneHour
+                database.GetStreamAnnouncementChannelForGuild guildId
+            ))
 
-        member _.GetAllStreamerRoles (populate : PopulateStreamerRolesFunc) =
-            let populate () =
-                async {
-                    let! result = populate ()
-                    return Set.ofList result
-                }
-
-            if not hasPopulated then
-                async {
-                    let! allRoles = populate ()
-
-                    cache.Add(allRolesKey, allRoles)
-                    hasPopulated <- true
-
-                    return allRoles
-                }
-            else
-                cache.GetOrAddAsync<Set<int64>>(allRolesKey, populate >> Async.StartAsTask)
-                |> Async.AwaitTask
+        member this.ReleaseStreamDataForGuild (guildId: GuildId) =
+            let this = this :> IStreamCache
+            let key = this.FormatStreamAnnouncementChannelKey(guildId)
+            cache.Remove key
     end
