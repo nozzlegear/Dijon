@@ -157,6 +157,7 @@ type StreamCheckService(
 
     let userUpdated (before : SocketGuildUser) (after : SocketGuildUser) = 
         task {
+            let guildId = GuildId (int64 after.Guild.Id)
             let wasStreaming = isStreaming before
             let stream = tryGetStreamActivity after
 
@@ -183,7 +184,7 @@ type StreamCheckService(
                           Name = stream.Name
                           Details = stream.Details
                           Url = stream.Url
-                          GuildId = int64 after.Guild.Id }
+                          GuildId = guildId.AsInt64 }
 
                     match! sendStreamAnnouncementMessage streamData with
                     | Ok _ -> 
@@ -211,10 +212,10 @@ type StreamCheckService(
             else
                 let streamerRoleId = Seq.head msg.MentionedRoleIds
                 let channelId = Seq.head msg.MentionedChannelIds
-                let guildId = guildChannel.Guild.Id
+                let guildId = GuildId (int64 guildChannel.Guild.Id)
                 let channel = {
                     ChannelId = int64 channelId
-                    GuildId = guildId
+                    GuildId = guildId.AsInt64
                     StreamerRoleId = int64 streamerRoleId
                 }
 
@@ -244,6 +245,7 @@ type StreamCheckService(
                 $"Only %s{djurMention} may unset the stream channel at this time."
                 |> MessageUtils.sendMessage msg.Channel
             else
+                let guildId = GuildId (int64 guildChannel.Guild.Id)
 
                 task {
                     do! database.DeleteStreamAnnouncementChannelForGuild guildId

@@ -47,28 +47,13 @@ type StreamAnnouncementsDatabase(options: IOptions<ConnectionStrings>) =
             |> Task.ignore
 
         member _.GetStreamAnnouncementChannelForGuild guildId =
-            let guildId = match guildId with GuildId g -> g
-            let mapAndCache job =
-                async {
-                    let! result = job
-
-                    match Seq.tryHead result with
-                    | Some channel ->
-                        //do! streamCache.AddStreamerRole channel.StreamerRoleId
-                        return Some channel
-                    | None ->
-                        return None
-                }
-
             Sql.connect connectionString
             |> Sql.storedProcedure "sp_GetStreamAnnouncementChannelForGuild"
-            |> Sql.parameters [ "@guildId", Sql.int64 guildId ]
+            |> Sql.parameters [ "@guildId", Sql.int64 guildId.AsInt64 ]
             |> Sql.executeAsync mapStreamAnnouncementChannels
             |> Task.map Seq.tryHead
 
         member _.DeleteStreamAnnouncementChannelForGuild guildId =
-            let guildId = match guildId with GuildId g -> g
-
             Sql.connect connectionString
             |> Sql.storedProcedure "sp_UnsetStreamAnnouncementChannelForGuild"
             |> Sql.parameters [ "@guildId", Sql.int64 guildId.AsInt64 ]
