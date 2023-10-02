@@ -5,12 +5,12 @@ open Dijon.Database
 open Dijon.Database.StreamAnnouncements
 open Dijon.Shared
 
-open System
-open System.Threading.Tasks
-open Microsoft.Extensions.Hosting
-open Microsoft.Extensions.Logging
 open Discord
 open Discord.WebSocket
+open Microsoft.Extensions.Hosting
+open Microsoft.Extensions.Logging
+open System
+open System.Threading.Tasks
 
 type StreamCheckService(logger : ILogger<StreamCheckService>, 
                         database : IStreamAnnouncementsDatabase,
@@ -65,7 +65,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
     let sendStreamAnnouncementMessage (stream : StreamData) =
         logger.LogInformation("Announcing stream for user {0} ({1})", stream.User.Username, stream.User.Id)
 
-        async {
+        task {
             match! database.GetStreamAnnouncementChannelForGuild (GuildId stream.GuildId) with
             | Some channelData ->
                 let channel = bot.GetChannel channelData.ChannelId
@@ -85,12 +85,12 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                 return Error "Guild does not have a stream announcements channel set."
         }
 
-    let removeStreamingMessage (user : IUser) : Async<unit> = 
+    let removeStreamingMessage (user : IUser) : Task<unit> =
         let userId = int64 user.Id
 
         logger.LogInformation("Removing streaming message for user {0} ({1})", user.Username, userId)
 
-        async {
+        task {
             let options = 
                 let o = RequestOptions.Default
                 o.AuditLogReason <- "Stream ended"
@@ -105,8 +105,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
             for message in Seq.truncate 5 messages do
                 let channel = bot.GetChannel message.ChannelId :> IChannel :?> IMessageChannel
                 let deletion = channel.DeleteMessageAsync(uint64 message.MessageId, options)
-                               |> Async.AwaitTask
-                               |> Async.Catch
+                               |> Task.catch
 
                 match! deletion with
                 | Choice2Of2 (:? Discord.Net.HttpException as ex) when int ex.HttpCode = 404 ->
@@ -117,14 +116,14 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                 | _ ->
                     ()
 
-            // Delete the database messages
+            // Delete the database messages for the streamer
             do! database.DeleteStreamAnnouncementMessageForStreamer userId
         }
 
     let handleTestStreamStartedCommand (msg : IMessage) =
         match msg.Channel with
         | :? SocketGuildChannel as guildChannel ->
-            async {
+            task {
                 let streamData =
                     { Name = "Twitch"
                       Details = "An amazing test stream that's not actually live right now! It's a test!"
@@ -147,7 +146,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
     let handleTestStreamEndedCommand (msg : IMessage) =
         match msg.Channel with
         | :? SocketGuildChannel ->
-            async {
+            task {
                 do! removeStreamingMessage msg.Author
 
                 return! MessageUtils.AddGreenCheckReaction msg
@@ -156,7 +155,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
             MessageUtils.sendMessage msg.Channel "Command is not supported in unknown channel type."
 
     let userUpdated (before : SocketGuildUser) (after : SocketGuildUser) = 
-        async {
+        task {
             let wasStreaming = isStreaming before
             let stream = tryGetStreamActivity after
 
@@ -213,13 +212,13 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                 let streamerRoleId = Seq.head msg.MentionedRoleIds
                 let channelId = Seq.head msg.MentionedChannelIds
                 let guildId = guildChannel.Guild.Id
+                let channel = {
+                    ChannelId = int64 channelId
+                    GuildId = guildId
+                    StreamerRoleId = int64 streamerRoleId
+                }
 
-                async {
-                    let channel = 
-                        { ChannelId = int64 channelId
-                          GuildId = int64 guildId
-                          StreamerRoleId = int64 streamerRoleId }
-
+                task {
                     do! database.SetStreamAnnouncementChannelForGuild channel
 
                     let returnMessage = 
@@ -245,9 +244,8 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
                 sprintf "Only %s may unset the stream channel at this time." djurMention
                 |> MessageUtils.sendMessage msg.Channel 
             else
-                async {
-                    let guildId = int64 guildChannel.Guild.Id |> GuildId
 
+                task {
                     do! database.DeleteStreamAnnouncementChannelForGuild guildId
 
                     return! MessageUtils.AddGreenCheckReaction msg
@@ -262,7 +260,7 @@ type StreamCheckService(logger : ILogger<StreamCheckService>,
         | TestStreamEnded -> handleTestStreamEndedCommand msg
         | SetStreamsChannel -> handleSetStreamChannelCommand msg
         | UnsetStreamsChannel -> handleUnsetStreamChannelCommand msg
-        | _ -> Async.Empty
+        | _ -> Task.empty
     
     interface IDisposable with
         member _.Dispose() =

@@ -3,6 +3,7 @@ namespace Dijon.Bot
 open Dijon.Database.MessageReactionGuards
 open Dijon.Shared
 
+open System.Threading.Tasks
 open System
 open Discord
 open Discord.WebSocket
@@ -13,39 +14,38 @@ module MessageUtils =
 
     let embedField title value = EmbedFieldBuilder().WithName(title).WithValue(value)
 
-    let sendEditableMessage (channel : IMessageChannel) msg = channel.SendMessageAsync msg |> Async.AwaitTask
+    let sendEditableMessage (channel : IMessageChannel) msg =
+        channel.SendMessageAsync msg
 
-    let sendMessage (channel: IMessageChannel) msg = sendEditableMessage channel msg |> Async.Ignore
+    let sendMessage (channel: IMessageChannel) msg =
+        sendEditableMessage channel msg
+        |> Task.ignore
 
     let sendEmbed (channel: IMessageChannel) (embed: EmbedBuilder) = 
-        async {
-            let! result = channel.SendMessageAsync("", false, embed.Build()) 
-                          |> Async.AwaitTask
-
-            return int64 result.Id
-        }
+        channel.SendMessageAsync("", false, embed.Build())
+        |> Task.map (fun x -> int64 x.Id)
 
     let react (msg: SocketUserMessage) emote = 
-        msg.AddReactionAsync emote 
-        |> Async.AwaitTask
+        msg.AddReactionAsync emote
+        |> Task.toEmpty
 
     let multiReact (msg: SocketUserMessage) (emotes: IEmote seq) = 
         emotes
-        |> Seq.map (fun e -> fun _ -> react msg e)
-        |> Async.Sequential
+        |> Seq.map (react msg)
+        |> Task.sequential
 
     let AddGreenCheckReaction (msg : IMessage) =
         msg.AddReactionAsync (Emoji "✅")
-        |> Async.AwaitTask
+        |> Task.toEmpty
 
     let AddShrugReaction (msg : IMessage) = 
         msg.AddReactionAsync (Emoji "🤷")
-        |> Async.AwaitTask
+        |> Task.toEmpty
 
     /// Adds the ❌ emoji reaction to the message. Generally used when user input is invalid.
     let AddXReaction (msg : IMessage) =
         msg.AddReactionAsync (Emoji "❌")
-        |> Async.AwaitTask
+        |> Task.toEmpty
 
     /// Get's the user's Nickname if available, else their Discord username.
     let GetNickname (user : IUser) = 
@@ -66,5 +66,4 @@ module MessageUtils =
     let Reply (msg : IMessage) reply =
         let msg = msg :?> SocketUserMessage
         msg.ReplyAsync(text = reply, allowedMentions = AllowedMentions.None)
-        |> Async.AwaitTask
-        |> Async.Ignore
+        |> Task.ignore

@@ -13,12 +13,12 @@ open Microsoft.Extensions.Options
 type CachedUserMessage = Cacheable<IUserMessage, uint64>
 
 type DiscordEvent = 
-    | UserLeft of (SocketGuildUser -> Async<unit>)
-    | UserJoined of (SocketGuildUser -> Async<unit>)
-    | UserUpdated of (SocketGuildUser -> SocketGuildUser -> Async<unit>)
-    | BotLeftGuild of (SocketGuild -> Async<unit>)
-    | CommandReceived of (IMessage -> Command -> Async<unit>)
-    | ReactionReceived of (CachedUserMessage -> IChannel -> IReaction -> Async<unit>)
+    | UserLeft of (SocketGuildUser -> Task<unit>)
+    | UserJoined of (SocketGuildUser -> Task<unit>)
+    | UserUpdated of (SocketGuildUser -> SocketGuildUser -> Task<unit>)
+    | BotLeftGuild of (SocketGuild -> Task<unit>)
+    | CommandReceived of (IMessage -> Command -> Task<unit>)
+    | ReactionReceived of (CachedUserMessage -> IChannel -> IReaction -> Task<unit>)
 
 type IBotClient =
     abstract member InitAsync: unit -> Task<unit>
@@ -37,75 +37,72 @@ type BotClient(options: IOptions<BotClientOptions>,
     let readyEvent = new System.Threading.ManualResetEvent false
     let token = options.Value.ApiToken
 
-    let singleArgFunc (fn : 'a -> Async<unit>) = 
+    let singleArgFunc (fn : 'a -> Task<unit>) =
         // Transform the F# function to a C# Func<'a, Task>
         Func<'a, Task>(fun arg -> 
             // Don't call the handler until we know the socket client is ready
             readyEvent.WaitOne() 
             |> ignore
 
-            let task = async {
-                match! fn arg |> Async.Catch with
+            let task = task {
+                match! Task.catch (fn arg) with
                 | Choice1Of2 _ ->
                     ()
                 | Choice2Of2 err ->
                     logger.LogError(err, "Single arg event listener failed: {0}", err.Message)
             }
 
-            Async.StartAsTask task
-            :> Task
+            task :> Task
         )
 
-    let doubleArgFunc (fn : 'a -> 'b -> Async<unit>) =
+    let doubleArgFunc (fn : 'a -> 'b -> Task<unit>) =
         // Transform the F# function to a C# Func<'a, 'b', Task>
         Func<'a, 'b, Task>(fun a b -> 
             // Don't call the handler until we know the socket client is ready
             readyEvent.WaitOne() 
             |> ignore
 
-            let task = async {
-                match! fn a b |> Async.Catch with
+            let task = task {
+                match! Task.catch (fn a b) with
                 | Choice1Of2 _ ->
                     ()
                 | Choice2Of2 err ->
                     logger.LogError(err, "Double arg event listener failed: {0}", err.Message)
             }
 
-            Async.StartAsTask task
-            :> Task
+            task :> Task
         )
 
-    let tripleArgFunc (fn : 'a -> 'b -> 'c -> Async<unit>) =
+    let tripleArgFunc (fn : 'a -> 'b -> 'c -> Task<unit>) =
         // Transform the F# function to a C# Func<'a, 'b', Task>
         Func<'a, 'b, 'c, Task>(fun a b c -> 
             // Don't call the handler until we know the socket client is ready
             readyEvent.WaitOne() 
             |> ignore
 
-            let task = async {
-                match! fn a b c |> Async.Catch with
+            let task = task {
+                match! Task.catch (fn a b c) with
                 | Choice1Of2 _ ->
                     ()
                 | Choice2Of2 err ->
                     logger.LogError(err, "Triple arg event listener failed: {0}", err.Message)
             }
 
-            Async.StartAsTask task
-            :> Task
+            task :> Task
         )
 
-    let handleLogMessage (logMessage: LogMessage) = async { 
+    let handleLogMessage (logMessage: LogMessage) =
         let now = DateTimeOffset.UtcNow.ToString()
         printfn "[%s] %s: %s" now logMessage.Source logMessage.Message
     }
 
-    let delegateCommandMessages (fn : IMessage -> Command -> Async<unit>) (msg : IMessage) = 
+    let delegateCommandMessages (fn : IMessage -> Command -> Task<unit>) (msg : IMessage) =
         match CommandParser.ParseCommand msg with
         | Ignore -> 
-            Async.Empty
+            Task.empty
         | cmd -> 
-            async {
-                match! fn msg cmd |> Async.Catch with
+            task {
+                match! Task.catch (fn msg cmd) with
                 | Choice1Of2 _ -> 
                     ()
                 | Choice2Of2 err ->

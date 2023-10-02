@@ -1,10 +1,12 @@
 namespace Dijon.Bot
 
 open Dijon.Bot
+open Dijon.Shared
 
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.DependencyInjection.Extensions
+open System.Threading.Tasks
 
 module Extensions =
     type IServiceCollection with
@@ -18,6 +20,5 @@ module Extensions =
             services.PostConfigure<IBotClient>(fun botClient ->
                 // The bot client must be initialized to log the bot in
                 botClient.InitAsync()
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
+                |> Task.runSynchronously
             ) |> ignore

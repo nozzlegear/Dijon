@@ -3,10 +3,12 @@
 open Dijon.Database.Extensions
 open Dijon.Bot.Extensions
 open Dijon.Bot.Services
+open Dijon.Shared
 
 open Microsoft.Extensions.Configuration;
 open Microsoft.Extensions.Logging;
 open Microsoft.Extensions.Hosting
+open System.Threading.Tasks
 
 module Program =
     [<EntryPoint>]
@@ -28,14 +30,7 @@ module Program =
                 .UseConsoleLifetime()
                 .Build()
 
-        //// The bot client must be initialized to log the bot in
-        //host.Services.GetRequiredService<BotClient>().InitAsync()
-        //|> Async.AwaitTask
-        //|> Async.RunSynchronously
-
-        //host.RunConsoleAsync()
         host.RunAsync()
-        |> Async.AwaitTask
-        |> Async.RunSynchronously
+        |> Task.runSynchronously
 
         0 // return an integer exit code

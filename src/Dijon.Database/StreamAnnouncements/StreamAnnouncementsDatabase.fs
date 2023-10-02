@@ -1,19 +1,22 @@
 namespace Dijon.Database.StreamAnnouncements
 
 open Dijon.Database
+open Dijon.Shared
+
 open DustyTables
 open Microsoft.Extensions.Options
+open System.Threading.Tasks
 
 type IStreamAnnouncementsDatabase =
-    abstract member AddStreamAnnouncementMessage: PartialStreamAnnouncementMessage -> Async<unit>
-    abstract member DeleteStreamAnnouncementChannelForGuild: guildId: GuildId -> Async<unit>
-    abstract member DeleteStreamAnnouncementMessageForStreamer: streamerId: int64 -> Async<unit>
-    abstract member GetStreamAnnouncementChannelForGuild: guildId: GuildId -> Async<StreamAnnouncementChannel option>
-    abstract member ListStreamAnnouncementChannels: unit -> Async<StreamAnnouncementChannel list>
-    abstract member ListStreamAnnouncementMessagesForGuild: guildId: int64 -> Async<StreamAnnouncementMessage list>
-    abstract member ListStreamAnnouncementMessagesForStreamer: streamerId: int64 -> Async<StreamAnnouncementMessage list>
-    abstract member ListStreamerRoles: unit -> Async<Set<int64>>
-    abstract member SetStreamAnnouncementChannelForGuild: PartialStreamAnnouncementChannel -> Async<unit>
+    abstract member AddStreamAnnouncementMessage: PartialStreamAnnouncementMessage -> Task<unit>
+    abstract member DeleteStreamAnnouncementChannelForGuild: guildId: GuildId -> Task<unit>
+    abstract member DeleteStreamAnnouncementMessageForStreamer: streamerId: int64 -> Task<unit>
+    abstract member GetStreamAnnouncementChannelForGuild: guildId: GuildId -> Task<StreamAnnouncementChannel option>
+    abstract member ListStreamAnnouncementChannels: unit -> Task<StreamAnnouncementChannel list>
+    abstract member ListStreamAnnouncementMessagesForGuild: guildId: int64 -> Task<StreamAnnouncementMessage list>
+    abstract member ListStreamAnnouncementMessagesForStreamer: streamerId: int64 -> Task<StreamAnnouncementMessage list>
+    abstract member ListStreamerRoles: unit -> Task<Set<int64>>
+    abstract member SetStreamAnnouncementChannelForGuild: PartialStreamAnnouncementChannel -> Task<unit>
 
 type StreamAnnouncementsDatabase(options: IOptions<ConnectionStrings>) =
     let connectionString = options.Value.DefaultConnection
@@ -34,21 +37,14 @@ type StreamAnnouncementsDatabase(options: IOptions<ConnectionStrings>) =
 
     interface IStreamAnnouncementsDatabase with
         member _.SetStreamAnnouncementChannelForGuild channel =
-            let job =
-                Sql.connect connectionString
-                |> Sql.storedProcedure "sp_SetStreamAnnouncementChannelForGuild"
-                |> Sql.parameters
-                    [ "@guildId", Sql.int64 channel.GuildId
-                      "@channelId", Sql.int64 channel.ChannelId
-                      "@streamerRoleId", Sql.int64 channel.StreamerRoleId ]
-                |> Sql.executeNonQueryAsync
-                |> Async.AwaitTask
-                |> Async.Ignore
-
-            async {
-                do! job
-                //do! streamCache.AddStreamerRole(channel.StreamerRoleId)
-            }
+            Sql.connect connectionString
+            |> Sql.storedProcedure "sp_SetStreamAnnouncementChannelForGuild"
+            |> Sql.parameters
+                [ "@guildId", Sql.int64 channel.GuildId
+                  "@channelId", Sql.int64 channel.ChannelId
+                  "@streamerRoleId", Sql.int64 channel.StreamerRoleId ]
+            |> Sql.executeNonQueryAsync
+            |> Task.ignore
 
         member _.GetStreamAnnouncementChannelForGuild guildId =
             let guildId = match guildId with GuildId g -> g
@@ -68,45 +64,30 @@ type StreamAnnouncementsDatabase(options: IOptions<ConnectionStrings>) =
             |> Sql.storedProcedure "sp_GetStreamAnnouncementChannelForGuild"
             |> Sql.parameters [ "@guildId", Sql.int64 guildId ]
             |> Sql.executeAsync mapStreamAnnouncementChannels
-            |> Async.AwaitTask
-            |> mapAndCache
+            |> Task.map Seq.tryHead
 
         member _.DeleteStreamAnnouncementChannelForGuild guildId =
             let guildId = match guildId with GuildId g -> g
 
-            let job =
-                Sql.connect connectionString
-                |> Sql.storedProcedure "sp_UnsetStreamAnnouncementChannelForGuild"
-                |> Sql.parameters [ "@guildId", Sql.int64 guildId ]
-                |> Sql.executeNonQueryAsync
-                |> Async.AwaitTask
-
-            async {
-                let! _ = job
-                // TODO: if we knew the streamer role for this guild, we could remove it from the cache instead of resetting the cache entirely
-                //streamCache.Reset ()
-                ()
-            }
+            Sql.connect connectionString
+            |> Sql.storedProcedure "sp_UnsetStreamAnnouncementChannelForGuild"
+            |> Sql.parameters [ "@guildId", Sql.int64 guildId.AsInt64 ]
+            |> Sql.executeNonQueryAsync
+            |> Task.ignore
 
         member _.ListStreamAnnouncementChannels () =
             Sql.connect connectionString
             |> Sql.storedProcedure "sp_ListStreamAnnouncementChannels"
             |> Sql.executeAsync mapStreamAnnouncementChannels
-            |> Async.AwaitTask
 
         member self.ListStreamerRoles () =
-            let populate () =
-                let self : IStreamAnnouncementsDatabase = upcast self
+            let self : IStreamAnnouncementsDatabase = upcast self
 
-                async {
-                    let! channels = self.ListStreamAnnouncementChannels ()
-                    return channels
-                           |> List.map (fun channel -> channel.StreamerRoleId)
-                }
-
-            //streamCache.GetAllStreamerRoles populate
-            async {
-                return Set.empty
+            task {
+                let! channels = self.ListStreamAnnouncementChannels ()
+                return channels
+                       |> List.map (fun channel -> channel.StreamerRoleId)
+                       |> Set
             }
 
         member _.AddStreamAnnouncementMessage message =
@@ -118,8 +99,7 @@ type StreamAnnouncementsDatabase(options: IOptions<ConnectionStrings>) =
                   "@messageId", Sql.int64 message.MessageId
                   "@streamerId", Sql.int64 message.StreamerId ]
             |> Sql.executeNonQueryAsync
-            |> Async.AwaitTask
-            |> Async.Ignore
+            |> Task.ignore
 
         member _.ListStreamAnnouncementMessagesForStreamer streamerId =
             Sql.connect connectionString
@@ -127,7 +107,6 @@ type StreamAnnouncementsDatabase(options: IOptions<ConnectionStrings>) =
             |> Sql.parameters
                 [ "@streamerId", Sql.int64 streamerId ]
             |> Sql.executeAsync mapStreamAnnouncementMessages
-            |> Async.AwaitTask
 
         member _.ListStreamAnnouncementMessagesForGuild guildId =
             Sql.connect connectionString
@@ -135,7 +114,6 @@ type StreamAnnouncementsDatabase(options: IOptions<ConnectionStrings>) =
             |> Sql.parameters
                 [ "@guildId", Sql.int64 guildId ]
             |> Sql.executeAsync mapStreamAnnouncementMessages
-            |> Async.AwaitTask
 
         member _.DeleteStreamAnnouncementMessageForStreamer streamerId =
             Sql.connect connectionString
@@ -143,7 +121,6 @@ type StreamAnnouncementsDatabase(options: IOptions<ConnectionStrings>) =
             |> Sql.parameters
                 [ "@streamerId", Sql.int64 streamerId ]
             |> Sql.executeNonQueryAsync
-            |> Async.AwaitTask
-            |> Async.Ignore
+            |> Task.ignore
     end
 

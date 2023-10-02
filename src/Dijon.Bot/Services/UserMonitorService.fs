@@ -27,13 +27,8 @@ type UserMonitorService(
           Nickname = guildUser.Nickname }
 
     let mapUsersToMembers (guild: IGuild) =
-        async {
-            let! users = 
-                guild.GetUsersAsync()
-                |> Async.AwaitTask
-
-            return Seq.map toMemberUpdate users
-        }
+        guild.GetUsersAsync()
+        |> Task.map (Seq.map toMemberUpdate)
 
     let sendUserLeftMessage channel user = 
         let nickname = Option.defaultValue user.UserName user.Nickname
@@ -44,11 +39,12 @@ type UserMonitorService(
         embed.Color <- Nullable Color.DarkOrange
         embed.ThumbnailUrl <- user.AvatarUrl
         
-        MessageUtils.sendEmbed channel embed 
-        |> Async.Ignore
+        MessageUtils.sendEmbed channel embed
+        |> Task.ignore
 
     let userJoined (user : SocketGuildUser) =
         guildMemberDatabase.BatchSetAsync [toMemberUpdate user]
+        |> Task.toEmpty
 
     let userLeft (user : SocketGuildUser) = 
         let userData: GuildUser = {
@@ -58,7 +54,7 @@ type UserMonitorService(
             Nickname = Option.ofObj user.Nickname
         }    
 
-        async {
+        task {
             let! logChannelId = 
                 int64 user.Guild.Id
                 |> GuildId
@@ -70,7 +66,7 @@ type UserMonitorService(
                     let channel = user.Guild.GetTextChannel (uint64 channelId)
                     sendUserLeftMessage channel userData
                 | None -> 
-                    Async.Empty
+                    Task.empty
             
             // Delete the user so the app doesn't find it at next startup
             do! UniqueUser ( DiscordId (int64 user.Id), GuildId (int64 user.Guild.Id) )
@@ -108,7 +104,7 @@ type UserMonitorService(
                 else
                     after.Nickname
                     
-            async {
+            task {
                 let memberRole =
                     after.Guild.Roles
                     |> Seq.find (fun r -> r.Id = memberRoleId)
@@ -116,10 +112,9 @@ type UserMonitorService(
                 logger.LogInformation("Adding %s role for user %s#%s", memberRole.Name, nickname, after.Discriminator)
                 
                 do! after.AddRoleAsync memberRole
-                    |> Async.AwaitTask
             }
         | _, _ ->
-            Async.Empty
+            Task.empty
             // bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
 
     let handleSetLogChannelCommand (msg: IMessage) = 
@@ -131,7 +126,7 @@ type UserMonitorService(
                 + " may set the log channel."
                 |> MessageUtils.sendMessage msg.Channel
             else 
-                async {
+                task {
                     let guildId = GuildId (int64 guildChannel.Guild.Id)
 
                     do! logChannelDatabase.SetLogChannelForGuild guildId (int64 msg.Channel.Id)
@@ -156,7 +151,7 @@ type UserMonitorService(
     let handleCommand (msg : IMessage) = function
         | SetLogChannel -> handleSetLogChannelCommand msg
         | TestUserLeft -> handleTestUserLeftCommand msg
-        | _ -> Async.Empty
+        | _ -> Task.empty
 
     interface IDisposable with
         member _.Dispose() =
@@ -173,14 +168,12 @@ type UserMonitorService(
                 bot.AddEventListener (DiscordEvent.CommandReceived handleCommand)
 
                 // Update the list of guild members
-                let! allGuilds = 
-                    bot.ListGuildsAsync() 
-                    |> Async.AwaitTask
-                let! guildMembers = 
+                let! allGuilds = bot.ListGuildsAsync()
+                let! guildMembers =
                     allGuilds 
                     |> Seq.map mapUsersToMembers
-                    |> Async.Parallel
-                    |> Async.Map Seq.concat
+                    |> Task.WhenAll
+                    |> Task.map Seq.concat
 
                 do! guildMemberDatabase.BatchSetAsync guildMembers
 

@@ -3,6 +3,8 @@ namespace Dijon.Bot.Cache
 open LazyCache
 
 type PopulateStreamerRolesFunc = unit -> Async<int64 list>
+open System
+open System.Threading.Tasks
 
 type IStreamCache =
     /// Resets the cache, prompting the next <see cref="GetAllStreamerRoles" /> call to repopulate it.

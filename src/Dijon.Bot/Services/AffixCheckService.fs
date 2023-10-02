@@ -46,7 +46,8 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
         builder
 
     let postAffixesMessageAsync (_ : GuildId) (channelId : int64) (affixes: RaiderIo.ListAffixesResponse) =
-        async {
+        task {
+            // TODO: why is this commented out? we aren't we waiting here?
             // Wait for the bot's ready event to fire. If the bot is not yet ready, the channel will be null
             //readyEvent.WaitOne() |> ignore
             
@@ -57,14 +58,14 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
             let embed = createAffixesEmbed affixes
             
             do! MessageUtils.sendEmbed (channel :> IChannel :?> IMessageChannel) embed 
-                |> Async.Ignore
+                |> Task.ignore
         }
     
     let postAffixes (affixes : RaiderIo.ListAffixesResponse) channels =
         let rec post hasPosted channels = 
             match channels with
             | [] ->
-                Async.Wrap hasPosted
+                Task.wrap hasPosted
             | channel :: remaining ->
                 // Only post this message if it has not been posted to the guild/channel
                 match channel.LastAffixesPosted with
@@ -73,7 +74,7 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
                 | _ ->
                     let guildId = GuildId channel.GuildId
                     
-                    async {
+                    task {
                         do! postAffixesMessageAsync guildId channel.ChannelId affixes
                         do! database.SetLastAffixesPostedForGuild guildId affixes.title
                         // Post to the remaining channels
@@ -82,8 +83,8 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
 
         post false channels
     
-    let checkAffixes _ : Async<bool> =
-        async {
+    let checkAffixes _ : Task<bool> =
+        task {
             let! channels = database.ListAllAffixChannels()
             
             if List.isEmpty channels then
@@ -127,7 +128,7 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
                 if not cancellation.IsCancellationRequested then
                     let hasPosted = 
                         checkAffixes ()
-                        |> Async.RunSynchronously
+                        |> Task.runSynchronously
                     
                     // Schedule the next job 
                     if hasPosted then
@@ -158,9 +159,8 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
 
                 MessageUtils.sendMessage msg.Channel message
             else
-                async {
+                task {
                     let guildId = GuildId (int64 guildChannel.Guild.Id)
-                    
                     do! database.SetAffixesChannelForGuild guildId (int64 msg.Channel.Id)
                     do! MessageUtils.sendMessage msg.Channel "Affixes will be sent to this channel every Tuesday."
                 }
@@ -170,7 +170,7 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
             MessageUtils.sendMessage msg.Channel "Unable to set log channel in unknown channel type."
             
     let handleGetAffixesCommand (msg : IMessage) =
-        async {
+        task {
             let! editable = MessageUtils.sendEditableMessage msg.Channel "Fetching affixes, please wait..."
             let! affixList = Affixes.list()
             let editMessage (props : MessageProperties) =
@@ -193,7 +193,7 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
                 props.Content <- Optional.Create ""
                 props.Embed <- Optional.Create embed
                     
-            do! editable.ModifyAsync (Action<MessageProperties> editMessage) |> Async.AwaitTask
+            do! editable.ModifyAsync (Action<MessageProperties> editMessage)
             
             match msg.Channel, affixList with
             | :? IGuildChannel as channel, Ok affixes ->
@@ -207,7 +207,7 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
     let commandReceived (msg : IMessage) = function
         | SetAffixesChannel -> handleSetAffixesChannelCommand msg
         | GetAffix -> handleGetAffixesCommand msg
-        | _ -> Async.Empty
+        | _ -> Task.empty
     
     interface IDisposable with
         member _.Dispose() =

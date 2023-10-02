@@ -56,8 +56,8 @@ type MemeService(
             MessageUtils.embedField "Instructions" (String.newlineJoin instructions)
         ]
 
-        MessageUtils.sendEmbed msg.Channel embed 
-        |> Async.Ignore
+        MessageUtils.sendEmbed msg.Channel embed
+        |> Task.ignore
 
     let handleSlander (msg: IMessage) = 
         match msg with 
@@ -73,7 +73,7 @@ type MemeService(
                 |> Emoji 
                 |> MessageUtils.react (msg :?> SocketUserMessage)
             | _ -> 
-                Async.Empty
+                Task.empty
 
     let handleFoxyLocation (msg : IMessage) = 
         match msg with 
@@ -88,7 +88,7 @@ type MemeService(
                 let twitchClipMsg = "Foxy is _always_ in Dalaran! https://clips.twitch.tv/HyperCrackyRabbitHeyGirl"
                 MessageUtils.sendMessage msg.Channel twitchClipMsg
             | _ -> 
-                Async.Empty
+                Task.empty
                 
     let handleAidAgainstSlander (msg: IMessage) =
         match msg.Author.Id with
@@ -101,9 +101,10 @@ type MemeService(
                   sprintf "Long may %s reign!" (MessageUtils.mentionUser KnownUsers.DjurId) ]
                 |> Seq.randomItem
             
-            [ fun _ -> MessageUtils.sendMessage msg.Channel responseMsg
-              fun _ -> MessageUtils.sendMessage msg.Channel (randomSlanderResponse ()) ]
-            |> Async.Sequential
+            [ MessageUtils.sendMessage msg.Channel responseMsg
+              MessageUtils.sendMessage msg.Channel (randomSlanderResponse ()) ]
+            |> Task.sequential
+            |> Task.toEmpty
         | _ ->
             // Gifs that say "no" or just laugh
             [ "https://tenor.com/view/monkey-sad-frown-gif-7424667"
@@ -128,16 +129,16 @@ type MemeService(
                   "No raider is safe from the long arm of the raid leader: https://cdn.discordapp.com/attachments/856354026509434890/878454571033309204/Gripping_Biggelbaalz.mp4" ]
                 |> Seq.randomItem
                
-            let addReactions = fun _ -> 
+            let addReactions =
                 ["👌"; "🎉"; "👏"]
                 |> Seq.map Emoji
                 |> Seq.cast<IEmote>
                 |> MessageUtils.multiReact msg
             [
                 addReactions
-                fun _ -> MessageUtils.sendMessage msg.Channel djurHype
+                MessageUtils.sendMessage msg.Channel djurHype
             ]
-            |> Async.Sequential
+            |> Task.sequential
         | i when i = KnownUsers.FoxyId ->
             let foxyHype =
                 [ "Boner bear, boner bear, does whatever a boner bear does. 🦴🐻"
@@ -219,9 +220,9 @@ type MemeService(
         | Goulash -> handleGoulashRecipe msg 
         | Slander -> handleSlander msg 
         | AidAgainstSlander -> handleAidAgainstSlander msg
-        | Hype -> handleHypeMessage msg
+        | Hype -> Task.toEmpty (handleHypeMessage msg)
         | FoxyLocation -> handleFoxyLocation msg
-        | _ -> Async.Empty
+        | _ -> Task.empty
 
     interface IDisposable with
         member _.Dispose() = 

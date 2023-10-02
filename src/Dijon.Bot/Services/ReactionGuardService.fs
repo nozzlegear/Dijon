@@ -63,7 +63,7 @@ type ReactionGuardService(
         "gingerscheme"
     ]
 
-    let handleReaction (msg : CachedUserMessage) (channel: IChannel) (reaction: IReaction) = async {
+    let handleReaction (msg : CachedUserMessage) (channel: IChannel) (reaction: IReaction) = task {
         let reactionIsWhitelisted =
             List.contains reaction.Emote.Name whitelist
 
@@ -72,7 +72,6 @@ type ReactionGuardService(
             | true ->
                 logger.LogInformation("Emote {0} is not whitelisted, removing", reaction.Emote.Name)
                 do! bot.RemoveAllReactionsForEmoteAsync(channel.Id, msg.Id, reaction.Emote)
-                    |> Async.AwaitTask
             | false ->
                 ()
     }
@@ -87,12 +86,12 @@ type ReactionGuardService(
                   ChannelId = int64 msg.Channel.Id
                   MessageId = int64 msg.Id }
 
-        async {
+        task {
             do! database.AddReactionGuardedMessage guard
             do! MessageUtils.AddGreenCheckReaction msg
         }
 
-    let removeReactionGuard (msg: IMessage) = async {
+    let removeReactionGuard (msg: IMessage) = task {
         let isAdmin = List.contains msg.Author.Id KnownUsers.AdminUsers
 
         if not isAdmin then
@@ -114,7 +113,7 @@ type ReactionGuardService(
         | Command.RemoveMessageReactionGuard ->
             removeReactionGuard msg
         | _ ->
-            Async.Empty
+            Task.empty
 
     interface IDisposable with
         member _.Dispose() =

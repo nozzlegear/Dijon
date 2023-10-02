@@ -1,13 +1,16 @@
 namespace Dijon.Database.MessageReactionGuards
 
 open Dijon.Database
+open Dijon.Shared
+
 open DustyTables
 open Microsoft.Extensions.Options
+open System.Threading.Tasks
 
 type IMessageReactionGuardDatabase =
-    abstract member MessageIsReactionGuarded: messageId: int64 -> Async<bool>
-    abstract member AddReactionGuardedMessage: referenceMessage: ReferencedMessage -> Async<unit>
-    abstract member RemoveReactionGuardedMessage: messageId: int64 -> Async<unit>
+    abstract member MessageIsReactionGuarded: messageId: int64 -> Task<bool>
+    abstract member AddReactionGuardedMessage: referenceMessage: ReferencedMessage -> Task<unit>
+    abstract member RemoveReactionGuardedMessage: messageId: int64 -> Task<unit>
 
 type MessageReactionGuardDatabase(options: IOptions<ConnectionStrings>) =
     let connectionString = options.Value.DefaultConnection
@@ -19,7 +22,6 @@ type MessageReactionGuardDatabase(options: IOptions<ConnectionStrings>) =
             |> Sql.parameters
                 [ "@messageId", Sql.int64 messageId ]
             |> Sql.executeRowAsync (fun r -> r.bool "IsReactionGuarded")
-            |> Async.AwaitTask
 
         member _.AddReactionGuardedMessage message =
             Sql.connect connectionString
@@ -29,8 +31,7 @@ type MessageReactionGuardDatabase(options: IOptions<ConnectionStrings>) =
                   "@channelId", Sql.int64 message.ChannelId
                   "@messageId", Sql.int64 message.MessageId ]
             |> Sql.executeNonQueryAsync
-            |> Async.AwaitTask
-            |> Async.Ignore
+            |> Task.ignore
 
         member _.RemoveReactionGuardedMessage messageId =
             Sql.connect connectionString
@@ -38,6 +39,5 @@ type MessageReactionGuardDatabase(options: IOptions<ConnectionStrings>) =
             |> Sql.parameters
                 [ "@messageId", Sql.int64 messageId ]
             |> Sql.executeNonQueryAsync
-            |> Async.AwaitTask
-            |> Async.Ignore
+            |> Task.ignore
     end

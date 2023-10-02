@@ -1,5 +1,6 @@
 namespace Dijon.Database.AffixChannels
 
+open System.Threading.Tasks
 open Dijon.Shared
 open Dijon.Database
 
@@ -8,12 +9,15 @@ open Microsoft.Extensions.Options
 open System
 
 type IAffixChannelsDatabase =
-    abstract member ListAllAffixChannels: unit -> Async<AffixChannel list>
-    abstract member GetAffixChannelForGuild: GuildId -> Async<AffixChannel option>
-    abstract member SetAffixesChannelForGuild: guildId: GuildId -> channelId: int64 -> Async<unit>
-    abstract member SetLastAffixesPostedForGuild: guildId: GuildId -> lastAffixesTitle: string -> Async<unit>
+    abstract member ListAllAffixChannels: unit -> Task<AffixChannel list>
+    abstract member GetAffixChannelForGuild: GuildId -> Task<AffixChannel option>
+    abstract member SetAffixesChannelForGuild: guildId: GuildId -> channelId: int64 -> Task<unit>
+    abstract member SetLastAffixesPostedForGuild: guildId: GuildId -> lastAffixesTitle: string -> Task<unit>
 
-type AffixChannelsDatabase(options: IOptions<ConnectionStrings>) =
+type AffixChannelsDatabase(
+    options: IOptions<ConnectionStrings>,
+    dapperHelpers: IDapperHelpers
+) =
     let connectionString = options.Value.DefaultConnection
 
     let mapReaderToAffixChannels (reader: RowReader) : AffixChannel =
@@ -40,8 +44,7 @@ type AffixChannelsDatabase(options: IOptions<ConnectionStrings>) =
                 "guildId",  match guildId with GuildId g -> Sql.int64 g
             ]
             |> Sql.executeAsync mapReaderToAffixChannels
-            |> Async.AwaitTask
-            |> Async.Map Seq.tryHead
+            |> Task.map Seq.tryHead
 
         member x.ListAllAffixChannels () =
             let sql = """
@@ -51,7 +54,6 @@ type AffixChannelsDatabase(options: IOptions<ConnectionStrings>) =
             Sql.connect connectionString
             |> Sql.query sql
             |> Sql.executeAsync mapReaderToAffixChannels
-            |> Async.AwaitTask
 
         member x.SetAffixesChannelForGuild guildId channelId =
             let sql = """
@@ -75,19 +77,14 @@ type AffixChannelsDatabase(options: IOptions<ConnectionStrings>) =
                 ;
             """
 
-            async {
-                let job =
-                    Sql.connect connectionString
-                    |> Sql.query sql
-                    |> Sql.parameters [
-                        "guildId", match guildId with GuildId g -> Sql.int64 g
-                        "channelId", Sql.int64 channelId
-                    ]
-                    |> Sql.executeNonQueryAsync
-                    |> Async.AwaitTask
-                let! _ = job
-                ()
-            }
+            Sql.connect connectionString
+            |> Sql.query sql
+            |> Sql.parameters [
+                "guildId", match guildId with GuildId g -> Sql.int64 g
+                "channelId", Sql.int64 channelId
+            ]
+            |> Sql.executeNonQueryAsync
+            |> dapperHelpers.IgnoreResult
 
         member x.SetLastAffixesPostedForGuild guildId lastAffixes =
             let sql = """
@@ -96,17 +93,12 @@ type AffixChannelsDatabase(options: IOptions<ConnectionStrings>) =
                 WHERE GuildId = @guildId
             """
 
-            async {
-                let job =
-                    Sql.connect connectionString
-                    |> Sql.query sql
-                    |> Sql.parameters [
-                        "guildId", match guildId with GuildId g -> Sql.int64 g
-                        "lastAffixesPosted", Sql.string lastAffixes
-                    ]
-                    |> Sql.executeNonQueryAsync
-                    |> Async.AwaitTask
-                let! _ = job
-                ()
-            }
+            Sql.connect connectionString
+            |> Sql.query sql
+            |> Sql.parameters [
+                "guildId", Sql.int64 guildId.AsInt64
+                "lastAffixesPosted", Sql.string lastAffixes
+            ]
+            |> Sql.executeNonQueryAsync
+            |> dapperHelpers.IgnoreResult
     end

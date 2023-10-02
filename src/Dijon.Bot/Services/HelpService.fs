@@ -31,7 +31,7 @@ type HelpService(
         | :? SocketGuildChannel as guildChannel ->
             let guildId = GuildId (int64 guildChannel.Guild.Id)
 
-            async {
+            task {
                 let! logChannelId = logChannelDatabase.GetLogChannelForGuild guildId
                 let logChannelMessage = 
                     logChannelId
@@ -57,11 +57,11 @@ type HelpService(
                 ]
 
                 return! MessageUtils.sendEmbed msg.Channel embed 
-                        |> Async.Ignore
+                        |> Task.ignore
             }
         | _ -> 
             MessageUtils.sendEmbed msg.Channel embed
-            |> Async.Ignore
+            |> Task.ignore
 
     let handleHelpCommand (msg: IMessage) =
         let embed = EmbedBuilder()
@@ -78,7 +78,7 @@ type HelpService(
         ]
 
         MessageUtils.sendEmbed msg.Channel embed
-        |> Async.Ignore
+        |> Task.ignore
 
     let handleUnknownCommand (msg: IMessage) = 
         MessageUtils.AddShrugReaction msg
@@ -87,7 +87,7 @@ type HelpService(
         | Help -> handleHelpCommand msg
         | Status -> handleStatusCommand msg
         | Unknown -> handleUnknownCommand msg
-        | _ -> Async.Empty
+        | _ -> Task.empty
 
     interface IDisposable with
         member _.Dispose() = 

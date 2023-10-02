@@ -1,12 +1,13 @@
 namespace Dijon.Database.LogChannels
 
 open Dijon.Database
-open Dijon.Shared
+
+open System.Threading.Tasks
 
 type ILogChannelsDatabase =
-    abstract member GetLogChannelForGuild: guildId: GuildId -> Async<int64 option>
-    abstract member SetLogChannelForGuild: guildId: GuildId -> channelId: int64 -> Async<unit>
-    abstract member UnsetLogChannelForGuild: guildId: GuildId -> Async<unit>
+    abstract member GetLogChannelForGuild: guildId: GuildId -> Task<int64 option>
+    abstract member SetLogChannelForGuild: guildId: GuildId -> channelId: int64 -> Task<unit>
+    abstract member UnsetLogChannelForGuild: guildId: GuildId -> Task<unit>
 
 type LogChannelsDatabase(
         dapperHelpers: IDapperHelpers
@@ -20,7 +21,6 @@ type LogChannelsDatabase(
             let data = dict [ "guildId" => match guildId with GuildId g -> g ]
 
             dapperHelpers.QuerySingleOrNone<int64>(sql, data)
-            |> Async.AwaitTask
 
         member x.SetLogChannelForGuild guildId channelId =
             let sql = """
@@ -50,7 +50,6 @@ type LogChannelsDatabase(
 
             dapperHelpers.Execute(sql, data)
             |> dapperHelpers.IgnoreResult
-            |> Async.AwaitTask
 
         member x.UnsetLogChannelForGuild guildId =
             let sql = """
@@ -60,5 +59,4 @@ type LogChannelsDatabase(
 
             dapperHelpers.Execute(sql, data)
             |> dapperHelpers.IgnoreResult
-            |> Async.AwaitTask
     end

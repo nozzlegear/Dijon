@@ -5,11 +5,13 @@ open Dijon.Shared
 
 open System
 open System.Data
+open System.Threading.Tasks
+open System.Threading
 
 type IGuildMembersDatabase =
-    abstract member BatchSetAsync: MemberUpdate seq -> Async<unit>
-    abstract member DeleteAsync: UniqueUser -> Async<unit>
-    abstract member ListAsync: GuildId -> Async<Member list>
+    abstract member BatchSetAsync: MemberUpdate seq -> Task
+    abstract member DeleteAsync: UniqueUser -> Task<unit>
+    abstract member ListAsync: GuildId -> Task<Member list>
 
 type GuildMembersDatabase(
         dapperHelpers: IDapperHelpers
@@ -114,13 +116,12 @@ type GuildMembersDatabase(
             let data = dict ["id" => match guildId with GuildId i -> i]
 
             dapperHelpers.ExecuteReader(sql, data)
-            |> Async.AwaitTask
-            |> Async.Map mapReaderToUsers
+            |> Task.map mapReaderToUsers
 
         member x.BatchSetAsync members =
             // Cheating for now until I can get a batch update in
             members
-            |> Seq.map (fun m -> task {
+            |> Task.runInParallel (10, CancellationToken.None, fun m ct -> task {
                 let! userExists = userExists (UniqueUser.FromMemberUpdate m)
 
                 if not userExists then
@@ -128,10 +129,6 @@ type GuildMembersDatabase(
                 else
                     do! dapperHelpers.IgnoreResult(updateUser m)
             })
-            |> Seq.map Async.AwaitTask
-            |> Async.Parallel
-            // TODO: Async.Ignore will drop exceptions if any are thrown
-            |> Async.Ignore
 
         member x.DeleteAsync user =
             let sql = """
@@ -144,5 +141,4 @@ type GuildMembersDatabase(
 
             dapperHelpers.Execute(sql, data)
             |> dapperHelpers.IgnoreResult
-            |> Async.AwaitTask
     end

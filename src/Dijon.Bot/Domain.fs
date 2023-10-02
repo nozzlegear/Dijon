@@ -68,4 +68,3 @@ type StreamData = {
     User: IUser
     GuildId: int64
 }
-
