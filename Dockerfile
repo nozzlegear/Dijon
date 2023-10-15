@@ -5,24 +5,23 @@ WORKDIR /app
 ENV DOTNET_USE_POLLING_FILE_WATCHER 1
 ENV PATH="${PATH}:/root/.dotnet/tools"
 
-# Restore package dependencies
-COPY Directory.Packages.props .
-COPY Dijon.sln .
-COPY src/Dijon.Bot/Dijon.Bot.fsproj src/Dijon.Bot/
-COPY src/tests/Dijon.Tests.fsproj src/tests/
-COPY src/Dijon.Migrations/Dijon.Migrations.fsproj src/Dijon.Migrations/
-RUN dotnet restore
-
-# Copy source files and build project
-COPY src/Dijon.Bot/ src/Dijon.Bot/
-COPY src/tests/ src/tests/
-COPY src/Dijon.Migrations/ src/Dijon.Migrations/
+# Copy source files and restore dependencies. Skipping Docker layer caches because it's unlikely to be useful here
+# since fsproj files change whenever a new F# file is added to a project.
+COPY nuget.config ./
+COPY Directory.Build.props ./
+COPY Directory.Packages.props ./
+COPY Dijon.sln ./
+COPY src/ ./src/
+COPY tests/ ./tests/
+#RUN dotnet nuget locals all --clear
+#RUN git clean -xfd
+RUN dotnet restore --use-lock-file --locked-mode --configfile nuget.config
 
 # Run the tests
-RUN dotnet test --results-directory /app/testresults --logger "trx;LogFileName=testresults.xml"
+RUN dotnet test --no-restore --results-directory /app/testresults --logger "trx;LogFileName=testresults.xml"
 
 # Publish the project
-RUN dotnet publish src/Dijon.Bot/Dijon.Bot.fsproj -c Release -o dist -r linux-musl-x64
+RUN dotnet publish --no-self-contained src/Dijon.Bot/Dijon.Bot.fsproj -c Release -o dist -r linux-musl-x64
 
 # Switch to alpine for running the application
 FROM mcr.microsoft.com/dotnet/runtime:7.0-alpine3.18

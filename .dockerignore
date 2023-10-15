@@ -3,5 +3,8 @@
 ./Dockerfile
 ./paket-files
 ./packages
-./src/bin
-./src/obj
+./src/*/bin
+./src/*/obj
+./tests/*/bin
+./tests/*/obj
+./dist
