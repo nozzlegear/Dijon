@@ -3,6 +3,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <LangVersion>latestmajor</LangVersion>
+    <RuntimeIdentifiers>linux-musl-x64;linux-x64;osx-arm64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Extensions\Messages.fs" />
@@ -43,8 +44,8 @@
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
     <PackageReference Include="thoth.json.net" />
-    <PackageReference Include="microsoft.extensions.hosting" />
-    <PackageReference Include="microsoft.extensions.logging" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="taskbuilder.fs" />
     <PackageReference Include="cronos" />
     <PackageReference Include="TimeZoneConverter" />
