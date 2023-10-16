@@ -69,8 +69,8 @@ if isArm64
 end
 
 # Secrets needed by the bot
-set BOT_SECRETS_LIST "Dijon_Twitch__ClientSecret" /
-    "Dijon_Discord__ApiToken" /
+set BOT_SECRETS_LIST "Dijon_Twitch__ClientSecret" \
+    "Dijon_Discord__ApiToken" \
     "Dijon_Database__ConnectionStrings__DefaultConnection"
 
 # Secrets needed by the database
