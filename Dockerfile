@@ -42,4 +42,4 @@ COPY --from=0 /app/testresults /app/testresults
 RUN chmod +x /app/dist/Dijon.Bot
 
 # Run the built executable on startup
-CMD [ "/app/dist/Dijon" ]
+CMD [ "/app/dist/Dijon.Bot" ]
