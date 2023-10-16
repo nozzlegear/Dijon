@@ -69,13 +69,12 @@ if isArm64
 end
 
 # Secrets needed by the bot
-set BOT_SECRETS_LIST "DIJON_SQL_DATABASE_PASSWORD" \
-    "DIJON_BOT_TOKEN" \
-    "DIJON_TWITCH_CLIENT_ID" \
-    "DIJON_TWITCH_CLIENT_SECRET"
+set BOT_SECRETS_LIST "Dijon_Twitch__ClientSecret" /
+    "Dijon_Discord__ApiToken" /
+    "Dijon_Database__ConnectionStrings__DefaultConnection"
 
 # Secrets needed by the database
-set DB_SECRETS_LIST "DIJON_SQL_DATABASE_PASSWORD"
+set DB_SECRETS_LIST "Dijon_Database__SqlDatabase__Password"
 
 if test -z "$BOT_IMAGE"
     printErr "No image given, cannot deploy update."
@@ -133,13 +132,12 @@ log "Creating container $BOT_CONTAINER_NAME..."
 podman create \
     --restart "unless-stopped" \
     --name "$BOT_CONTAINER_NAME" \
-    --env "DIJON_SQL_CONNECTION_STRING=$BOT_DB_CONNECTION_STRING" \
     --pod "$POD_NAME" \
     -it \
     (formatSecrets $BOT_SECRETS_LIST) \
     "$BOT_IMAGE"
 or exit 1
-    
+
 # The database image won't be updated or changed with every deployment. Only create it if it doesn't already exist.
 if ! podman container exists "$DB_CONTAINER_NAME"
     log "Pulling db image from $DB_IMAGE..."
