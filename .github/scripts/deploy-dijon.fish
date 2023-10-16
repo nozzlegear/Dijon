@@ -34,9 +34,9 @@ function formatSecrets
     end
 end
 
-# Formats the database container's system user. If the host is arm64, this will set the user to root, which is required for the Azure SQL Edge db image. 
-function formatDbSystemUser 
-    if isArm64 
+# Formats the database container's system user. If the host is arm64, this will set the user to root, which is required for the Azure SQL Edge db image.
+function formatDbSystemUser
+    if isArm64
         echo "-u=root"
     end
 end
@@ -45,14 +45,12 @@ set POD_NAME "dijon_pod"
 
 set BOT_IMAGE "$argv[1]"
 set BOT_CONTAINER_NAME "dijon_bot"
-# Bot will need to configure the connection string password using the podman secret DIJON_SQL_DATABASE_PASSWORD
-set BOT_DB_CONNECTION_STRING "Server=localhost,1433;Database=master;User Id=sa"
 
 set DB_IMAGE "mcr.microsoft.com/mssql/server:2017-latest-ubuntu"
 set DB_CONTAINER_NAME "dijon_db"
 set DB_HOST_PORT_MAP "4001:1433"
 
-# Also check if the volume location is overridden. Again, this is to test the bot on MacOS where volumes must be in a specific location set up during `podman machine init`. 
+# Also check if the volume location is overridden. Again, this is to test the bot on MacOS where volumes must be in a specific location set up during `podman machine init`.
 if set -q DIJON_DB_VOLUME_LOCATION
     log "Using \$DIJON_DB_VOLUME_LOCATION value $DIJON_DB_VOLUME_LOCATION"
     set DB_VOLUME_LOCATION "$DIJON_DB_VOLUME_LOCATION"
@@ -86,7 +84,7 @@ if test -z "$BOT_IMAGE"
 end
 
 if test ! -d "$DB_VOLUME_LOCATION"
-    mkdir -p "$DB_VOLUME_LOCATION" 
+    mkdir -p "$DB_VOLUME_LOCATION"
     or exit 1
 end
 
@@ -111,7 +109,7 @@ or exit 1
 # Remove the existing container so it can be updated
 if podman container exists "$BOT_CONTAINER_NAME"
     log "Removing container $BOT_CONTAINER_NAME..."
-    podman stop "$BOT_CONTAINER_NAME" 
+    podman stop "$BOT_CONTAINER_NAME"
     and podman rm "$BOT_CONTAINER_NAME"
 end
 
@@ -120,7 +118,7 @@ if podman pod exists "$POD_NAME"
     log "Stopping existing pod $POD_NAME..."
     podman pod stop "$POD_NAME" --time 5
     or exit 1
-else 
+else
     # Create the pod. When using pods, it's the pod that must publish ports, not the container.
     log "Creating pod $POD_NAME..."
     podman pod create \
