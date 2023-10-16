@@ -10,7 +10,7 @@ open Microsoft.Extensions.DependencyInjection.Extensions
 module Extensions =
     type IServiceCollection with
         member services.AddBotServices() =
-            services.TryAddSingleton<IStreamCache, StreamCache>()
+            services.AddStreamCache()
             services.AddHostedService<DatabaseMigratorService>() |> ignore
             services.AddHostedService<StreamCheckService>() |> ignore
             services.AddHostedService<ReactionGuardService>() |> ignore
