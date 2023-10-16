@@ -26,9 +26,11 @@ function isArm64
 end
 
 # A function to format a list of secrets into `podman run` args
-function formatSecrets 
+function formatSecrets
     for secret in $argv
-        echo "--secret=$secret"
+        # Replace the "Dijon_" prefix in the secret name, so the secret gets created at /run/secret/MY_SECRET instead of /run/secret/DIJON_MY_SECRET
+        set withoutPrefix (string replace "Dijon_" "" "$secret")
+        echo "--secret=$secret,target=$withoutPrefix"
     end
 end
 
