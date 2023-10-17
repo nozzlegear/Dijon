@@ -17,6 +17,13 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Dijon.Database", "src\Dijon
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Dijon.Shared", "src\Dijon.Shared\Dijon.Shared.fsproj", "{3D699B59-C6CB-45C9-9325-CFF7BC811037}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{18C2CD57-5114-488D-8CCF-FD2CFEC8B48E}"
+	ProjectSection(SolutionItems) = preProject
+		Dockerfile = Dockerfile
+        deploy-dijon.fish = .github/scripts/deploy-dijon.fish
+        build-pipeline.yml = .github/workflows/build-pipeline.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
