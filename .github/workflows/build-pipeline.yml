@@ -69,4 +69,4 @@ jobs:
         #fingerprint: ${{ secrets.CRYPTUM_HOST_FINGERPRINT }}
         # Stop on errors
         script_stop: true
-        script: "fish -c ./deployments/deploy-dijon.fish '${{ env.BUILD_IMAGE_NAME }}'"
+        script: "sh -c ./deployments/deploy-dijon.fish '${{ env.BUILD_IMAGE_NAME }}'"
