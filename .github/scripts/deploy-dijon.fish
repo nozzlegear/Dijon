@@ -71,7 +71,7 @@ end
 # Secrets needed by the bot
 set BOT_SECRETS_LIST "Dijon_Twitch__ClientSecret" \
     "Dijon_Discord__ApiToken" \
-    "Dijon_Database__ConnectionStrings__DefaultConnection"
+    "Dijon_Database__ConnectionStrings_DefaultConnection"
 
 # Secrets needed by the database
 set DB_SECRETS_LIST "Dijon_Database__SqlDatabase__Password"
