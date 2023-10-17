@@ -2,6 +2,7 @@ namespace Dijon.Bot
 
 open System.ComponentModel.DataAnnotations
 open Discord
+open Microsoft.FSharp.Core
 
 type Command = 
     | Ignore 
@@ -56,6 +57,7 @@ module RaiderIo =
                   leaderboard_url = get.Required.Field "leaderboard_url" Decode.string
                   affix_details = get.Required.Field "affix_details" (Decode.list Affix.Decoder)})
 
+[<CLIMutable>]
 type BotClientOptions = {
     [<Required>]
     ApiToken: string
