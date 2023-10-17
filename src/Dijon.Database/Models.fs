@@ -9,6 +9,7 @@ type GuildId = GuildId of int64
     with member x.AsInt64 = match x with GuildId value -> value
 type SqlParams = IDictionary<string, obj>
 
+[<CLIMutable>]
 type ConnectionStrings = {
     [<Required>]
     DefaultConnection: string
