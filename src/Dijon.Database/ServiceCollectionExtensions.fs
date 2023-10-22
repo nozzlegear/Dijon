@@ -13,8 +13,11 @@ open Microsoft.Extensions.DependencyInjection.Extensions
 module Extensions =
     type IServiceCollection with
         member services.AddDatabases(configuration: IConfigurationSection) =
+            // Given section should have its own nested ConnectionStrings section
+            let connectionStrings = configuration.GetRequiredSection("ConnectionStrings")
+
             services.AddOptions<ConnectionStrings>()
-                .Bind(configuration)
+                .Bind(connectionStrings)
                 .ValidateDataAnnotations()
                 .ValidateOnStart() |> ignore
 
