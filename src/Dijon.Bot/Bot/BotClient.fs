@@ -3,6 +3,7 @@ namespace Dijon.Bot
 open Dijon.Shared
 
 open System
+open System.Threading
 open System.Threading.Tasks
 open Discord
 open Discord.WebSocket
@@ -21,7 +22,7 @@ type DiscordEvent =
     | ReactionReceived of (CachedUserMessage -> IChannel -> IReaction -> Task<unit>)
 
 type IBotClient =
-    abstract member InitAsync: unit -> Task<unit>
+    abstract member InitAsync: cancellationToken: CancellationToken -> Task<unit>
     abstract member GetChannel: channelId: int64 -> SocketChannel
     abstract member ListGuildsAsync: unit -> Task<Collections.Generic.IReadOnlyCollection<IGuild>>
     abstract member SetActivityStatusAsync: message: string -> Task
@@ -118,7 +119,7 @@ type BotClient(
     end
 
     interface IBotClient with
-        member _.InitAsync () =
+        member _.InitAsync cancellationToken =
             task {
                 do! client.LoginAsync(TokenType.Bot, token)
                 do! client.StartAsync()

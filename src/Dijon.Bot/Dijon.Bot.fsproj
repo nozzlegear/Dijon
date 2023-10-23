@@ -15,6 +15,7 @@
     <Compile Include="KnownUsers.fs" />
     <Compile Include="MessageUtils.fs" />
     <Compile Include="Bot\BotClient.fs" />
+    <Compile Include="Bot\BotClientHost.fs" />
     <Compile Include="Bot\ServiceCollectionExtensions.fs" />
     <Compile Include="Services\StreamCheckService.fs" />
     <Compile Include="Services\DatabaseMigratorService.fs" />
