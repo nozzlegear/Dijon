@@ -31,10 +31,9 @@ type StatusChangeService(
               "Decentralize me, daddy" ]
             |> Seq.sortBy (fun _ -> Guid.NewGuid())
             |> Seq.head
-        let task = Task.Run<unit> (fun () -> backgroundTask {
+        Task.Run<unit> (fun () -> backgroundTask {
             do! bot.SetActivityStatusAsync status
-        })
-        task.Start()
+        }) |> ignore
 
     let rec scheduleJob (cancellation : CancellationToken) startNow =
         let baseTimer = new System.Timers.Timer(TimeSpan.FromHours(1.).TotalMilliseconds)
