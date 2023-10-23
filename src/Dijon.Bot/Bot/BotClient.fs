@@ -13,7 +13,7 @@ open Microsoft.Extensions.Options
 
 type CachedUserMessage = Cacheable<IUserMessage, uint64>
 
-type DiscordEvent = 
+type DiscordEvent =
     | UserLeft of (SocketGuildUser -> Task<unit>)
     | UserJoined of (SocketGuildUser -> Task<unit>)
     | UserUpdated of (SocketGuildUser -> SocketGuildUser -> Task<unit>)
@@ -41,9 +41,9 @@ type BotClient(
 
     let singleArgFunc (fn : 'a -> Task<unit>) =
         // Transform the F# function to a C# Func<'a, Task>
-        Func<'a, Task>(fun arg -> 
+        Func<'a, Task>(fun arg ->
             // Don't call the handler until we know the socket client is ready
-            readyEvent.WaitOne() 
+            readyEvent.WaitOne()
             |> ignore
 
             let task = task {
@@ -59,9 +59,9 @@ type BotClient(
 
     let doubleArgFunc (fn : 'a -> 'b -> Task<unit>) =
         // Transform the F# function to a C# Func<'a, 'b', Task>
-        Func<'a, 'b, Task>(fun a b -> 
+        Func<'a, 'b, Task>(fun a b ->
             // Don't call the handler until we know the socket client is ready
-            readyEvent.WaitOne() 
+            readyEvent.WaitOne()
             |> ignore
 
             let task = task {
@@ -77,9 +77,9 @@ type BotClient(
 
     let tripleArgFunc (fn : 'a -> 'b -> 'c -> Task<unit>) =
         // Transform the F# function to a C# Func<'a, 'b', Task>
-        Func<'a, 'b, 'c, Task>(fun a b c -> 
+        Func<'a, 'b, 'c, Task>(fun a b c ->
             // Don't call the handler until we know the socket client is ready
-            readyEvent.WaitOne() 
+            readyEvent.WaitOne()
             |> ignore
 
             let task = task {
@@ -99,12 +99,12 @@ type BotClient(
 
     let delegateCommandMessages (fn : IMessage -> Command -> Task<unit>) (msg : IMessage) =
         match CommandParser.ParseCommand msg with
-        | Ignore -> 
+        | Ignore ->
             Task.empty
-        | cmd -> 
+        | cmd ->
             task {
                 match! Task.catch (fn msg cmd) with
-                | Choice1Of2 _ -> 
+                | Choice1Of2 _ ->
                     ()
                 | Choice2Of2 err ->
                     logger.LogError(err, $"Command message delegate failed to handle command %A{cmd}")
