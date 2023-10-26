@@ -121,13 +121,13 @@ type BotClient(
     interface IBotClient with
         member _.InitAsync cancellationToken =
             task {
-                do! client.LoginAsync(TokenType.Bot, token)
-                do! client.StartAsync()
-                do! client.SetGameAsync "This Is Legal But We Question The Ethics"
-
                 // Trip the ready event once the client indicates it's ready
                 let func = Func<Task>(fun _ -> readyEvent.Set() |> ignore; Task.CompletedTask)
                 client.add_Ready func
+
+                do! client.LoginAsync(TokenType.Bot, token)
+                do! client.StartAsync()
+                do! client.SetGameAsync "This Is Legal But We Question The Ethics"
 
                 readyEvent.WaitOne()
                 |> ignore
