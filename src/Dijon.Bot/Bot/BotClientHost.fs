@@ -15,10 +15,5 @@ type BotClientHost(
             bot.InitAsync (cancellationToken)
 
         member _.StopAsync _ =
-            match bot with
-            | :? IAsyncDisposable as x ->
-                logger.LogTrace("Disposing Bot")
-                x.DisposeAsync().AsTask()
-            | _ ->
-                Task.CompletedTask
+            Task.CompletedTask
     end
