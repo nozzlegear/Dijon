@@ -112,10 +112,11 @@ type BotClient(
 
     interface IAsyncDisposable with
         member _.DisposeAsync () =
-            logger.LogWarning("The bot is disposing")
+            logger.LogWarning("Something attempted to dispose the bot.")
             readyEvent.Dispose()
-            client.StopAsync()
-            |> ValueTask
+            ValueTask.CompletedTask
+            //client.StopAsync()
+            //|> ValueTask
     end
 
     interface IBotClient with
