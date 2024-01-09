@@ -36,7 +36,7 @@ type BotClient(
     logger: ILogger<BotClient>
 ) =
     let client = new DiscordSocketClient()
-    let readyEvent = new System.Threading.ManualResetEvent false
+    let readyEvent = new ManualResetEvent false
     let token = options.Value.ApiToken
 
     let singleArgFunc (fn : 'a -> Task<unit>) =
@@ -121,24 +121,27 @@ type BotClient(
                     logger.LogError(err, $"Command message delegate failed to handle command %A{cmd}")
             }
 
-    let connect () = task {
-        logger.LogInformation("Bot is connecting")
-        do! client.LoginAsync(TokenType.Bot, token)
-        do! client.StartAsync()
-        do! client.SetGameAsync "This Is Legal But We Question The Ethics"
-    }
+    let rec connect () =
+        task {
+            logger.LogInformation("Bot is connecting")
+            if client.LoginState = LoginState.LoggedOut then
+                do! client.LoginAsync(TokenType.Bot, token)
+            do! client.StartAsync()
+            do! client.SetGameAsync "This Is Legal But We Question The Ethics"
+        }
+
+    let handleBotConnected () =
+        logger.LogInformation("Bot has connected")
+        Task.CompletedTask
 
     let handleBotDisconnected (ex: exn) =
-        task {
-            logger.LogError(ex, "Bot has disconnected")
-            do! connect ()
-        } :> Task
+        logger.LogError(ex, "Bot has disconnected")
+        connect () :> Task
 
     let handleReadyEvent () =
         readyEvent.Set()
         |> ignore
         Task.CompletedTask
-
 
     interface IAsyncDisposable with
         member _.DisposeAsync () =
@@ -150,12 +153,12 @@ type BotClient(
     end
 
     interface IBotClient with
-        member _.InitAsync cancellationToken =
+        member _.InitAsync _ =
             task {
                 // Trip the ready event once the client indicates it's ready
-                // let func = Func<Task>(fun _ -> readyEvent.Set() |> ignore; Task.CompletedTask)
                 client.add_Ready handleReadyEvent
                 client.add_Disconnected handleBotDisconnected
+                client.add_Connected handleBotConnected
                 client.add_Log handleLogMessage
 
                 do! connect()
