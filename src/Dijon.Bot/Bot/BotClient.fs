@@ -110,6 +110,25 @@ type BotClient(
                     logger.LogError(err, $"Command message delegate failed to handle command %A{cmd}")
             }
 
+    let connect () = task {
+        logger.LogInformation("Bot is connecting")
+        do! client.LoginAsync(TokenType.Bot, token)
+        do! client.StartAsync()
+        do! client.SetGameAsync "This Is Legal But We Question The Ethics"
+    }
+
+    let handleBotDisconnected (ex: exn) =
+        task {
+            logger.LogError(ex, "Bot has disconnected")
+            do! connect ()
+        } :> Task
+
+    let handleReadyEvent () =
+        readyEvent.Set()
+        |> ignore
+        Task.CompletedTask
+
+
     interface IAsyncDisposable with
         member _.DisposeAsync () =
             logger.LogWarning("Something attempted to dispose the bot.")
@@ -123,12 +142,11 @@ type BotClient(
         member _.InitAsync cancellationToken =
             task {
                 // Trip the ready event once the client indicates it's ready
-                let func = Func<Task>(fun _ -> readyEvent.Set() |> ignore; Task.CompletedTask)
-                client.add_Ready func
+                // let func = Func<Task>(fun _ -> readyEvent.Set() |> ignore; Task.CompletedTask)
+                client.add_Ready handleReadyEvent
+                client.add_Disconnected handleBotDisconnected
 
-                do! client.LoginAsync(TokenType.Bot, token)
-                do! client.StartAsync()
-                do! client.SetGameAsync "This Is Legal But We Question The Ethics"
+                do! connect()
 
                 readyEvent.WaitOne()
                 |> ignore
