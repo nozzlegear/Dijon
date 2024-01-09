@@ -94,8 +94,19 @@ type BotClient(
         )
 
     let handleLogMessage (logMessage: LogMessage) =
-        let now = DateTimeOffset.UtcNow.ToString()
-        printfn $"[%s{now}] %s{logMessage.Source}: %s{logMessage.Message}"
+        let level =
+            match logMessage.Severity with
+            | LogSeverity.Critical -> LogLevel.Critical
+            | LogSeverity.Error -> LogLevel.Error
+            | LogSeverity.Warning -> LogLevel.Warning
+            | LogSeverity.Info -> LogLevel.Information
+            | LogSeverity.Verbose -> LogLevel.Trace
+            | LogSeverity.Debug -> LogLevel.Debug
+            | _ -> ArgumentOutOfRangeException(nameof logMessage.Severity) |> raise
+        if isNull logMessage.Exception
+        then logger.Log(level, logMessage.Message, [| logMessage.Source |])
+        else logger.Log(level, logMessage.Exception, logMessage.Message, [| logMessage.Source |])
+        Task.CompletedTask
 
     let delegateCommandMessages (fn : IMessage -> Command -> Task<unit>) (msg : IMessage) =
         match CommandParser.ParseCommand msg with
@@ -145,6 +156,7 @@ type BotClient(
                 // let func = Func<Task>(fun _ -> readyEvent.Set() |> ignore; Task.CompletedTask)
                 client.add_Ready handleReadyEvent
                 client.add_Disconnected handleBotDisconnected
+                client.add_Log handleLogMessage
 
                 do! connect()
 
