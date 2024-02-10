@@ -156,8 +156,9 @@ type StreamCheckService(
         | _ ->
             MessageUtils.sendMessage msg.Channel "Command is not supported in unknown channel type."
 
-    let userUpdated (before : SocketGuildUser) (after : SocketGuildUser) = 
+    let userUpdated (before: CachedGuildUser) (after: SocketGuildUser) = 
         task {
+            let! before = before.GetOrDownloadAsync()
             let guildId = GuildId (int64 after.Guild.Id)
             let wasStreaming = isStreaming before
             let stream = tryGetStreamActivity after

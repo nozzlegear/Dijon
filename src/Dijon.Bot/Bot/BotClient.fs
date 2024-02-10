@@ -11,15 +11,17 @@ open Microsoft.Extensions.Logging
 open FSharp.Control.Tasks.V2.ContextInsensitive
 open Microsoft.Extensions.Options
 
+type CachedGuildUser = Cacheable<SocketGuildUser, uint64>
 type CachedUserMessage = Cacheable<IUserMessage, uint64>
+type CachedChannel = Cacheable<IMessageChannel, uint64>
 
 type DiscordEvent =
-    | UserLeft of (SocketGuildUser -> Task<unit>)
+    | UserLeft of (SocketGuild -> SocketUser -> Task<unit>)
     | UserJoined of (SocketGuildUser -> Task<unit>)
-    | UserUpdated of (SocketGuildUser -> SocketGuildUser -> Task<unit>)
+    | UserUpdated of (CachedGuildUser -> SocketGuildUser -> Task<unit>)
     | BotLeftGuild of (SocketGuild -> Task<unit>)
     | CommandReceived of (IMessage -> Command -> Task<unit>)
-    | ReactionReceived of (CachedUserMessage -> IChannel -> IReaction -> Task<unit>)
+    | ReactionReceived of (CachedUserMessage -> CachedChannel -> IReaction -> Task<unit>)
 
 type IBotClient =
     abstract member InitAsync: cancellationToken: CancellationToken -> Task<unit>
@@ -192,7 +194,7 @@ type BotClient(
         member _.AddEventListener eventType =
             match eventType with
             | UserLeft fn ->
-                singleArgFunc fn
+                doubleArgFunc fn
                 |> client.add_UserLeft
             | UserJoined fn ->
                 singleArgFunc fn

@@ -46,30 +46,32 @@ type UserMonitorService(
         guildMemberDatabase.BatchSetAsync [toMemberUpdate user]
         |> Task.toEmpty
 
-    let userLeft (user : SocketGuildUser) = 
+    let userLeft (guild: SocketGuild) (user: SocketUser) = 
         let userData: GuildUser = {
             AvatarUrl = user.GetAvatarUrl(size = uint16 1024)
             UserName = user.Username
             Discriminator = user.Discriminator
-            Nickname = Option.ofObj user.Nickname
-        }    
+            Nickname = match user with
+                       | :? SocketGuildUser as g -> Some g.Nickname
+                       | _ -> None
+        }
 
         task {
             let! logChannelId = 
-                int64 user.Guild.Id
+                int64 guild.Id
                 |> GuildId
                 |> logChannelDatabase.GetLogChannelForGuild
 
             do! 
                 match logChannelId with 
                 | Some channelId -> 
-                    let channel = user.Guild.GetTextChannel (uint64 channelId)
+                    let channel = guild.GetTextChannel (uint64 channelId)
                     sendUserLeftMessage channel userData
                 | None -> 
                     Task.empty
             
             // Delete the user so the app doesn't find it at next startup
-            do! UniqueUser ( DiscordId (int64 user.Id), GuildId (int64 user.Guild.Id) )
+            do! UniqueUser ( DiscordId (int64 user.Id), GuildId (int64 guild.Id) )
                 |> guildMemberDatabase.DeleteAsync
         }
 
@@ -78,7 +80,7 @@ type UserMonitorService(
         |> GuildId
         |> logChannelDatabase.UnsetLogChannelForGuild
 
-    let userUpdated (before : SocketGuildUser) (after : SocketGuildUser) =
+    let userUpdated (before: CachedGuildUser) (after: SocketGuildUser) =
         // Check if this user was just assigned a raider/team role
         let memberRoleId =
             uint64 427327334119637014L
@@ -87,24 +89,29 @@ type UserMonitorService(
               uint64 460303590909673472L (* Last Call *)
               uint64 460303540859043842L (* Team Tight Bois *)
               uint64 534792074780999690L (* Weekend Raid *) ]
-        let hasNewRaiderRole =
-            after.Roles
-            |> Seq.except before.Roles
-            |> Seq.fold (fun state role -> if Seq.contains role.Id raiderRoleIds then true else state ) false
-        let hasMemberRole =
-            after.Roles
-            |> Seq.exists (fun r -> r.Id = memberRoleId)
+        task {
+            let! before = before.GetOrDownloadAsync()
+            let hasNewRaiderRole =
+                after.Roles
+                |> Seq.except before.Roles
+                |> Seq.fold (fun state role -> 
+                    if Seq.contains role.Id raiderRoleIds 
+                    then true 
+                    else state
+                    ) false
+            let hasMemberRole =
+                after.Roles
+                |> Seq.exists (fun r -> r.Id = memberRoleId)
 
-        match hasNewRaiderRole, hasMemberRole with
-        | true, false ->
-            // Assign the member role to the user
-            let nickname =
-                if String.IsNullOrWhiteSpace after.Nickname then
-                    after.Username
-                else
-                    after.Nickname
-                    
-            task {
+            match hasNewRaiderRole, hasMemberRole with
+            | true, false ->
+                // Assign the member role to the user
+                let nickname =
+                    if String.IsNullOrWhiteSpace after.Nickname then
+                        after.Username
+                    else
+                        after.Nickname
+                        
                 let memberRole =
                     after.Guild.Roles
                     |> Seq.find (fun r -> r.Id = memberRoleId)
@@ -112,10 +119,10 @@ type UserMonitorService(
                 logger.LogInformation("Adding %s role for user %s#%s", memberRole.Name, nickname, after.Discriminator)
                 
                 do! after.AddRoleAsync memberRole
-            }
-        | _, _ ->
-            Task.empty
-            // bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
+            | _, _ ->
+                ()
+                // bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
+        }
 
     let handleSetLogChannelCommand (msg: IMessage) = 
         match msg.Channel with 

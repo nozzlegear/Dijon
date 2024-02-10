@@ -63,7 +63,7 @@ type ReactionGuardService(
         "gingerscheme"
     ]
 
-    let handleReaction (msg : CachedUserMessage) (channel: IChannel) (reaction: IReaction) = task {
+    let handleReaction (msg : CachedUserMessage) (channel: CachedChannel) (reaction: IReaction) = task {
         let reactionIsWhitelisted =
             List.contains reaction.Emote.Name whitelist
 
