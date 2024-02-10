@@ -127,12 +127,21 @@ type BotClient(
                     logger.LogError(err, $"Command message delegate failed to handle command %A{cmd}")
             }
 
-    let rec connect () =
+    let connect () =
         task {
             logger.LogInformation("Bot is connecting")
             do! client.LoginAsync(TokenType.Bot, token)
             do! client.StartAsync()
             do! client.SetGameAsync "This Is Legal But We Question The Ethics"
+        }
+
+    let reconnect () =
+        task {
+            logger.LogInformation("Bot is reconnecting")
+            // Log the client out to get it to release its internal state lock, so a login can be attempted again
+            //do! client.LogoutAsync()
+            do! client.LoginAsync(TokenType.Bot, token)
+            do! client.SetGameAsync "Those Naughty Monsters"
         }
 
     let handleBotConnected () =
@@ -142,9 +151,7 @@ type BotClient(
     let handleBotDisconnected (ex: exn) =
         task {
             logger.LogError(ex, "Bot has disconnected, attempting to logout and reconnect")
-            // Log the client out to get it to release its internal state lock, so a login can be attempted again
-            do! client.LogoutAsync()
-            do! connect ()
+            do! reconnect()
         } :> Task
 
     let handleReadyEvent () =

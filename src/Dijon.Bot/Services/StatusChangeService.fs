@@ -32,7 +32,6 @@ type StatusChangeService(
               "Mankind Knew That They Could Not Change Society"
               "Instead Of Reflecting On Themselves"
               "They Blamed The Beasts"
-              "Those Naughty Monsters"
               "Two For Flinching" ]
             |> Seq.sortBy (fun _ -> Guid.NewGuid())
             |> Seq.head
