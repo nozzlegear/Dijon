@@ -12,6 +12,7 @@ open FSharp.Control.Tasks.V2.ContextInsensitive
 open Microsoft.Extensions.Options
 
 type CachedGuildUser = Cacheable<SocketGuildUser, uint64>
+type CachedUser = Cacheable<IUser, uint64>
 type CachedUserMessage = Cacheable<IUserMessage, uint64>
 type CachedChannel = Cacheable<IMessageChannel, uint64>
 
@@ -22,6 +23,8 @@ type DiscordEvent =
     | BotLeftGuild of (SocketGuild -> Task<unit>)
     | CommandReceived of (IMessage -> Command -> Task<unit>)
     | ReactionReceived of (CachedUserMessage -> CachedChannel -> IReaction -> Task<unit>)
+    | UserIsTyping of (CachedUser -> CachedChannel -> Task<unit>)
+    | SlashCommandExecuted of (SocketSlashCommand -> Task<unit>)
 
 type IBotClient =
     abstract member InitAsync: cancellationToken: CancellationToken -> Task<unit>
@@ -32,6 +35,7 @@ type IBotClient =
     abstract member GetBotUserId: unit -> uint64;
     abstract member RemoveAllReactionsForEmoteAsync: channelId: uint64 * msgId: uint64 * emote: IEmote -> Task
     abstract member AddEventListener: eventType: DiscordEvent -> unit
+    abstract member RegisterCommands: commands: ApplicationCommandProperties seq -> Task
 
 type BotClient(
     options: IOptions<BotClientOptions>,
@@ -211,4 +215,17 @@ type BotClient(
             | ReactionReceived fn ->
                 tripleArgFunc fn
                 |> client.add_ReactionAdded
+            | UserIsTyping fn ->
+                doubleArgFunc fn
+                |> client.add_UserIsTyping
+            | SlashCommandExecuted fn ->
+                singleArgFunc fn
+                |> client.add_SlashCommandExecuted
+
+        member _.RegisterCommands commands =
+            task {
+                for command in commands do
+                    let! createdCommand = client.CreateGlobalApplicationCommandAsync(command)
+                    logger.LogInformation("Created global application command \"{CommandName}\" with id {CommandId}", createdCommand.Name, createdCommand.Id)
+            }
         end

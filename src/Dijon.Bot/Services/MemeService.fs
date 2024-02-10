@@ -168,7 +168,9 @@ type MemeService(
                   sprintf "%sis a decidedly okay healer!" (MessageUtils.mentionUser KnownUsers.BiggelsId)
                   "JUST STAND IN THE MIDDLE AND HEAL THROUGH IT https://tenor.com/view/georffrey-rush-captain-of-the-ship-is-giving-orders-barbossa-pirates-of-the-caribbean-gif-9227393"
                   "Although he masquerades as the architect of #DownWithDjur, we all know he's secretly in the benevolent leader's pocket!"
-                  "You're clearly guilty of tyrannicide! https://cdn.discordapp.com/attachments/856354026509434890/878455174799192104/biggs-is-guilty.mp4" ]
+                  "You're clearly guilty of tyrannicide! https://cdn.discordapp.com/attachments/856354026509434890/878455174799192104/biggs-is-guilty.mp4"
+                  "Feast in five!"
+                  "Superbloom in ten!" ]
                 |> Seq.randomItem
             
             MessageUtils.sendMessage msg.Channel biggsHype
@@ -224,6 +226,27 @@ type MemeService(
         | FoxyLocation -> handleFoxyLocation msg
         | _ -> Task.empty
 
+    let buildHypeCommand () =
+        let hypeTargetOption = 
+            SlashCommandOptionBuilder()
+                .WithName("target")
+                .WithDescription("Unleash the hypebeast on an unsuspecting target by @'ing them.")
+                .WithType(ApplicationCommandOptionType.User)
+                .WithRequired(false)
+        SlashCommandBuilder()
+            .WithName("hype")
+            .WithDescription("Having a bad day? Let Dijon cheer you up! Results may vary.")
+            .WithDMPermission(false)
+            .WithDefaultPermission(true)
+            .AddOption(hypeTargetOption)
+            .Build()
+
+    let handleHypeCommand (command: SocketSlashCommand) =
+        // TODO: ensure this is only responding to the "hype" command
+        task {
+            do! command.RespondAsync("This bot is currently receiving upgrades, but the Hypebeast will shock drop soon.")
+        }
+
     interface IDisposable with
         member _.Dispose() = 
             ()
@@ -231,7 +254,8 @@ type MemeService(
     interface IHostedService with
         member _.StartAsync _ =
             bot.AddEventListener (DiscordEvent.CommandReceived handleCommand)
-            Task.CompletedTask
+            bot.AddEventListener (DiscordEvent.SlashCommandExecuted handleHypeCommand)
+            bot.RegisterCommands [ buildHypeCommand () ]
 
         member _.StopAsync _ =
             Task.CompletedTask
