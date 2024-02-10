@@ -28,7 +28,12 @@ type StatusChangeService(
               "No Scrap Value"
               "Failure of Statecraft"
               "Down With Biggelsworth!"
-              "Decentralize me, daddy" ]
+              "Decentralize me, daddy"
+              "Mankind Knew That They Could Not Change Society"
+              "Instead Of Reflecting On Themselves"
+              "They Blamed The Beasts"
+              "Those Naughty Monsters"
+              "Two For Flinching" ]
             |> Seq.sortBy (fun _ -> Guid.NewGuid())
             |> Seq.head
         Task.Run<unit> (fun () -> backgroundTask {
