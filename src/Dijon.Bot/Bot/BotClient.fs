@@ -135,24 +135,9 @@ type BotClient(
             do! client.SetGameAsync "This Is Legal But We Question The Ethics"
         }
 
-    let reconnect () =
-        task {
-            logger.LogInformation("Bot is reconnecting")
-            // Log the client out to get it to release its internal state lock, so a login can be attempted again
-            //do! client.LogoutAsync()
-            do! client.LoginAsync(TokenType.Bot, token)
-            do! client.SetGameAsync "Those Naughty Monsters"
-        }
-
-    let handleBotConnected () =
-        logger.LogInformation("Bot has connected")
-        Task.CompletedTask
-
     let handleBotDisconnected (ex: exn) =
-        task {
-            logger.LogError(ex, "Bot has disconnected, attempting to logout and reconnect")
-            do! reconnect()
-        } :> Task
+        logger.LogError(ex, "Bot is disconnecting with exception")
+        Task.CompletedTask
 
     let handleReadyEvent () =
         readyEvent.Set()
@@ -174,7 +159,6 @@ type BotClient(
                 // Trip the ready event once the client indicates it's ready
                 client.add_Ready handleReadyEvent
                 client.add_Disconnected handleBotDisconnected
-                client.add_Connected handleBotConnected
                 client.add_Log handleLogMessage
 
                 do! connect()
