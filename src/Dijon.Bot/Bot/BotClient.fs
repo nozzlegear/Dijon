@@ -41,7 +41,7 @@ type BotClient(
     options: IOptions<BotClientOptions>,
     logger: ILogger<BotClient>
 ) =
-    let client = new DiscordSocketClient()
+    let client = new DiscordSocketClient(DiscordSocketConfig( GatewayIntents = GatewayIntents.All ))
     let readyEvent = new ManualResetEvent false
     let token = options.Value.ApiToken
 
