@@ -29,7 +29,9 @@ type MemeService(
           "https://tenor.com/view/futurama-bender-discrimination-funny-gif-5866137"
           "https://tenor.com/view/mass-effect-harbinger-collectors-video-games-reapers-gif-14520191"
           "https://tenor.com/view/youre-unbearably-naive-avengers-ultron-gif-10230820"
-          "https://tenor.com/view/anakin-darth-vader-gif-5233555" ]
+          "https://tenor.com/view/anakin-darth-vader-gif-5233555"
+          "https://cdn.discordapp.com/attachments/974783104713625632/1182004293302226994/oase007_Joe_Biden_with_sunglasses_922c2237-adf4-44b5-ab05-7a68813b6b06.png.jpg"
+          "https://cdn.discordapp.com/attachments/974783104713625632/1202718739003609238/your-mother.mp4" ]
         |> Seq.randomItem
 
     let handleGoulashRecipe (msg: IMessage) = 
@@ -125,7 +127,8 @@ type MemeService(
                   "If only Djur could pick a class! https://i.imgflip.com/48mqi5.jpg"
                   "If only Djur could pick a class! https://cdn.discordapp.com/attachments/665392948778893333/733877683863289927/48mqln.png"
                   "https://cdn.discordapp.com/attachments/477977486857338880/666298017984544798/ezgif.com-add-text.gif"
-                  "STAMINA STAVES ARE LEGITIMATE BREWMASTER WEAPONS, WHO CARES IF THEY DON'T HAVE AGILITY?!"
+                  "https://cdn.discordapp.com/attachments/993576330664878182/1206358940322103326/Biggs_and_Djur_average_day_30fps.mov"
+                  $"Live look at {MentionUtils.MentionUser KnownUsers.DjurId} and {MentionUtils.MentionUser KnownUsers.RhunonId} driving their front-wheel drive electric car with summer tires through a blizzard to Starbucks:\n\nhttps://tenor.com/view/you-might-want-to-buckle-up-dominic-toretto-vin-diesel-fast-x-get-ready-gif-2401673552153870491"
                   "No raider is safe from the long arm of the raid leader: https://cdn.discordapp.com/attachments/856354026509434890/878454571033309204/Gripping_Biggelbaalz.mp4" ]
                 |> Seq.randomItem
                
@@ -156,7 +159,8 @@ type MemeService(
             let rhunonHype =
                 [ "Hail to the Queen! https://tenor.com/view/rihanna-crown-queen-princess-own-it-gif-4897467"
                   "https://tenor.com/view/were-not-worthy-waynes-world-gif-9201571"
-                  sprintf "%swould be lost without the Queen." (MessageUtils.mentionUser KnownUsers.DjurId)
+                  $"{MessageUtils.mentionUser KnownUsers.DjurId} would be lost without the Queen."
+                  $"I wonder what {MessageUtils.mentionUser KnownUsers.RhunonId} is reading today? https://cdn.discordapp.com/attachments/993576330664878182/1206332634834272306/tiktok.mp4"
                   "https://tenor.com/view/the-outpost-the-outpost-series-thecw-gulman-randall-malin-gif-12842854"
                   "https://cdn.discordapp.com/attachments/856354026509434890/878453670826635324/mistweavers.mp4" ]
                 |> Seq.randomItem
@@ -164,11 +168,9 @@ type MemeService(
             MessageUtils.sendMessage msg.Channel rhunonHype
         | i when i = KnownUsers.BiggelsId ->
             let biggsHype =
-                [ "Let your failure be the final word in the story of rebellion! https://tenor.com/view/palpatine-the-rise-of-skywalker-lightning-palpatine-lightning-exegol-gif-18167689"
-                  sprintf "%sis a decidedly okay healer!" (MessageUtils.mentionUser KnownUsers.BiggelsId)
-                  "JUST STAND IN THE MIDDLE AND HEAL THROUGH IT https://tenor.com/view/georffrey-rush-captain-of-the-ship-is-giving-orders-barbossa-pirates-of-the-caribbean-gif-9227393"
-                  "Although he masquerades as the architect of #DownWithDjur, we all know he's secretly in the benevolent leader's pocket!"
+                [ $"{MessageUtils.mentionUser KnownUsers.BiggelsId} is a decidedly okay warlock!"
                   "You're clearly guilty of tyrannicide! https://cdn.discordapp.com/attachments/856354026509434890/878455174799192104/biggs-is-guilty.mp4"
+                  "https://cdn.discordapp.com/attachments/993576330664878182/1206358940322103326/Biggs_and_Djur_average_day_30fps.mov"
                   "Feast in five!"
                   "Superbloom in ten!" ]
                 |> Seq.randomItem
@@ -184,17 +186,32 @@ type MemeService(
         | i when i = KnownUsers.InitId ->
             let initHype =
                 [ "HEY https://tenor.com/view/spongebob-squarepants-chest-bust-rip-shirt-gif-4172168"
-                  "https://tenor.com/view/happy-im-so-happy-happiness-joy-excited-gif-16119788"
-                  "Init be like: https://tenor.com/view/pancakes-michael-scott-you-will-like-it-food-gif-16324949"
-                  "He's the original member of the Pancake Party! https://tenor.com/view/bunny-pancakes-wreck-it-ralph-gif-11221126"
-                  "TOMATO SHRAPNEL IS REAL! THIS BOT HAS SEEN THE TRUTH!" ]
+                  "https://youtu.be/txuWGoZF3ew?si=ygVfLFiMyEKraMd6"
+                  ":gorillasmirk: :gorillasmirk2: :shortyconcern:"
+                  "WWBMD? :bigmike: :gorillasmirk:"
+                  $"{MessageUtils.mentionUser KnownUsers.InitId} on a Tinder date: https://cdn.discordapp.com/attachments/974783104713625632/1197344778858270872/Video_by_nutnut_binks_C19IFUcO7E3.mp4"
+                  $"{MessageUtils.mentionUser KnownUsers.InitId} explaining why he hasn't painted his walls yet:\n\nhttps://getyarn.io/yarn-clip/ba707bce-ac71-4ce9-ad93-69e53dcd20e2"
+                  "https://cdn.discordapp.com/attachments/974783104713625632/1202718739003609238/your-mother.mp4" ]
                 |> Seq.randomItem
                 
             MessageUtils.sendMessage msg.Channel initHype
+        | i when i = KnownUsers.DemiId ->
+            let demiHype =
+                [ "https://cdn.discordapp.com/attachments/974783104713625632/1202718739003609238/your-mother.mp4"
+                  $"When {MessageUtils.mentionUser KnownUsers.DemiId} and {MessageUtils.mentionUser KnownUsers.DjurId} play 3s:\n\nhttps://tenor.com/view/toaster-lights-on-and-off-bathtub-confused-bill-murray-gif-10874237"
+                  $"When {MessageUtils.mentionUser KnownUsers.DemiId} and {MessageUtils.mentionUser KnownUsers.DjurId} play 3s:\n\nhttps://tenor.com/view/kill-me-drink-bleach-gif-22890796"
+                  $"{MessageUtils.mentionUser KnownUsers.DemiId}'s next vehicle:\n\nhttps://www.youtube.com/watch?v=MI7Tq6sRxE4"
+                  $"Live look at {MessageUtils.mentionUser KnownUsers.DemiId}'s wife jumping into the Fury Mobile: https://cdn.discordapp.com/attachments/993576330664878182/1206339975445221436/2022-08-28_11.37.42.mov"
+                  $"{MessageUtils.mentionUser KnownUsers.DemiId}'s arena strategy: https://cdn.discordapp.com/attachments/993576330664878182/1206340178981953626/2022-07-17_23.06.17.mov"
+                  ]
+                |> Seq.randomItem
+
+            MessageUtils.sendMessage msg.Channel demiHype
         | i when i = KnownUsers.DurzId ->
             let durzHype =
-                [ "Live look at Durz when he casts Hand of Freedom: https://tenor.com/view/speed-wheelchair-me-running-late-gif-14178485"
+                [ "Live look at Durz when he casts Hand of Freedom:\n\nhttps://tenor.com/view/speed-wheelchair-me-running-late-gif-14178485"
                   "https://tenor.com/view/george-costanza-scooter-look-back-slow-gif-14470443"
+                  $"When {MessageUtils.mentionUser KnownUsers.DurzId} tells us he's done with WoW: https://cdn.discordapp.com/attachments/993576330664878182/1206332994629935265/Video_by_wowentertainer_CzWRBdyNoVb.mp4"
                   "https://tenor.com/view/wheelchair-fall-fail-gif-8902077" ]
                 |> Seq.randomItem
                 
@@ -202,21 +219,29 @@ type MemeService(
         | i when i = KnownUsers.BopittId ->
             let bopittHype =
                 [ "https://cdn.discordapp.com/attachments/856354026509434890/878451088905342996/bopitt.mp4.mp4"
+                  "https://cdn.discordapp.com/attachments/993576330664878182/1206319980954652732/spoopz_r2d2.mp3"
                   "https://www.youtube.com/watch?v=jxo_K7JLZxQ" ]
                 |> Seq.randomItem
 
             MessageUtils.sendMessage msg.Channel bopittHype
         | i when i = KnownUsers.BoroId ->
             let boroHype =
-                [ "He's got the motherfuckin' Halo theme song playing, LETS GOOOOO! https://www.youtube.com/watch?v=sCxv2daOwjQ" ]
+                [ "He's got the motherfuckin' Halo theme song playing, LETS GOOOOO!\n\nhttps://www.youtube.com/watch?v=sCxv2daOwjQ"
+                  "https://cdn.discordapp.com/attachments/993576330664878182/1206319981260832788/boro-oh-convoke.wav" ]
                 |> Seq.randomItem
 
             MessageUtils.sendMessage msg.Channel boroHype
-        | _ -> 
-            ["🇳"; "🇴"]
-            |> Seq.map Emoji
-            |> Seq.cast<IEmote>
-            |> MessageUtils.multiReact msg
+        | _ ->
+            let message =
+                // Respond with image 1/5 times
+                match Seq.randomItem [1; 2; 3; 4; 5] with
+                | 1 ->
+                    let img = "https://cdn.discordapp.com/attachments/974783104713625632/1182004293302226994/oase007_Joe_Biden_with_sunglasses_922c2237-adf4-44b5-ab05-7a68813b6b06.png.jpg"
+                    $"{MessageUtils.mentionUser hypeTarget.Id} I don't think so, Corn Pop.\n\n{img}"
+                | _ ->
+                    $"{MessageUtils.mentionUser hypeTarget.Id} No."
+
+            MessageUtils.sendMessage msg.Channel message
 
     let handleCommand (msg : IMessage) = function
         | Goulash -> handleGoulashRecipe msg 
