@@ -26,11 +26,11 @@ module MessageUtils =
         channel.SendMessageAsync("", false, embed.Build())
         |> Task.map (fun x -> int64 x.Id)
 
-    let react (msg: SocketUserMessage) emote = 
+    let react (msg: IMessage) emote =
         msg.AddReactionAsync emote
         |> Task.toEmpty
 
-    let multiReact (msg: SocketUserMessage) (emotes: IEmote seq) =
+    let multiReact (msg: IMessage) (emotes: IEmote seq) =
         emotes
         |> Seq.map (react msg)
         |> Task.sequential
