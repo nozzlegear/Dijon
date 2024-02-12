@@ -13,9 +13,9 @@ type MemeService(
     bot: IBotClient
 ) =
 
-    let randomSlanderResponse () = 
+    let randomSlanderResponse () =
         [ "https://tenor.com/view/palpatine-treason-star-wars-emperor-gif-8547403"
-          "https://tenor.com/view/thanos-infinity-war-avengers-gif-10387727" 
+          "https://tenor.com/view/thanos-infinity-war-avengers-gif-10387727"
           "https://tenor.com/view/t800-terminator-robot-war-gif-14523522"
           "https://tenor.com/view/talk-to-the-hand-arnold-schwarzenegger-terminator-quote-movie-gif-13612079"
           "https://tenor.com/view/battlestar-galactica-battlestar-galactica-katee-sackhoff-mar-mc-donnell-gif-4414461"
@@ -34,7 +34,7 @@ type MemeService(
           "https://cdn.discordapp.com/attachments/974783104713625632/1202718739003609238/your-mother.mp4" ]
         |> Seq.randomItem
 
-    let handleGoulashRecipe (msg: IMessage) = 
+    let handleGoulashRecipe (msg: IMessage) =
         let ingredients = [
             "- 10oz wide egg noodles"
             "- 1lb ground beef or plant meat"
@@ -61,9 +61,9 @@ type MemeService(
         MessageUtils.sendEmbed msg.Channel embed
         |> Task.ignore
 
-    let handleSlander (msg: IMessage) = 
-        match msg with 
-        | CommandParser.Mentioned -> 
+    let handleSlander (msg: IMessage) =
+        match msg with
+        | CommandParser.Mentioned ->
             randomSlanderResponse ()
             |> MessageUtils.sendMessage msg.Channel
         | CommandParser.NotMentioned ->
@@ -72,26 +72,26 @@ type MemeService(
             | i when i = 1 ->
                 [ "😭"; "💔"; "🔪"; "😡" ]
                 |> Seq.randomItem
-                |> Emoji 
+                |> Emoji
                 |> MessageUtils.react (msg :?> SocketUserMessage)
-            | _ -> 
+            | _ ->
                 Task.empty
 
     let handleFoxyLocation (msg : IMessage) =
-        match msg with 
-        | CommandParser.Mentioned -> 
+        match msg with
+        | CommandParser.Mentioned ->
             // Send the Twitch clip embed
             let twitchClipMsg = "Schrodinger's Foxy: he exists in both Dalaran and Moonglade, but you never know which until you pull a boss: https://clips.twitch.tv/HyperCrackyRabbitHeyGirl"
             MessageUtils.sendMessage msg.Channel twitchClipMsg
-        | CommandParser.NotMentioned -> 
+        | CommandParser.NotMentioned ->
             // Send a message 1/3 times
-            match [1;2;3;] |> Seq.randomItem with 
-            | i when i = 1 -> 
+            match [1;2;3;] |> Seq.randomItem with
+            | i when i = 1 ->
                 let twitchClipMsg = "Foxy is _always_ in Dalaran! https://clips.twitch.tv/HyperCrackyRabbitHeyGirl"
                 MessageUtils.sendMessage msg.Channel twitchClipMsg
-            | _ -> 
+            | _ ->
                 Task.empty
-                
+
     let handleAidAgainstSlander (msg: IMessage) =
         match msg.Author.Id with
         | i when i = KnownUsers.DjurId ->
@@ -102,7 +102,7 @@ type MemeService(
                   "In the land of Djur'alotha, there is only goulash."
                   sprintf "Long may %s reign!" (MessageUtils.mentionUser KnownUsers.DjurId) ]
                 |> Seq.randomItem
-            
+
             [ MessageUtils.sendMessage msg.Channel responseMsg
               MessageUtils.sendMessage msg.Channel (randomSlanderResponse ()) ]
             |> Task.sequential
@@ -233,15 +233,15 @@ type MemeService(
             MessageUtils.sendMessage channel message
 
     let handleCommand (msg : IMessage) = function
-        | Goulash -> handleGoulashRecipe msg 
-        | Slander -> handleSlander msg 
+        | Goulash -> handleGoulashRecipe msg
+        | Slander -> handleSlander msg
         | AidAgainstSlander -> handleAidAgainstSlander msg
         | Hype -> Task.toEmpty (handleHypeMessage msg.Author msg.Channel)
         | FoxyLocation -> handleFoxyLocation msg
         | _ -> Task.empty
 
     let buildHypeCommand () =
-        let hypeTargetOption = 
+        let hypeTargetOption =
             SlashCommandOptionBuilder()
                 .WithName("target")
                 .WithDescription("Unleash the hypebeast on an unsuspecting target by @'ing them.")
@@ -272,7 +272,7 @@ type MemeService(
             }
 
     interface IDisposable with
-        member _.Dispose() = 
+        member _.Dispose() =
             ()
 
     interface IHostedService with
