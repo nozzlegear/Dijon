@@ -1,5 +1,6 @@
 namespace Dijon.Shared
 
+open System.Runtime.InteropServices
 open System.Threading
 
 [<AutoOpen>]
@@ -68,3 +69,20 @@ module Extensions =
             )
             let mapper = System.Func<'t, CancellationToken, ValueTask>(fun item ct -> ValueTask (mapFn item ct))
             Parallel.ForEachAsync (source, options, mapper)
+
+        /// Starts the asynchronous computation in the thread pool. Do not await its result
+        static member start (task: Task<_>, ?cancellationToken: CancellationToken): unit =
+            let cancellationToken =
+                defaultArg cancellationToken Async.DefaultCancellationToken
+            Async.Start(async {
+                let! _ = Async.AwaitTask task
+                ()
+            }, cancellationToken)
+
+        /// Starts the asynchronous computation in the thread pool. Do not await its result
+        static member start (task: Task, ?cancellationToken: CancellationToken): unit =
+            let cancellationToken =
+                defaultArg cancellationToken Async.DefaultCancellationToken
+            Async.Start(async {
+                do! Async.AwaitTask task
+            }, cancellationToken)

@@ -52,15 +52,13 @@ type BotClient(
             readyEvent.WaitOne()
             |> ignore
 
-            let task = task {
+            task {
                 match! Task.catch (fn arg) with
                 | Choice1Of2 _ ->
                     ()
                 | Choice2Of2 err ->
                     logger.LogError(err, "Single arg event listener failed: {0}", err.Message)
             }
-
-            task :> Task
         )
 
     let doubleArgFunc (fn : 'a -> 'b -> Task<unit>) =
@@ -99,6 +97,25 @@ type BotClient(
             task :> Task
         )
 
+    /// Delegates command messages and runs them off the main thread, so that they don't block the socket client's gateway task.
+    let delegateCommandMessages (fn : IMessage -> Command -> Task<unit>) (msg : IMessage) =
+        // Don't call the handler until we know the socket client is ready
+        readyEvent.WaitOne()
+        |> ignore
+        // Parse the message and invoke the handler off the main thread
+        Task.start(task {
+            match CommandParser.ParseCommand msg with
+            | Ignore ->
+                ()
+            | cmd ->
+                match! Task.catch (fn msg cmd) with
+                | Choice1Of2 _ ->
+                    ()
+                | Choice2Of2 err ->
+                    logger.LogError(err, $"Command message delegate failed to handle command %A{cmd}")
+        })
+        Task.CompletedTask
+
     let handleLogMessage (logMessage: LogMessage) =
         let level =
             match logMessage.Severity with
@@ -113,19 +130,6 @@ type BotClient(
         then logger.Log(level, logMessage.Message, [| logMessage.Source |])
         else logger.Log(level, logMessage.Exception, logMessage.Message, [| logMessage.Source |])
         Task.CompletedTask
-
-    let delegateCommandMessages (fn : IMessage -> Command -> Task<unit>) (msg : IMessage) =
-        match CommandParser.ParseCommand msg with
-        | Ignore ->
-            Task.empty
-        | cmd ->
-            task {
-                match! Task.catch (fn msg cmd) with
-                | Choice1Of2 _ ->
-                    ()
-                | Choice2Of2 err ->
-                    logger.LogError(err, $"Command message delegate failed to handle command %A{cmd}")
-            }
 
     let connect () =
         task {
@@ -201,7 +205,7 @@ type BotClient(
                 singleArgFunc fn
                 |> client.add_LeftGuild
             | CommandReceived fn ->
-                singleArgFunc (delegateCommandMessages fn)
+                delegateCommandMessages fn
                 |> client.add_MessageReceived
             | ReactionReceived fn ->
                 tripleArgFunc fn
