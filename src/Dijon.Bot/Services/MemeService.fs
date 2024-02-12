@@ -116,10 +116,8 @@ type MemeService(
             |> Seq.randomItem
             |> MessageUtils.sendMessage msg.Channel
 
-    let handleHypeMessage (msg: IMessage) = 
-        let msg = msg :?> SocketUserMessage
-        
-        match msg.Author.Id with
+    let handleHypeMessage (hypeTarget: IUser) (channel: IMessageChannel) =
+        match hypeTarget.Id with
         | i when i = KnownUsers.DjurId ->
             let djurHype =
                 [ "https://az.nozzlegear.com/images/share/2019-10-23.09.41.19.png"
@@ -131,17 +129,8 @@ type MemeService(
                   $"Live look at {MentionUtils.MentionUser KnownUsers.DjurId} and {MentionUtils.MentionUser KnownUsers.RhunonId} driving their front-wheel drive electric car with summer tires through a blizzard to Starbucks:\n\nhttps://tenor.com/view/you-might-want-to-buckle-up-dominic-toretto-vin-diesel-fast-x-get-ready-gif-2401673552153870491"
                   "No raider is safe from the long arm of the raid leader: https://cdn.discordapp.com/attachments/856354026509434890/878454571033309204/Gripping_Biggelbaalz.mp4" ]
                 |> Seq.randomItem
-               
-            let addReactions =
-                ["👌"; "🎉"; "👏"]
-                |> Seq.map Emoji
-                |> Seq.cast<IEmote>
-                |> MessageUtils.multiReact msg
-            [
-                addReactions
-                MessageUtils.sendMessage msg.Channel djurHype
-            ]
-            |> Task.sequential
+
+            MessageUtils.sendMessage channel djurHype
         | i when i = KnownUsers.FoxyId ->
             let foxyHype =
                 [ "Boner bear, boner bear, does whatever a boner bear does. 🦴🐻"
@@ -153,8 +142,8 @@ type MemeService(
                   "Foxy is the kind of bear who would show his left hand. 😼💦"
                   "Live look at Foxy after he swapped to feral: https://cdn.discordapp.com/attachments/856354026509434890/878455897838477362/Angry_Feral_GIF_-_Angry_Feral_Wolf_-_Discover__Share_GIFs_1-angry-feral.mp4" ]
                 |> Seq.randomItem
-           
-            MessageUtils.sendMessage msg.Channel foxyHype  
+
+            MessageUtils.sendMessage channel foxyHype
         | i when i = KnownUsers.RhunonId ->
             let rhunonHype =
                 [ "Hail to the Queen! https://tenor.com/view/rihanna-crown-queen-princess-own-it-gif-4897467"
@@ -164,8 +153,8 @@ type MemeService(
                   "https://tenor.com/view/the-outpost-the-outpost-series-thecw-gulman-randall-malin-gif-12842854"
                   "https://cdn.discordapp.com/attachments/856354026509434890/878453670826635324/mistweavers.mp4" ]
                 |> Seq.randomItem
-                
-            MessageUtils.sendMessage msg.Channel rhunonHype
+
+            MessageUtils.sendMessage channel rhunonHype
         | i when i = KnownUsers.BiggelsId ->
             let biggsHype =
                 [ $"{MessageUtils.mentionUser KnownUsers.BiggelsId} is a decidedly okay warlock!"
@@ -174,15 +163,15 @@ type MemeService(
                   "Feast in five!"
                   "Superbloom in ten!" ]
                 |> Seq.randomItem
-            
-            MessageUtils.sendMessage msg.Channel biggsHype
+
+            MessageUtils.sendMessage channel biggsHype
         | i when i = KnownUsers.TazId ->
             let tazHype =
                 [ "Taz'dingo! https://tenor.com/view/arrow-hunting-fierce-nature-shoot-gif-14621316"
                   "You've never seen a more exceptional hunter than Taz! https://tenor.com/view/bow-and-arrow-nerd-happy-cd-glasses-gif-15617156" ]
                 |> Seq.randomItem
-                
-            MessageUtils.sendMessage msg.Channel tazHype
+
+            MessageUtils.sendMessage channel tazHype
         | i when i = KnownUsers.InitId ->
             let initHype =
                 [ "HEY https://tenor.com/view/spongebob-squarepants-chest-bust-rip-shirt-gif-4172168"
@@ -193,8 +182,8 @@ type MemeService(
                   $"{MessageUtils.mentionUser KnownUsers.InitId} explaining why he hasn't painted his walls yet:\n\nhttps://getyarn.io/yarn-clip/ba707bce-ac71-4ce9-ad93-69e53dcd20e2"
                   "https://cdn.discordapp.com/attachments/974783104713625632/1202718739003609238/your-mother.mp4" ]
                 |> Seq.randomItem
-                
-            MessageUtils.sendMessage msg.Channel initHype
+
+            MessageUtils.sendMessage channel initHype
         | i when i = KnownUsers.DemiId ->
             let demiHype =
                 [ "https://cdn.discordapp.com/attachments/974783104713625632/1202718739003609238/your-mother.mp4"
@@ -206,7 +195,7 @@ type MemeService(
                   ]
                 |> Seq.randomItem
 
-            MessageUtils.sendMessage msg.Channel demiHype
+            MessageUtils.sendMessage channel demiHype
         | i when i = KnownUsers.DurzId ->
             let durzHype =
                 [ "Live look at Durz when he casts Hand of Freedom:\n\nhttps://tenor.com/view/speed-wheelchair-me-running-late-gif-14178485"
@@ -214,8 +203,8 @@ type MemeService(
                   $"When {MessageUtils.mentionUser KnownUsers.DurzId} tells us he's done with WoW: https://cdn.discordapp.com/attachments/993576330664878182/1206332994629935265/Video_by_wowentertainer_CzWRBdyNoVb.mp4"
                   "https://tenor.com/view/wheelchair-fall-fail-gif-8902077" ]
                 |> Seq.randomItem
-                
-            MessageUtils.sendMessage msg.Channel durzHype
+
+            MessageUtils.sendMessage channel durzHype
         | i when i = KnownUsers.BopittId ->
             let bopittHype =
                 [ "https://cdn.discordapp.com/attachments/856354026509434890/878451088905342996/bopitt.mp4.mp4"
@@ -223,14 +212,14 @@ type MemeService(
                   "https://www.youtube.com/watch?v=jxo_K7JLZxQ" ]
                 |> Seq.randomItem
 
-            MessageUtils.sendMessage msg.Channel bopittHype
+            MessageUtils.sendMessage channel bopittHype
         | i when i = KnownUsers.BoroId ->
             let boroHype =
                 [ "He's got the motherfuckin' Halo theme song playing, LETS GOOOOO!\n\nhttps://www.youtube.com/watch?v=sCxv2daOwjQ"
                   "https://cdn.discordapp.com/attachments/993576330664878182/1206319981260832788/boro-oh-convoke.wav" ]
                 |> Seq.randomItem
 
-            MessageUtils.sendMessage msg.Channel boroHype
+            MessageUtils.sendMessage channel boroHype
         | _ ->
             let message =
                 // Respond with image 1/5 times
@@ -241,13 +230,13 @@ type MemeService(
                 | _ ->
                     $"{MessageUtils.mentionUser hypeTarget.Id} No."
 
-            MessageUtils.sendMessage msg.Channel message
+            MessageUtils.sendMessage channel message
 
     let handleCommand (msg : IMessage) = function
         | Goulash -> handleGoulashRecipe msg 
         | Slander -> handleSlander msg 
         | AidAgainstSlander -> handleAidAgainstSlander msg
-        | Hype -> Task.toEmpty (handleHypeMessage msg)
+        | Hype -> Task.toEmpty (handleHypeMessage msg.Author msg.Channel)
         | FoxyLocation -> handleFoxyLocation msg
         | _ -> Task.empty
 
