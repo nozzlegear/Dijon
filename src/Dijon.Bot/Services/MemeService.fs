@@ -256,10 +256,20 @@ type MemeService(
             .Build()
 
     let handleHypeCommand (command: SocketSlashCommand) =
-        // TODO: ensure this is only responding to the "hype" command
-        task {
-            do! command.RespondAsync("This bot is currently receiving upgrades, but the Hypebeast will shock drop soon.")
-        }
+        match command.CommandName with
+        | "hype" ->
+            task {
+                let target = command.Data.Options
+                             |> Seq.tryFind (fun x -> x.Name = "target")
+                             |> Option.map (fun x -> x.Value :?> IUser)
+                             |> Option.defaultValue command.User
+
+                do! handleHypeMessage target command.Channel
+            }
+        | _ ->
+            task {
+                do! command.RespondAsync($"This bot doesn't recognize the command \"{command.CommandName}\", please stop being cringe.")
+            }
 
     interface IDisposable with
         member _.Dispose() = 
