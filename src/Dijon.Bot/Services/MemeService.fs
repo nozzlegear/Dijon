@@ -250,7 +250,7 @@ type MemeService(
         SlashCommandBuilder()
             .WithName("hype")
             .WithDescription("Having a bad day? Let Dijon cheer you up! Results may vary.")
-            .WithDMPermission(false)
+            .WithContextTypes(InteractionContextType.Guild, InteractionContextType.BotDm)
             .WithDefaultPermission(true)
             .AddOption(hypeTargetOption)
             .Build()
