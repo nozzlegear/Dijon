@@ -23,11 +23,6 @@ module Extensions =
             return fn result
         }
 
-        static member ignore job = task {
-            let! _ = job
-            ()
-        }
-
         static member catch (job: Task<_>) = task {
             try
                 let! result = job
@@ -39,6 +34,13 @@ module Extensions =
         static member catch (job: Task) =
             Task.toEmpty job
             |> Task.catch
+
+        static member ignore (job: Task<'t>) =
+            task {
+                match! Task.catch job with
+                | Choice1Of2 _ -> return ()
+                | Choice2Of2 ex -> return raise ex
+            }
 
         /// Run the task synchronously and await its result.
         static member runSynchronously (job: Task<_>) =
