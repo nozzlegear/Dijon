@@ -3,7 +3,6 @@ namespace Dijon.Bot.Services
 open Dijon.Bot
 open Dijon.Database
 open Dijon.Shared
-open Dijon.Database.GuildMembers
 open Dijon.Database.LogChannels
 
 open Discord
@@ -13,26 +12,22 @@ open Microsoft.Extensions.Logging
 open System
 open System.Threading.Tasks
 
+type GuildUser =
+    {
+        Nickname: string option
+        UserName: string
+        Discriminator: string
+        AvatarUrl: string
+    }
+
 type UserMonitorService(
     logger : ILogger<UserMonitorService>,
     bot : IBotClient,
-    guildMemberDatabase : IGuildMembersDatabase,
     logChannelDatabase: ILogChannelsDatabase
 ) =
-    let toMemberUpdate (guildUser: IGuildUser): MemberUpdate =
-        { DiscordId = int64 guildUser.Id
-          GuildId = int64 guildUser.GuildId
-          Username = guildUser.Username
-          Discriminator = guildUser.Discriminator
-          Nickname = guildUser.Nickname }
-
-    let mapUsersToMembers (guild: IGuild) =
-        guild.GetUsersAsync()
-        |> Task.map (Seq.map toMemberUpdate)
-
-    let sendUserLeftMessage channel user = 
+    let sendUserLeftMessage channel (user: GuildUser) =
         let nickname = Option.defaultValue user.UserName user.Nickname
-        let message = sprintf "**%s** (%s#%s) has left the server." nickname user.UserName user.Discriminator
+        let message = $"**%s{nickname}** (%s{user.UserName}#%s{user.Discriminator}) has left the server."
         let embed = EmbedBuilder()
         embed.Title <- "👋"
         embed.Description <- message
@@ -41,10 +36,6 @@ type UserMonitorService(
         
         MessageUtils.sendEmbed channel embed
         |> Task.ignore
-
-    let userJoined (user : SocketGuildUser) =
-        guildMemberDatabase.BatchSetAsync [toMemberUpdate user]
-        |> Task.toEmpty
 
     let userLeft (guild: SocketGuild) (user: SocketUser) = 
         let userData: GuildUser = {
@@ -69,10 +60,6 @@ type UserMonitorService(
                     sendUserLeftMessage channel userData
                 | None -> 
                     Task.empty
-            
-            // Delete the user so the app doesn't find it at next startup
-            do! UniqueUser ( DiscordId (int64 user.Id), GuildId (int64 guild.Id) )
-                |> guildMemberDatabase.DeleteAsync
         }
 
     let botLeftGuild (guild : SocketGuild) = 
@@ -116,12 +103,11 @@ type UserMonitorService(
                     after.Guild.Roles
                     |> Seq.find (fun r -> r.Id = memberRoleId)
                     
-                logger.LogInformation("Adding %s role for user %s#%s", memberRole.Name, nickname, after.Discriminator)
+                logger.LogInformation("Adding {RoleName} role for user {UserName}", memberRole.Name, $"{nickname}#{after.Discriminator}")
                 
                 do! after.AddRoleAsync memberRole
             | _, _ ->
                 ()
-                // bot.database.BatchSetAsync [MemberUpdate.FromGuildUser after]
         }
 
     let handleSetLogChannelCommand (msg: IMessage) = 
@@ -146,7 +132,7 @@ type UserMonitorService(
 
     /// Sends a test message indicating that a fake user left the server.
     let handleTestUserLeftCommand (msg : IMessage) = 
-        let fakeUser = {
+        let fakeUser: GuildUser = {
             Nickname = Some "TestUser"
             UserName = "Discord"
             Discriminator = "0000"
@@ -168,27 +154,13 @@ type UserMonitorService(
         member _.StartAsync _ = 
             task {
                 // Wire event listeners
-                bot.AddEventListener (DiscordEvent.UserJoined userJoined)
                 bot.AddEventListener (DiscordEvent.UserLeft userLeft)
                 bot.AddEventListener (DiscordEvent.UserUpdated userUpdated)
                 bot.AddEventListener (DiscordEvent.BotLeftGuild botLeftGuild)
                 bot.AddEventListener (DiscordEvent.CommandReceived handleCommand)
 
-                // Update the list of guild members
-                let! allGuilds = bot.ListGuildsAsync()
-                let! guildMembers =
-                    allGuilds 
-                    |> Seq.map mapUsersToMembers
-                    |> Task.WhenAll
-                    |> Task.map Seq.concat
-
-                do! guildMemberDatabase.BatchSetAsync guildMembers
-
-                logger.LogInformation "Updated list of current guild members"
-
                 // TODO: the bot should look for members that may have left while it was offline and announce them to the configured channel
             }
-            :> Task
-            
+
         member _.StopAsync _ =
             Task.CompletedTask

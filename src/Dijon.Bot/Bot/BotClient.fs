@@ -18,7 +18,6 @@ type CachedChannel = Cacheable<IMessageChannel, uint64>
 
 type DiscordEvent =
     | UserLeft of (SocketGuild -> SocketUser -> Task<unit>)
-    | UserJoined of (SocketGuildUser -> Task<unit>)
     | UserUpdated of (CachedGuildUser -> SocketGuildUser -> Task<unit>)
     | BotLeftGuild of (SocketGuild -> Task<unit>)
     | CommandReceived of (IMessage -> Command -> Task<unit>)
@@ -195,9 +194,6 @@ type BotClient(
             | UserLeft fn ->
                 doubleArgFunc fn
                 |> client.add_UserLeft
-            | UserJoined fn ->
-                singleArgFunc fn
-                |> client.add_UserJoined
             | UserUpdated fn ->
                 doubleArgFunc fn
                 |> client.add_GuildMemberUpdated

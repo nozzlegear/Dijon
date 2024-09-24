@@ -13,8 +13,6 @@
         <Compile Include="StreamAnnouncements\Models.fs" />
         <Compile Include="StreamAnnouncements\StreamAnnouncementsDatabase.fs" />
         <Compile Include="LogChannels\LogChannelsDatabase.fs" />
-        <Compile Include="GuildMembers\Models.fs" />
-        <Compile Include="GuildMembers\GuildMembersDatabase.fs" />
         <Compile Include="AffixChannels\Models.fs" />
         <Compile Include="AffixChannels\AffixChannelsDatabase.fs" />
         <Compile Include="MessageReactionGuards\Models.fs" />
