@@ -11,6 +11,7 @@ open System
 type IAffixChannelsDatabase =
     abstract member ListAllAffixChannels: unit -> Task<AffixChannel list>
     abstract member GetAffixChannelForGuild: GuildId -> Task<AffixChannel option>
+    abstract member RemoveAffixesChannelForGuild: guildId: GuildId -> Task<unit>
     abstract member SetAffixesChannelForGuild: guildId: GuildId -> channelId: int64 -> Task<unit>
     abstract member SetLastAffixesPostedForGuild: guildId: GuildId -> lastAffixesTitle: string -> Task<unit>
 
@@ -46,7 +47,7 @@ type AffixChannelsDatabase(
             |> Sql.executeAsync mapReaderToAffixChannels
             |> Task.map Seq.tryHead
 
-        member x.ListAllAffixChannels () =
+        member _.ListAllAffixChannels () =
             let sql = """
                 SELECT * FROM DIJON_AFFIXES_CHANNELS
             """
@@ -55,7 +56,22 @@ type AffixChannelsDatabase(
             |> Sql.query sql
             |> Sql.executeAsync mapReaderToAffixChannels
 
-        member x.SetAffixesChannelForGuild guildId channelId =
+        member _.RemoveAffixesChannelForGuild guildId =
+            let sql = """
+                DELETE FROM
+                    DIJON_AFFIXES_CHANNELS
+                WHERE
+                    GuildId = @guildId
+            """
+            Sql.connect connectionString
+            |> Sql.query sql
+            |> Sql.parameters [
+                "guildId", match guildId with GuildId g -> Sql.int64 g
+            ]
+            |> Sql.executeNonQueryAsync
+            |> dapperHelpers.IgnoreResult
+
+        member _.SetAffixesChannelForGuild guildId channelId =
             let sql = """
                 MERGE DIJON_AFFIXES_CHANNELS as Target
                 USING (

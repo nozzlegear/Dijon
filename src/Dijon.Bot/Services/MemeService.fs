@@ -264,6 +264,7 @@ type MemeService(
                              |> Option.map (fun x -> x.Value :?> IUser)
                              |> Option.defaultValue command.User
 
+                do! command.DeferAsync(true)
                 do! handleHypeMessage target command.Channel
             }
         | _ ->
