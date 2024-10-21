@@ -1,9 +1,5 @@
-FROM mcr.microsoft.com/dotnet/sdk:7.0-alpine3.18 as Builder
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS Builder
 WORKDIR /app
-
-# Configure dotnet
-ENV DOTNET_USE_POLLING_FILE_WATCHER 1
-ENV PATH="${PATH}:/root/.dotnet/tools"
 
 # Copy source files and restore dependencies. Skipping Docker layer caches because it's unlikely to be useful here
 # since fsproj files change whenever a new F# file is added to a project.
@@ -21,25 +17,19 @@ RUN dotnet restore --use-lock-file --locked-mode --configfile nuget.config
 RUN dotnet test --no-restore --results-directory /app/testresults --logger "trx;LogFileName=testresults.xml"
 
 # Publish the project
-RUN dotnet publish --no-self-contained src/Dijon.Bot/Dijon.Bot.fsproj -c Release -o dist -r linux-musl-x64
+RUN dotnet publish -c Release -o dist src/Dijon.Bot/Dijon.Bot.fsproj
 
 # Switch to alpine for running the application
-FROM mcr.microsoft.com/dotnet/runtime:7.0-alpine3.18
+FROM mcr.microsoft.com/dotnet/runtime:8.0-jammy-chiseled-extra AS Runlayer
 WORKDIR /app
 
 # Fix SqlClient invariant errors when dotnet core runs in an alpine container
 # https://github.com/dotnet/SqlClient/issues/220
-RUN apk add icu-libs
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
-
-# Add timezone info (tzdata package) to Alpine
-# https://github.com/dotnet/dotnet-docker/issues/1366
-RUN apk add --no-cache tzdata
 
 # Copy the built files from Builder container
 COPY --from=0 /app/dist /app/dist
 COPY --from=0 /app/testresults /app/testresults
-RUN chmod +x /app/dist/Dijon.Bot
 
 # Run the built executable on startup
-CMD [ "/app/dist/Dijon.Bot" ]
+ENTRYPOINT ["dotnet", "/app/dist/Dijon.Bot.dll"]
