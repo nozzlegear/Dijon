@@ -53,7 +53,7 @@ jobs:
         # Use a host fingerprint to ensure we always connect to the same server
         fingerprint: ${{ secrets.DEPLOY_SSH_HOST_FINGERPRINT }}
         source: ".github/scripts/deploy-dijon.fish"
-        target: "~/deployments"
+        target: "~/sites-enabled/dijon"
         # Strip the first two folder names from the deployed file (e.g. remove `.github/scripts`)
         strip_components: 2
         overwrite: true
