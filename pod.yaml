@@ -1,0 +1,77 @@
+# Save the output of this file and use kubectl create -f to import
+# it into Kubernetes.
+#
+# Created with podman-4.3.1
+apiVersion: v1
+kind: Pod
+metadata:
+  #annotations:
+  #  io.kubernetes.cri-o.ContainerType/dijonbot: container
+  #  io.kubernetes.cri-o.ContainerType/dijondb: container
+  #  io.kubernetes.cri-o.SandboxID/dijonbot: 6a45990d95f12bacf857515e5b1b29a7e5a4c6163b41a88b09caf41fd51c6bb
+  #  io.kubernetes.cri-o.SandboxID/dijondb: 6a45990d95f12bacf857515e5b1b29a7e5a4c6163b41a88b09caf41fd51c6bb
+  #  io.kubernetes.cri-o.TTY/dijonbot: "true"
+  #  io.kubernetes.cri-o.TTY/dijondb: "true"
+  #  io.podman.annotations.autoremove/dijonbot: "FALSE"
+  #  io.podman.annotations.autoremove/dijondb: "FALSE"
+  #  io.podman.annotations.init/dijonbot: "FALSE"
+  #  io.podman.annotations.init/dijondb: "FALSE"
+  #  io.podman.annotations.privileged/dijonbot: "FALSE"
+  #  io.podman.annotations.privileged/dijondb: "FALSE"
+  #  io.podman.annotations.publish-all/dijonbot: "FALSE"
+  #  io.podman.annotations.publish-all/dijondb: "FALSE"
+  creationTimestamp: "2024-10-22T15:09:50Z"
+  labels:
+    app: dijonpod
+  name: dijon_pod
+spec:
+  #automountServiceAccountToken: false
+  containers:
+  - args:
+    - /opt/mssql/bin/sqlservr
+    env:
+    - name: ACCEPT_EULA
+      value: "Y"
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    name: db
+    ports:
+    - containerPort: 1433
+      hostPort: 4001
+    resources: {}
+    securityContext:
+      capabilities:
+        drop:
+        - CAP_MKNOD
+        - CAP_NET_RAW
+        - CAP_AUDIT_WRITE
+    stdin: true
+    tty: true
+    volumeMounts:
+    - mountPath: /var/opt/mssql
+      name: db_pvc
+  - image: nozzlegear.azurecr.io/dijon:43
+    name: dijonbot
+    resources: {}
+    volumeMounts:
+    - mountPath: /run/secrets
+      name: bot_secrets
+      readOnly: true
+      #securityContext:
+      #  capabilities:
+      #    drop:
+      #    - CAP_MKNOD
+      #    - CAP_NET_RAW
+      #    - CAP_AUDIT_WRITE
+    stdin: true
+    tty: true
+    #enableServiceLinks: false
+  hostname: dijon_pod
+  restartPolicy: Never
+  volumes:
+  - name: db_pvc
+    persistentVolumeClaim:
+      claimName: dijon_pod_db
+  - name: bot_secrets
+    secret:
+      secretName: dijon_bot_secrets
+status: {}
