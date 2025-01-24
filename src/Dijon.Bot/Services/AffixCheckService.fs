@@ -47,11 +47,11 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
 
         builder
 
-    let postAffixesMessageAsync (_ : GuildId) (channelId : int64) (affixes: RaiderIo.ListAffixesResponse) =
+    let postAffixesMessageAsync (_ : GuildId) (channelId : int64) (affixes: ListAffixesResponse) =
         task {
             // TODO: why is this commented out? we aren't we waiting here?
             // Wait for the bot's ready event to fire. If the bot is not yet ready, the channel will be null
-            //readyEvent.WaitOne() |> ignore
+            // readyEvent.WaitOne() |> ignore
 
             $"Posting affixes to channel %i{channelId}"
             |> logger.LogInformation
@@ -219,19 +219,16 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
                     let message =
                         "At the moment, only "
                         + MentionUtils.MentionUser KnownUsers.DjurId
-                        + " may set the affxes channel."
-                    MessageUtils.sendMessage command.Channel message
+                        + " may set the affixes channel."
+                    return! MessageUtils.sendMessage command.Channel message
                 else
-                    task {
-                        let guildId = GuildId (int64 guildChannel.Guild.Id)
-                        do! database.SetAffixesChannelForGuild guildId (int64 command.Channel.Id)
-                        do! MessageUtils.sendMessage command.Channel "Affixes will be sent to this channel every Tuesday."
-                    }
+                    let guildId = GuildId (int64 guildChannel.Guild.Id)
+                    do! database.SetAffixesChannelForGuild guildId (int64 command.Channel.Id)
+                    do! MessageUtils.sendMessage command.Channel "Affixes will be sent to this channel every Tuesday."
             | :? ISocketPrivateChannel ->
-                MessageUtils.sendMessage command.Channel "Unable to set log channel in a private message."
+                return! MessageUtils.sendMessage command.Channel "Unable to set log channel in a private message."
             | x ->
-                MessageUtils.sendMessage x "Unable to set log channel in unknown channel type."
-                return failwith "nyi"
+                return! MessageUtils.sendMessage x "Unable to set log channel in unknown channel type."
         }
 
     let handleSlashCommandExecuted (command: SocketSlashCommand) =
@@ -242,7 +239,7 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
     let buildRemoveAffixesChannelCommand () =
         SlashCommandBuilder()
             .WithName(StopAffixesCommandName)
-            .WithDescription("Turn off Dijon's weekly M+ Affixes check. You can still use the /affixes command to check M+ Affixes on demand.")
+            .WithDescription("Turn off Dijon's weekly M+ Affixes check.")
             .WithContextTypes(InteractionContextType.Guild)
             .WithDefaultMemberPermissions(GuildPermission.Administrator)
             .Build()
@@ -265,6 +262,6 @@ type AffixCheckService(logger : ILogger<AffixCheckService>,
 
         member _.StopAsync cancellationToken =
             timer
-            |> Option.iter (fun timer -> timer.Stop())
+            |> Option.iter (_.Stop())
 
             Task.CompletedTask

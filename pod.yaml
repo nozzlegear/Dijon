@@ -32,6 +32,8 @@ spec:
     env:
     - name: ACCEPT_EULA
       value: "Y"
+    - name: MSSQL_SA_PASSWORD
+      value: "a-BAD_passw0rd"
     image: mcr.microsoft.com/mssql/server:2022-latest
     name: db
     ports:
@@ -49,7 +51,7 @@ spec:
     volumeMounts:
     - mountPath: /var/opt/mssql
       name: db_pvc
-  - image: nozzlegear.azurecr.io/dijon:43
+  - image: localhost/nozzlegear/dijon:latest #nozzlegear.azurecr.io/dijon:43
     name: dijonbot
     resources: {}
     volumeMounts:

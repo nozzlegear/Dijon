@@ -15,5 +15,6 @@ type BotClientHost(
             bot.InitAsync (cancellationToken)
 
         member _.StopAsync _ =
+            logger.LogTrace("Initializing Bot")
             Task.CompletedTask
     end

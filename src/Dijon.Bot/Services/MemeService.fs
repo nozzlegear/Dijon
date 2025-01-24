@@ -268,9 +268,8 @@ type MemeService(
                 do! handleHypeMessage target command.Channel
             }
         | _ ->
-            task {
-                do! command.RespondAsync($"This bot doesn't recognize the command \"{command.CommandName}\", please stop being cringe.")
-            }
+            // do! command.RespondAsync($"This bot doesn't recognize the command \"{command.CommandName}\", please stop being cringe.")
+            Task.empty
 
     interface IDisposable with
         member _.Dispose() =

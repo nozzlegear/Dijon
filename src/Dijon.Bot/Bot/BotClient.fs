@@ -136,6 +136,7 @@ type BotClient(
             do! client.LoginAsync(TokenType.Bot, token)
             do! client.StartAsync()
             do! client.SetGameAsync "This Is Legal But We Question The Ethics"
+            logger.LogInformation("Bot has connected")
         }
 
     let handleBotDisconnected (ex: exn) =
@@ -143,8 +144,9 @@ type BotClient(
         Task.CompletedTask
 
     let handleReadyEvent () =
-        readyEvent.Set()
-        |> ignore
+        logger.LogInformation("Bot is sending ready event")
+        let setResult = readyEvent.Set()
+        logger.LogInformation("Bot sent ready event, result was {setResult}", setResult)
         Task.CompletedTask
 
     interface IAsyncDisposable with
@@ -166,8 +168,9 @@ type BotClient(
 
                 do! connect()
 
-                readyEvent.WaitOne()
-                |> ignore
+                logger.LogWarning("InitAsync is about to wait for ready event")
+                let waitResult = readyEvent.WaitOne()
+                logger.LogInformation("InitAsync finished waiting for ready event, result was {waitResult}", waitResult)
             }
 
         member _.GetChannel (channelId : int64) =

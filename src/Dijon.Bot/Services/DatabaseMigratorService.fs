@@ -15,7 +15,7 @@ type DatabaseMigratorService (
     
     interface IHostedService with
         member x.StartAsync _ =
-            logger.LogInformation "Migrating database to latest version."
+            logger.LogInformation("Migrating database to latest version using connection string {ConnStr}", dbOptions.Value.DefaultConnection)
             Migrator.migrate Migrator.Latest dbOptions.Value.DefaultConnection
             Task.CompletedTask
 
