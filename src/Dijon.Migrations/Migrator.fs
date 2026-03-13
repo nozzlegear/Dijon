@@ -2,7 +2,7 @@
 
 open SimpleMigrations
 open SimpleMigrations.DatabaseProvider
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 module Migrator =
     type MigrationTarget =

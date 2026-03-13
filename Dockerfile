@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS Builder
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS Builder
 WORKDIR /app
 
 # Copy source files and restore dependencies. Skipping Docker layer caches because it's unlikely to be useful here
@@ -20,7 +20,7 @@ RUN dotnet test --no-restore --results-directory /app/testresults --logger "trx;
 RUN dotnet publish -c Release -o dist src/Dijon.Bot/Dijon.Bot.fsproj
 
 # Switch to alpine for running the application
-FROM mcr.microsoft.com/dotnet/runtime:8.0-jammy-chiseled-extra AS Runlayer
+FROM mcr.microsoft.com/dotnet/runtime:10.0-noble-chiseled-extra AS Runlayer
 WORKDIR /app
 
 # Fix SqlClient invariant errors when dotnet core runs in an alpine container
