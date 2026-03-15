@@ -8,8 +8,6 @@
 
     <ItemGroup>
         <Compile Include="Models.fs" />
-        <Compile Include="Operators.fs" />
-        <Compile Include="DapperHelpers.fs" />
         <Compile Include="StreamAnnouncements\Models.fs" />
         <Compile Include="StreamAnnouncements\StreamAnnouncementsDatabase.fs" />
         <Compile Include="LogChannels\LogChannelsDatabase.fs" />
@@ -21,8 +19,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Dapper" />
-      <PackageReference Include="DustyTables" />
+      <PackageReference Include="Npgsql" />
+      <PackageReference Include="Npgsql.FSharp" />
       <PackageReference Include="FSharp.Core" />
       <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
       <PackageReference Include="Microsoft.Extensions.Hosting" />

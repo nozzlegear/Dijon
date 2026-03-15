@@ -5,10 +5,10 @@
     <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Dapper" Version="2.1.72" />
     <PackageVersion Include="Faqt" Version="5.1.0" />
-    <PackageVersion Include="FSharp.Core" Version="9.0.303" />
-    <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.4" />
+    <PackageVersion Include="FSharp.Core" Version="11.0.100" />
+    <PackageVersion Include="Npgsql" Version="10.0.2" />
+    <PackageVersion Include="Npgsql.FSharp" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.5" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.KeyPerFile" Version="10.0.5" />
@@ -27,7 +27,6 @@
     <PackageVersion Include="taskbuilder.fs" Version="2.1" />
     <PackageVersion Include="cronos" Version="0.11.1" />
     <PackageVersion Include="TimeZoneConverter" Version="7.2.0" />
-    <PackageVersion Include="DustyTables" Version="4.0" />
     <PackageVersion Include="LazyCache" Version="2.4.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />

@@ -51,7 +51,6 @@
     <PackageReference Include="taskbuilder.fs" />
     <PackageReference Include="cronos" />
     <PackageReference Include="TimeZoneConverter" />
-    <PackageReference Include="DustyTables" />
     <PackageReference Include="LazyCache" />
   </ItemGroup>
   <ItemGroup>
