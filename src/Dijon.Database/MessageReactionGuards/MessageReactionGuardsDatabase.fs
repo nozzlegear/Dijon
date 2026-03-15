@@ -3,7 +3,7 @@ namespace Dijon.Database.MessageReactionGuards
 open Dijon.Database
 open Dijon.Shared
 
-open DustyTables
+open Npgsql.FSharp
 open Microsoft.Extensions.Options
 open System.Threading.Tasks
 
@@ -17,27 +17,36 @@ type MessageReactionGuardDatabase(options: IOptions<ConnectionStrings>) =
 
     interface IMessageReactionGuardDatabase with
         member _.MessageIsReactionGuarded messageId =
-            Sql.connect connectionString
-            |> Sql.storedProcedure "sp_MessageIsReactionGuarded"
-            |> Sql.parameters
-                [ "@messageId", Sql.int64 messageId ]
-            |> Sql.executeRowAsync (fun r -> r.bool "IsReactionGuarded")
+            connectionString
+            |> Sql.connect
+            |> Sql.query """
+                SELECT EXISTS(
+                    SELECT 1 FROM dijon_reaction_guarded_messages WHERE message_id = @messageId
+                ) AS is_guarded
+            """
+            |> Sql.parameters [ "messageId", Sql.int64 messageId ]
+            |> Sql.executeAsync (fun r -> r.bool "is_guarded")
+            |> Task.map List.head
 
         member _.AddReactionGuardedMessage message =
-            Sql.connect connectionString
-            |> Sql.storedProcedure "sp_AddReactionGuardedMessage"
+            connectionString
+            |> Sql.connect
+            |> Sql.query """
+                INSERT INTO dijon_reaction_guarded_messages (guild_id, channel_id, message_id)
+                VALUES (@guildId, @channelId, @messageId)
+            """
             |> Sql.parameters
-                [ "@guildId", Sql.int64 message.GuildId
-                  "@channelId", Sql.int64 message.ChannelId
-                  "@messageId", Sql.int64 message.MessageId ]
+                [ "guildId", Sql.int64 message.GuildId
+                  "channelId", Sql.int64 message.ChannelId
+                  "messageId", Sql.int64 message.MessageId ]
             |> Sql.executeNonQueryAsync
             |> Task.ignore
 
         member _.RemoveReactionGuardedMessage messageId =
-            Sql.connect connectionString
-            |> Sql.storedProcedure "sp_RemoveReactionGuardedMessage"
-            |> Sql.parameters
-                [ "@messageId", Sql.int64 messageId ]
+            connectionString
+            |> Sql.connect
+            |> Sql.query "DELETE FROM dijon_reaction_guarded_messages WHERE message_id = @messageId"
+            |> Sql.parameters [ "messageId", Sql.int64 messageId ]
             |> Sql.executeNonQueryAsync
             |> Task.ignore
     end

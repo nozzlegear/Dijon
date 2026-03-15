@@ -20,7 +20,6 @@ module Extensions =
                 .ValidateDataAnnotations()
                 .ValidateOnStart() |> ignore
 
-            services.TryAddSingleton<IDapperHelpers, DapperHelpers>()
             services.TryAddSingleton<IStreamAnnouncementsDatabase, StreamAnnouncementsDatabase>()
             services.TryAddSingleton<ILogChannelsDatabase, LogChannelsDatabase>()
             services.TryAddSingleton<IAffixChannelsDatabase, AffixChannelsDatabase>()

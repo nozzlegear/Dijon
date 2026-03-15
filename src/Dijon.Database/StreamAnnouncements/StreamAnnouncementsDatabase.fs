@@ -3,7 +3,7 @@ namespace Dijon.Database.StreamAnnouncements
 open Dijon.Database
 open Dijon.Shared
 
-open DustyTables
+open Npgsql.FSharp
 open Microsoft.Extensions.Options
 open System.Threading.Tasks
 
@@ -21,48 +21,58 @@ type IStreamAnnouncementsDatabase =
 type StreamAnnouncementsDatabase(options: IOptions<ConnectionStrings>) =
     let connectionString = options.Value.DefaultConnection
 
-    let mapStreamAnnouncementMessages (read : RowReader) : StreamAnnouncementMessage =
-        { Id = read.int "Id"
-          DateCreated = read.dateTimeOffset "DateCreated"
-          GuildId = read.int64 "GuildId"
-          ChannelId = read.int64 "ChannelId"
-          MessageId = read.int64 "MessageId"
-          StreamerId = read.int64 "StreamerId" }
+    let mapStreamAnnouncementMessages (read: RowReader) : StreamAnnouncementMessage =
+        { Id = read.int "id"
+          DateCreated = read.datetimeOffset "date_created"
+          GuildId = read.int64 "guild_id"
+          ChannelId = read.int64 "channel_id"
+          MessageId = read.int64 "message_id"
+          StreamerId = read.int64 "streamer_id" }
 
-    let mapStreamAnnouncementChannels (read : RowReader) : StreamAnnouncementChannel =
-        { Id = read.int "Id"
-          GuildId = read.int64 "GuildId"
-          ChannelId = read.int64 "ChannelId"
-          StreamerRoleId = read.int64 "StreamerRoleId" }
+    let mapStreamAnnouncementChannels (read: RowReader) : StreamAnnouncementChannel =
+        { Id = read.int "id"
+          GuildId = read.int64 "guild_id"
+          ChannelId = read.int64 "channel_id"
+          StreamerRoleId = read.int64 "streamer_role_id" }
 
     interface IStreamAnnouncementsDatabase with
         member _.SetStreamAnnouncementChannelForGuild channel =
-            Sql.connect connectionString
-            |> Sql.storedProcedure "sp_SetStreamAnnouncementChannelForGuild"
+            connectionString
+            |> Sql.connect
+            |> Sql.query """
+                INSERT INTO dijon_stream_announcement_channels (guild_id, channel_id, streamer_role_id)
+                VALUES (@guildId, @channelId, @streamerRoleId)
+                ON CONFLICT (guild_id) DO UPDATE
+                    SET channel_id = @channelId,
+                        streamer_role_id = @streamerRoleId
+            """
             |> Sql.parameters
-                [ "@guildId", Sql.int64 channel.GuildId
-                  "@channelId", Sql.int64 channel.ChannelId
-                  "@streamerRoleId", Sql.int64 channel.StreamerRoleId ]
+                [ "guildId", Sql.int64 channel.GuildId
+                  "channelId", Sql.int64 channel.ChannelId
+                  "streamerRoleId", Sql.int64 channel.StreamerRoleId ]
             |> Sql.executeNonQueryAsync
             |> Task.ignore
 
         member _.GetStreamAnnouncementChannelForGuild guildId =
-            Sql.connect connectionString
-            |> Sql.storedProcedure "sp_GetStreamAnnouncementChannelForGuild"
-            |> Sql.parameters [ "@guildId", Sql.int64 guildId.AsInt64 ]
+            connectionString
+            |> Sql.connect
+            |> Sql.query "SELECT * FROM dijon_stream_announcement_channels WHERE guild_id = @guildId"
+            |> Sql.parameters [ "guildId", Sql.int64 guildId.AsInt64 ]
             |> Sql.executeAsync mapStreamAnnouncementChannels
-            |> Task.map Seq.tryHead
+            |> Task.map List.tryHead
 
         member _.DeleteStreamAnnouncementChannelForGuild guildId =
-            Sql.connect connectionString
-            |> Sql.storedProcedure "sp_UnsetStreamAnnouncementChannelForGuild"
-            |> Sql.parameters [ "@guildId", Sql.int64 guildId.AsInt64 ]
+            connectionString
+            |> Sql.connect
+            |> Sql.query "DELETE FROM dijon_stream_announcement_channels WHERE guild_id = @guildId"
+            |> Sql.parameters [ "guildId", Sql.int64 guildId.AsInt64 ]
             |> Sql.executeNonQueryAsync
             |> Task.ignore
 
         member _.ListStreamAnnouncementChannels () =
-            Sql.connect connectionString
-            |> Sql.storedProcedure "sp_ListStreamAnnouncementChannels"
+            connectionString
+            |> Sql.connect
+            |> Sql.query "SELECT * FROM dijon_stream_announcement_channels"
             |> Sql.executeAsync mapStreamAnnouncementChannels
 
         member self.ListStreamerRoles () =
@@ -76,36 +86,39 @@ type StreamAnnouncementsDatabase(options: IOptions<ConnectionStrings>) =
             }
 
         member _.AddStreamAnnouncementMessage message =
-            Sql.connect connectionString
-            |> Sql.storedProcedure "sp_AddStreamAnnouncementMessage"
+            connectionString
+            |> Sql.connect
+            |> Sql.query """
+                INSERT INTO dijon_stream_announcement_messages (guild_id, channel_id, message_id, streamer_id)
+                VALUES (@guildId, @channelId, @messageId, @streamerId)
+            """
             |> Sql.parameters
-                [ "@guildId", Sql.int64 message.GuildId
-                  "@channelId", Sql.int64 message.ChannelId
-                  "@messageId", Sql.int64 message.MessageId
-                  "@streamerId", Sql.int64 message.StreamerId ]
+                [ "guildId", Sql.int64 message.GuildId
+                  "channelId", Sql.int64 message.ChannelId
+                  "messageId", Sql.int64 message.MessageId
+                  "streamerId", Sql.int64 message.StreamerId ]
             |> Sql.executeNonQueryAsync
             |> Task.ignore
 
         member _.ListStreamAnnouncementMessagesForStreamer streamerId =
-            Sql.connect connectionString
-            |> Sql.storedProcedure "sp_ListStreamAnnouncementMessagesForStreamer"
-            |> Sql.parameters
-                [ "@streamerId", Sql.int64 streamerId ]
+            connectionString
+            |> Sql.connect
+            |> Sql.query "SELECT * FROM dijon_stream_announcement_messages WHERE streamer_id = @streamerId"
+            |> Sql.parameters [ "streamerId", Sql.int64 streamerId ]
             |> Sql.executeAsync mapStreamAnnouncementMessages
 
         member _.ListStreamAnnouncementMessagesForGuild guildId =
-            Sql.connect connectionString
-            |> Sql.storedProcedure "sp_ListStreamAnnouncementMessagesForGuild"
-            |> Sql.parameters
-                [ "@guildId", Sql.int64 guildId ]
+            connectionString
+            |> Sql.connect
+            |> Sql.query "SELECT * FROM dijon_stream_announcement_messages WHERE guild_id = @guildId"
+            |> Sql.parameters [ "guildId", Sql.int64 guildId ]
             |> Sql.executeAsync mapStreamAnnouncementMessages
 
         member _.DeleteStreamAnnouncementMessageForStreamer streamerId =
-            Sql.connect connectionString
-            |> Sql.storedProcedure "sp_DeleteStreamAnnouncementMessageForStreamer"
-            |> Sql.parameters
-                [ "@streamerId", Sql.int64 streamerId ]
+            connectionString
+            |> Sql.connect
+            |> Sql.query "DELETE FROM dijon_stream_announcement_messages WHERE streamer_id = @streamerId"
+            |> Sql.parameters [ "streamerId", Sql.int64 streamerId ]
             |> Sql.executeNonQueryAsync
             |> Task.ignore
     end
-
