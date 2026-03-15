@@ -1,31 +1,31 @@
-﻿namespace Dijon.Migrations
+namespace Dijon.Migrations
 
 open SimpleMigrations
 open SimpleMigrations.DatabaseProvider
-open Microsoft.Data.SqlClient
+open Npgsql
 
 module Migrator =
     type MigrationTarget =
         | Latest
         | Baseline of int64
         | Target of int64
-        
+
     let migrate direction (connStr : string) =
         let assembly = typeof<Migration_01>.Assembly
-        
-        use connection = new SqlConnection(connStr)
+
+        use connection = new NpgsqlConnection(connStr)
         connection.Open()
-        let provider = MssqlDatabaseProvider connection
+        let provider = PostgresqlDatabaseProvider connection
         // Customize the name of the migration history table
-        provider.TableName <- "Dijon_Migrations"
+        provider.TableName <- "dijon_migrations"
         let migrator = SimpleMigrator(assembly, provider)
-        
+
         migrator.Load()
-        
+
         match direction with
         | Latest ->
             migrator.MigrateToLatest()
         | Baseline target ->
             migrator.Baseline target
         | Target target ->
-            migrator.MigrateTo target 
+            migrator.MigrateTo target

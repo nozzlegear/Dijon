@@ -2,52 +2,60 @@ namespace Dijon.Migrations
 
 open SimpleMigrations
 
-[<Migration(1L, "Initial database migration")>]
+[<Migration(1L, "Initial database schema")>]
 type Migration_01() =
     inherit Migration() with
         override x.Down() =
-            x.Execute "DROP TABLE DIJON_MEMBER_RECORDS"
-            x.Execute "DROP TABLE DIJON_LOG_CHANNELS"
-            x.Execute "DROP TABLE DIJON_AFFIXES_CHANNELS"
-        
+            x.Execute "DROP TABLE IF EXISTS dijon_reaction_guarded_messages"
+            x.Execute "DROP TABLE IF EXISTS dijon_stream_announcement_messages"
+            x.Execute "DROP TABLE IF EXISTS dijon_stream_announcement_channels"
+            x.Execute "DROP TABLE IF EXISTS dijon_affix_channels"
+            x.Execute "DROP TABLE IF EXISTS dijon_log_channels"
+
         override x.Up() =
             x.Execute """
-                IF NOT EXISTS (SELECT * FROM sys.tables
-                WHERE name = N'DIJON_MEMBER_RECORDS' AND type = 'U')
-
-                BEGIN
-                CREATE TABLE [dbo].[DIJON_MEMBER_RECORDS] (
-                    Id int identity(1,1) primary key,
-                    DiscordId bigint not null index idx_discordid,
-                    GuildId bigint not null index idx_guildid,
-                    FirstSeenAt datetime2 not null,
-                    Username nvarchar(500) not null,
-                    Discriminator nvarchar (12) not null,
-                    Nickname nvarchar (1000) null
+                CREATE TABLE dijon_log_channels (
+                    id         SERIAL PRIMARY KEY,
+                    guild_id   BIGINT NOT NULL,
+                    channel_id BIGINT NOT NULL,
+                    CONSTRAINT uq_log_channels_guild_id UNIQUE (guild_id)
                 )
-                END
             """
             x.Execute """
-                IF NOT EXISTS (SELECT * FROM sys.tables
-                WHERE name = N'DIJON_LOG_CHANNELS' AND type = 'U')
-
-                BEGIN
-                CREATE TABLE [dbo].[DIJON_LOG_CHANNELS] (
-                    Id int identity(1,1) primary key,
-                    GuildId bigint not null index idx_guildid,
-                    ChannelId bigint not null
+                CREATE TABLE dijon_affix_channels (
+                    id                  SERIAL PRIMARY KEY,
+                    guild_id            BIGINT NOT NULL,
+                    channel_id          BIGINT NOT NULL,
+                    last_affixes_posted VARCHAR(1000) NULL,
+                    CONSTRAINT uq_affix_channels_guild_id UNIQUE (guild_id)
                 )
-                END
             """
             x.Execute """
-                IF NOT EXISTS (SELECT * FROM sys.tables
-                WHERE name = N'DIJON_AFFIXES_CHANNELS' AND type = 'U')
-                
-                BEGIN
-                CREATE TABLE [dbo].[DIJON_AFFIXES_CHANNELS] (
-                    Id int identity(1,1) primary key,
-                    GuildId bigint not null index idx_guildid,
-                    ChannelId bigint not null
+                CREATE TABLE dijon_stream_announcement_channels (
+                    id               SERIAL PRIMARY KEY,
+                    guild_id         BIGINT NOT NULL,
+                    channel_id       BIGINT NOT NULL,
+                    streamer_role_id BIGINT NOT NULL,
+                    CONSTRAINT uq_stream_channels_guild_id UNIQUE (guild_id)
                 )
-                END
             """
+            x.Execute """
+                CREATE TABLE dijon_stream_announcement_messages (
+                    id           SERIAL PRIMARY KEY,
+                    date_created TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    guild_id     BIGINT NOT NULL,
+                    channel_id   BIGINT NOT NULL,
+                    message_id   BIGINT NOT NULL,
+                    streamer_id  BIGINT NOT NULL
+                )
+            """
+            x.Execute "CREATE INDEX idx_stream_messages_streamer_id ON dijon_stream_announcement_messages (streamer_id)"
+            x.Execute """
+                CREATE TABLE dijon_reaction_guarded_messages (
+                    id         SERIAL PRIMARY KEY,
+                    guild_id   BIGINT NOT NULL,
+                    channel_id BIGINT NOT NULL,
+                    message_id BIGINT NOT NULL
+                )
+            """
+            x.Execute "CREATE INDEX idx_reaction_guards_message_id ON dijon_reaction_guarded_messages (message_id)"
