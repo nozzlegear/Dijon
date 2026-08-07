@@ -41,67 +41,18 @@ type BotClient(
     logger: ILogger<BotClient>
 ) =
     let client = new DiscordSocketClient(DiscordSocketConfig( GatewayIntents = GatewayIntents.All ))
-    let readyEvent = new ManualResetEvent false
+    let readySignal = Event<unit>()
     let token = options.Value.ApiToken
 
-    let singleArgFunc (fn : 'a -> Task<unit>) =
-        // Transform the F# function to a C# Func<'a, Task>
-        Func<'a, Task>(fun arg ->
-            // Don't call the handler until we know the socket client is ready
-            readyEvent.WaitOne()
-            |> ignore
-
-            task {
-                match! Task.catch (fn arg) with
-                | Choice1Of2 _ ->
-                    ()
-                | Choice2Of2 err ->
-                    logger.LogError(err, "Single arg event listener failed: {0}", err.Message)
-            }
-        )
-
-    let doubleArgFunc (fn : 'a -> 'b -> Task<unit>) =
-        // Transform the F# function to a C# Func<'a, 'b', Task>
-        Func<'a, 'b, Task>(fun a b ->
-            // Don't call the handler until we know the socket client is ready
-            readyEvent.WaitOne()
-            |> ignore
-
-            let task = task {
-                match! Task.catch (fn a b) with
-                | Choice1Of2 _ ->
-                    ()
-                | Choice2Of2 err ->
-                    logger.LogError(err, "Double arg event listener failed: {0}", err.Message)
-            }
-
-            task :> Task
-        )
-
-    let tripleArgFunc (fn : 'a -> 'b -> 'c -> Task<unit>) =
-        // Transform the F# function to a C# Func<'a, 'b', Task>
-        Func<'a, 'b, 'c, Task>(fun a b c ->
-            // Don't call the handler until we know the socket client is ready
-            readyEvent.WaitOne()
-            |> ignore
-
-            let task = task {
-                match! Task.catch (fn a b c) with
-                | Choice1Of2 _ ->
-                    ()
-                | Choice2Of2 err ->
-                    logger.LogError(err, "Triple arg event listener failed: {0}", err.Message)
-            }
-
-            task :> Task
-        )
+    let withErrorHandling (eventName: string) (job: Task<unit>) : Task =
+        task {
+            match! Task.catch job with
+            | Choice1Of2 _ -> ()
+            | Choice2Of2 err -> logger.LogError(err, "{EventName} handler failed: {0}", eventName, err.Message)
+        } :> Task
 
     /// Delegates command messages and runs them off the main thread, so that they don't block the socket client's gateway task.
     let delegateCommandMessages (fn : IMessage -> Command -> Task<unit>) (msg : IMessage) =
-        // Don't call the handler until we know the socket client is ready
-        readyEvent.WaitOne()
-        |> ignore
-        // Parse the message and invoke the handler off the main thread
         Task.start(task {
             match CommandParser.ParseCommand msg with
             | Ignore ->
@@ -143,31 +94,32 @@ type BotClient(
         Task.CompletedTask
 
     let handleReadyEvent () =
-        readyEvent.Set()
-        |> ignore
+        logger.LogInformation("Bot received ready event from Discord, triggering ready signal")
+        readySignal.Trigger(())
         Task.CompletedTask
 
     interface IAsyncDisposable with
         member _.DisposeAsync () =
             logger.LogWarning("Something attempted to dispose the bot.")
-            readyEvent.Dispose()
             ValueTask.CompletedTask
-            //client.StopAsync()
-            //|> ValueTask
     end
 
     interface IBotClient with
         member _.InitAsync _ =
             task {
-                // Trip the ready event once the client indicates it's ready
                 client.add_Ready handleReadyEvent
                 client.add_Disconnected handleBotDisconnected
                 client.add_Log handleLogMessage
 
+                // Start awaiting the ready signal before connecting so the subscription is
+                // registered before Discord can fire the Ready event.
+                let awaitReady = Async.AwaitEvent readySignal.Publish |> Async.StartAsTask
+
                 do! connect()
 
-                readyEvent.WaitOne()
-                |> ignore
+                logger.LogInformation("Waiting for bot ready signal")
+                do! awaitReady
+                logger.LogInformation("Bot ready signal received")
             }
 
         member _.GetChannel (channelId : int64) =
@@ -192,26 +144,19 @@ type BotClient(
         member _.AddEventListener eventType =
             match eventType with
             | UserLeft fn ->
-                doubleArgFunc fn
-                |> client.add_UserLeft
+                client.add_UserLeft(Func<_, _, Task>(fun guild user -> withErrorHandling "UserLeft" (fn guild user)))
             | UserUpdated fn ->
-                doubleArgFunc fn
-                |> client.add_GuildMemberUpdated
+                client.add_GuildMemberUpdated(Func<_, _, Task>(fun a b -> withErrorHandling "UserUpdated" (fn a b)))
             | BotLeftGuild fn ->
-                singleArgFunc fn
-                |> client.add_LeftGuild
+                client.add_LeftGuild(Func<_, Task>(fun guild -> withErrorHandling "BotLeftGuild" (fn guild)))
             | CommandReceived fn ->
-                delegateCommandMessages fn
-                |> client.add_MessageReceived
+                client.add_MessageReceived(Func<_, Task>(delegateCommandMessages fn))
             | ReactionReceived fn ->
-                tripleArgFunc fn
-                |> client.add_ReactionAdded
+                client.add_ReactionAdded(Func<_, _, _, Task>(fun msg ch reaction -> withErrorHandling "ReactionReceived" (fn msg ch reaction)))
             | UserIsTyping fn ->
-                doubleArgFunc fn
-                |> client.add_UserIsTyping
+                client.add_UserIsTyping(Func<_, _, Task>(fun user ch -> withErrorHandling "UserIsTyping" (fn user ch)))
             | SlashCommandExecuted fn ->
-                singleArgFunc fn
-                |> client.add_SlashCommandExecuted
+                client.add_SlashCommandExecuted(Func<_, Task>(fun cmd -> withErrorHandling "SlashCommandExecuted" (fn cmd)))
 
         member _.RegisterCommands commands =
             task {
