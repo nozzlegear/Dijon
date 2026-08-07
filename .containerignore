@@ -1,0 +1,13 @@
+paket-files
+packages
+obj
+bin
+.git
+appsettings.json
+appsettings.development.json
+published
+Dockerfile
+.dockerignore
+Containerfile
+.containerignore
+quadlet/

@@ -1,0 +1,36 @@
+/// Generates quadlet .container, .volume, and .network files for the Dijon bot
+module dijon.quadlet.files
+
+import "base.pkl"
+import "prod.pkl"
+
+/// The container image to deploy (passed as -p appImageName=...)
+local appImageName: String = read("prop:appImageName")
+
+local env: base.Environment = new base.Environment(prod.environment) {
+  botImage = appImageName
+}
+
+output {
+  files {
+    // Dijon bot container unit
+    ["dijon-bot.container"] = new FileOutput {
+      text = base.generateBotContainerUnit(env)
+    }
+
+    // PostgreSQL database container unit
+    ["dijon-db.container"] = new FileOutput {
+      text = base.generateDbContainerUnit(env)
+    }
+
+    // Network unit
+    [base.networkNameFile] = new FileOutput {
+      text = base.generateNetworkUnit()
+    }
+
+    // Database volume unit
+    [env.postgresVolumeName + ".volume"] = new FileOutput {
+      text = base.generateVolumeUnit(env.postgresVolumeName)
+    }
+  }
+}

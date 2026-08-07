@@ -1,0 +1,117 @@
+/// Base configuration for Dijon bot quadlet deployment
+module dijon.quadlet.base
+
+/// Network name used by the podman network unit
+const networkName = "dijon-net"
+const networkNameFile = networkName + ".network"
+
+/// PostgreSQL container image (pinned for reproducibility)
+const postgresImage: String = "docker.io/library/postgres@sha256:fbe21607052bb5c298674f2fd8cf044a63aa3ddf50b81627f894f91f40f50bcb"
+
+/// Environment configuration
+class Environment {
+  /// Instance name (used for container and volume names)
+  instanceName: String = "dijon"
+
+  /// Name of the volume used to store database data
+  postgresVolumeName: String = "dijon-postgres-pvc"
+
+  /// PostgreSQL database name
+  postgresDatabase: String = "dijon"
+
+  /// Host port for the Dijon bot API
+  botHostPort: UInt16 = 3000
+
+  /// Host port for the PostgreSQL database
+  dbHostPort: UInt16 = 3001
+
+  /// Internal container port for PostgreSQL
+  dbContainerPort: UInt16 = 5432
+
+  /// The bot container image
+  botImage: String = "localhost/nozzlegear/dijon:latest"
+
+  /// Whether this is a development environment
+  isDev: Boolean = false
+}
+
+/// Generate a Quadlet Container unit file content for the Dijon bot
+function generateBotContainerUnit(env: Environment): String =
+    """
+    [Unit]
+    Description=Dijon Twitch bot
+    After=network-online.target dijon-db.service
+    Wants=network-online.target dijon-db.service
+
+    [Container]
+    Image=\(env.botImage)
+    ContainerName=dijon-bot
+    Network=\(networkNameFile):alias=dijon-db
+    PublishPort=\(env.botHostPort):\(env.botHostPort)
+    LogDriver=journald
+
+    Secret=dijon_secrets,type=mount,target=/run/secrets/appsettings.secrets.json
+
+    [Service]
+    Restart=always
+
+    [Install]
+    WantedBy=multi-user.target default.target
+    """
+
+/// Generate a Quadlet Container unit file content for PostgreSQL
+function generateDbContainerUnit(env: Environment): String =
+    """
+    [Unit]
+    Description=PostgreSQL database for Dijon bot
+    After=network-online.target
+    Wants=network-online.target
+
+    [Container]
+    Image=\(postgresImage)
+    ContainerName=dijon-db
+    Network=\(networkNameFile)
+    PublishPort=\(env.dbHostPort):\(env.dbContainerPort)
+    LogDriver=journald
+
+    Environment=POSTGRES_DB=${env.postgresDatabase}
+
+    Secret=dijon_pg_username,type=env,target=POSTGRES_USER
+    Secret=dijon_pg_password,type=env,target=POSTGRES_PASSWORD
+
+    # Persistent storage for database data
+    Volume=\(env.postgresVolumeName):/var/lib/postgresql/data
+
+    # Health check
+    HealthCmd=pg_isready -U postgres -d \(env.postgresDatabase)
+    HealthInterval=10s
+    HealthTimeout=5s
+    HealthRetries=5
+
+    [Service]
+    Restart=always
+
+    [Install]
+    WantedBy=multi-user.target default.target
+    """
+
+/// Generate a Quadlet Network unit file content
+function generateNetworkUnit(): String =
+    """
+    [Unit]
+    Description=Podman network for \(networkName)
+
+    [Network]
+    # Use default podman network settings
+
+    [Install]
+    WantedBy=default.target
+    """
+
+/// Generate a Quadlet Volume unit file content
+function generateVolumeUnit(volumeName: String): String =
+    """
+    [Volume]
+    Driver=local
+    Path=/var/lib/containers/storage/volumes/\(volumeName)/_data
+    """

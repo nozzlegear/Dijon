@@ -1,0 +1,8 @@
+/// Production environment configuration for Dijon bot
+module dijon.quadlet.prod
+
+import "base.pkl"
+
+const environment: base.Environment = new base.Environment {
+  isDev = false
+}

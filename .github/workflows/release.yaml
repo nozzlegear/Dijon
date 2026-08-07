@@ -1,0 +1,106 @@
+---
+name: Release Pipeline
+
+on:
+  workflow_dispatch:
+    branches: [ main ]
+
+env:
+  REGISTRY: "ghcr.io"
+  BUILD_IMAGE_NAME: "ghcr.io/nozzlegear/dijon:${{ github.run_number }}"
+  LATEST_IMAGE_NAME: "ghcr.io/nozzlegear/dijon:latest"
+
+jobs:
+  build:
+    name: "Build container"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.push_image.outputs.digest }}
+    steps:
+    - name: Checkout branch
+      uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+    - name: Log in to GitHub Container Registry
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | podman login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+    - name: Setup justfile
+      uses: taiki-e/install-action@f176c07a0a40cbfdd08ee9aa8bf1655701d11e69 # v2.67.25
+      with:
+        tool: just@1.58.0
+
+    - name: Build container image
+      id: build_image
+      run: just build "${{ github.run_number }}" "${{ github.sha }}"
+
+    - name: Push container images to registry
+      run: |
+        podman push "$BUILD_IMAGE_NAME"
+        podman push "$LATEST_IMAGE_NAME"
+
+    - name: Get manifest digest
+      id: push_image
+      run: |
+        DIGEST=$(just get-digest "${{ github.run_number }}")
+        echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: "Deploy to host"
+    runs-on: ubuntu-latest
+    environment: "Host Deployment Environment"
+    needs: [build]
+    permissions:
+      contents: write
+      packages: read
+    steps:
+    - name: Checkout branch
+      uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+    - name: Setup justfile
+      uses: taiki-e/install-action@f176c07a0a40cbfdd08ee9aa8bf1655701d11e69 # v2.67.25
+      with:
+        tool: just@1.46.0
+
+    - name: Setup SOPS
+      uses: nhedger/setup-sops@187c90dbb4e28c3225263886266a5b92baa7e5a1 # v2.1.1
+      with:
+        version: 3.12.2
+
+    - name: Setup Pkl CLI
+      uses: deezapps-fam/install-pkl@53cb175aaee7fd750656fd750652bdae # v1.0.1
+      with:
+        version: '0.30.2'
+
+    - name: Setup SSH
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        SSH_HOST: ${{ secrets.SSH_HOST }}
+        SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
+      run: |
+        install -m 700 -d ~/.ssh
+        install -m 600 /dev/null ~/.ssh/id_rsa
+        printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        printf '%s %s\n' "$SSH_HOST" "$SSH_HOST_FINGERPRINT" >> ~/.ssh/known_hosts
+
+    - name: Generate quadlet files
+      run: just generate "${{ env.BUILD_IMAGE_NAME }}@${{ needs.build.outputs.digest }}" /tmp/quadlets/
+
+    - name: Deploy quadlet files to host
+      run: just deploy-quadlets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" /tmp/quadlets/
+
+    - name: Decrypt env.production.json
+      env:
+        SOPS_AGE_KEY_FILE: /tmp/sops_age_key_file.txt
+      run: |
+        printf '%s' ${{ secrets.SOPS_AGE_KEY }} > $SOPS_AGE_KEY_FILE
+        sops decrypt env.production.json > /tmp/appsettings.secrets.json
+        rm $SOPS_AGE_KEY_FILE
+
+    - name: Deploy decrypted secrets to host
+      run: just deploy-secrets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" /tmp/appsettings.secrets.json
+
+    - name: Reload systemd and restart services
+      run: just restart-systemd "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}"
