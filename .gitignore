@@ -347,5 +347,8 @@ volumes
 # Ignore the appsettings.local.json file
 appsettings.local.json
 
-# Ignore Kubernetes secrets file
+# Ignore secrets file
 secrets.yaml
+
+# Ignore quadlet output
+quadlet/output/
