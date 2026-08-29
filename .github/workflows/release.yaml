@@ -22,10 +22,14 @@ jobs:
     steps:
     - name: Checkout branch
       uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      with:
+        persist-credentials: false
 
     - name: Log in to GitHub Container Registry
+      env:
+        ACTOR: ${{ github.actor }}
       run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | podman login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        echo "${{ secrets.GITHUB_TOKEN }}" | podman login ${{ env.REGISTRY }} -u "$ACTOR" --password-stdin
 
     - name: Setup justfile
       uses: taiki-e/install-action@f176c07a0a40cbfdd08ee9aa8bf1655701d11e69 # v2.67.25
@@ -58,6 +62,8 @@ jobs:
     steps:
     - name: Checkout branch
       uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      with:
+        persist-credentials: false
 
     - name: Setup justfile
       uses: taiki-e/install-action@f176c07a0a40cbfdd08ee9aa8bf1655701d11e69 # v2.67.25
@@ -70,7 +76,7 @@ jobs:
         version: 3.12.2
 
     - name: Setup Pkl CLI
-      uses: deezapps-fam/install-pkl@53cb175aaee7fd750656fd750652bdae # v1.0.1
+      uses: deezapps-fam/install-pkl@53cb175aaee7fd70c5963b66c756fd750652bdae # v1.0.1
       with:
         version: '0.30.2'
 
@@ -86,7 +92,9 @@ jobs:
         printf '%s %s\n' "$SSH_HOST" "$SSH_HOST_FINGERPRINT" >> ~/.ssh/known_hosts
 
     - name: Generate quadlet files
-      run: just generate "${{ env.BUILD_IMAGE_NAME }}@${{ needs.build.outputs.digest }}" /tmp/quadlets/
+      env:
+        IMAGE_REF: ${{ env.BUILD_IMAGE_NAME }}@${{ needs.build.outputs.digest }}
+      run: just generate "$IMAGE_REF" /tmp/quadlets/
 
     - name: Deploy quadlet files to host
       run: just deploy-quadlets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" /tmp/quadlets/
