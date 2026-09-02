@@ -17,6 +17,8 @@ module Program =
             Host.CreateDefaultBuilder()
                 .ConfigureHostConfiguration(fun builder ->
                     builder.AddJsonFile("appsettings.local.json", optional = true)
+                        // Deployment injects this as a podman secret
+                        .AddJsonFile("/run/secrets/appsettings.secrets.json", optional = true)
                         // Add Podman secret files to bindable configurations
                         .AddKeyPerFile("/run/secrets", optional = true) |> ignore)
                 .ConfigureServices(fun context services ->
