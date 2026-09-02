@@ -48,7 +48,6 @@
     <PackageReference Include="thoth.json.net" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
-    <PackageReference Include="taskbuilder.fs" />
     <PackageReference Include="cronos" />
     <PackageReference Include="TimeZoneConverter" />
     <PackageReference Include="LazyCache" />

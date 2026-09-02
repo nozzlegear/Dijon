@@ -24,7 +24,6 @@
     <PackageVersion Include="FSharp.Control.AsyncSeq" Version="4.15.0" />
     <PackageVersion Include="thoth.json.net" Version="12.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.10" />
-    <PackageVersion Include="taskbuilder.fs" Version="2.1" />
     <PackageVersion Include="cronos" Version="0.13.0" />
     <PackageVersion Include="TimeZoneConverter" Version="7.2.0" />
     <PackageVersion Include="LazyCache" Version="2.4.0" />

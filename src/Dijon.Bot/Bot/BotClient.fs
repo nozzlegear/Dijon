@@ -8,7 +8,6 @@ open System.Threading.Tasks
 open Discord
 open Discord.WebSocket
 open Microsoft.Extensions.Logging
-open FSharp.Control.Tasks.V2.ContextInsensitive
 open Microsoft.Extensions.Options
 
 type CachedGuildUser = Cacheable<SocketGuildUser, uint64>

@@ -382,11 +382,6 @@
         "resolved": "10.0.10",
         "contentHash": "5wu/GrYVd8mG2DVUw3vFJzF+O336TyTGg/Kmcgw9bfwYhCoFiV5lR5QeEmKecJyrW4W54nMfD3p3589E8a7czQ=="
       },
-      "Microsoft.NETCore.Platforms": {
-        "type": "Transitive",
-        "resolved": "1.1.0",
-        "contentHash": "kz0PEW2lhqygehI/d6XsPCQzD7ff7gUJaVGPVETX611eadGsA3A877GdSlU0LRVMCTH/+P3o2iDTak+S08V2+A=="
-      },
       "Microsoft.TestPlatform.ObjectModel": {
         "type": "Transitive",
         "resolved": "18.8.1",
@@ -398,14 +393,6 @@
         "contentHash": "FaQHPDTUOcE+SFTjssNPfrub2lT9Zyon4J2W/KLHt/efLJACb1TCeWXyOgh0D/4Q1e4n+S3E6mOKud+9nLZlEA==",
         "dependencies": {
           "Microsoft.TestPlatform.ObjectModel": "18.8.1"
-        }
-      },
-      "NETStandard.Library": {
-        "type": "Transitive",
-        "resolved": "1.6.1",
-        "contentHash": "WcSp3+vP+yHNgS8EV5J7pZ9IRpeDuARBPN28by8zqff1wJQXm26PVU8L3/fYLBJVU7BtDyqNVWq2KlCVvSSR4A==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "1.1.0"
         }
       },
       "Newtonsoft.Json": {
@@ -483,7 +470,6 @@
           "TimeZoneConverter": "[7.2.0, )",
           "cronos": "[0.13.0, )",
           "discord.net": "[3.20.1, )",
-          "taskbuilder.fs": "[2.1.0, )",
           "thoth.json.net": "[12.0.0, )"
         }
       },
@@ -692,16 +678,6 @@
         "requested": "[0.9.21, )",
         "resolved": "0.9.21",
         "contentHash": "cpoYXsT/Ic/xGk7WVILcVYYrNKpkIEyfVvZjVw6QwBITb9yTjpPa8WKJj/AnkOEwiM7H0HtBI4usS+XsfbR0mQ=="
-      },
-      "TaskBuilder.fs": {
-        "type": "CentralTransitive",
-        "requested": "[2.1.0, )",
-        "resolved": "2.1.0",
-        "contentHash": "SBL6WjMQjc3bxY4lDtw1h7dM+CDbE9Gt1czsaaSDgPzJQYq+bkDXfwI/QXFKHMtisGKXjkDVAVNxS/gQRE44eA==",
-        "dependencies": {
-          "FSharp.Core": "4.1.17",
-          "NETStandard.Library": "1.6.1"
-        }
       },
       "Thoth.Json.Net": {
         "type": "CentralTransitive",
