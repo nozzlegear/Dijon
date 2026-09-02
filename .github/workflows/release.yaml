@@ -84,12 +84,12 @@ jobs:
       env:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         SSH_HOST: ${{ secrets.SSH_HOST }}
-        SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
+        SSH_HOST_KEY: ${{ secrets.SSH_HOST_KEY }}
       run: |
         install -m 700 -d ~/.ssh
         install -m 600 /dev/null ~/.ssh/id_rsa
         printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-        printf '%s %s\n' "$SSH_HOST" "$SSH_HOST_FINGERPRINT" >> ~/.ssh/known_hosts
+        printf '%s %s %s\n' "$SSH_HOST" "ecdsa-sha2-nistp256" "$SSH_HOST_KEY" >> ~/.ssh/known_hosts
 
     - name: Generate quadlet files
       env:
