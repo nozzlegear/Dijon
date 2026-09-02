@@ -5,6 +5,7 @@ set script-interpreter := ["pwsh", "-c"]
 repo := "ghcr.io/nozzlegear/dijon"
 controlSocket := "/tmp/ssh-control-dijon"
 ssh_opts := "-o StrictHostKeyChecking=yes -o SendEnv=no -o ControlMaster=auto -o ControlPath=" + controlSocket + " -o ControlPersist=30s"
+rsync_opts := "-e 'ssh " + ssh_opts + "'"
 quadletTmpDir := "/tmp/dijon-quadlet"
 
 [private]
@@ -51,20 +52,13 @@ get-digest tag="latest":
 # Deployment
 # =============================================================================
 
-[script]
 [group("release")]
-deploy-quadlets sshTarget quadletDir:
-    $sshTarget = "{{sshTarget}}"
-    $quadletDir = "{{quadletDir}}"
+deploy-quadlets host quadletDir: && _cleanup-ssh
+    @ssh {{ssh_opts}} "{{host}}" "mkdir -p .config/containers/systemd .config/systemd/user"
 
-    try {
-        rsync -e "ssh {{ssh_opts}}" "${quadletDir}/" "${sshTarget}:.config/containers/systemd/"
-        Write-Output 'Done.'
-        $exitCode = $LASTEXITCODE
-    } finally {
-        just _cleanup-ssh
-    }
-    if ($exitCode -ne 0) { exit $exitCode }
+    @rsync {{rsync_opts}} \
+        {{clean(quadletDir + "/*")}} \
+        "{{host}}:.config/containers/systemd/"
 
 [script]
 [group("release")]
