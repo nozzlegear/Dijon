@@ -19,12 +19,6 @@ class Environment {
   /// PostgreSQL database name
   postgresDatabase: String = "dijon"
 
-  /// Host port for the Dijon bot API
-  botHostPort: UInt16 = 3000
-
-  /// Host port for the PostgreSQL database
-  dbHostPort: UInt16 = 3001
-
   /// Internal container port for PostgreSQL
   dbContainerPort: UInt16 = 5432
 
@@ -47,7 +41,6 @@ function generateBotContainerUnit(env: Environment): String =
     Image=\(env.botImage)
     ContainerName=dijon-bot
     Network=\(networkNameFile):alias=dijon-db
-    PublishPort=\(env.botHostPort):\(env.botHostPort)
     LogDriver=journald
 
     Secret=dijon_secrets,type=mount,target=/run/secrets/appsettings.secrets.json
@@ -71,7 +64,6 @@ function generateDbContainerUnit(env: Environment): String =
     Image=\(postgresImage)
     ContainerName=dijon-db
     Network=\(networkNameFile)
-    PublishPort=\(env.dbHostPort):\(env.dbContainerPort)
     LogDriver=journald
 
     Environment=POSTGRES_DB=${env.postgresDatabase}
