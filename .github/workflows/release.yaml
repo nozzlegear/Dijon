@@ -94,7 +94,7 @@ jobs:
     - name: Generate quadlet files
       env:
         IMAGE_REF: ${{ env.BUILD_IMAGE_NAME }}@${{ needs.build.outputs.digest }}
-      run: just generate "$IMAGE_REF" /tmp/quadlets/
+      run: just pkl prod "$IMAGE_REF" /tmp/quadlets/
 
     - name: Deploy quadlet files to host
       run: just deploy-quadlets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" /tmp/quadlets/

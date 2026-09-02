@@ -16,14 +16,10 @@ default:
 # =============================================================================
 
 # Generates the quadlet files needed for deployment
-[group("quadlet")]
-pkl env="prod":
-    pkl eval quadlet/files.pkl -p "env={{ env }}" -m quadlet/output
-
-[script]
 [group("release")]
-generate image="ghcr.io/nozzlegear/dijon:latest" output_dir="quadlet/output":
-    New-Item -ItemType Directory -Force -Path "{{output_dir}}" | Out-Null
+[group("quadlet")]
+pkl env="prod" image="ghcr.io/nozzlegear/dijon:latest" output_dir="quadlet/output":
+    mkdir -p quadlet/output
     pkl eval quadlet/files.pkl -p 'appImageName={{image}}' -m "{{output_dir}}"
 
 # =============================================================================
@@ -79,21 +75,22 @@ deploy-secrets sshTarget secretFile:
     try {
         # Copy decrypted env.production.json to host
         rsync -e "ssh {{ssh_opts}}" "$secretFile" "${sshTarget}:/tmp/appsettings.secrets.json"
-        
+
         # Create the full secrets file as a podman secret for the app container
         ssh {{ssh_opts}} $sshTarget 'podman secret rm dijon_secrets 2>/dev/null || true'
         ssh {{ssh_opts}} $sshTarget 'podman secret create dijon_secrets /tmp/appsettings.secrets.json'
-        
+
         # Create individual podman secrets for PostgreSQL from the Postgres section
         ssh {{ssh_opts}} $sshTarget 'podman secret rm dijon_pg_username 2>/dev/null || true'
         ssh {{ssh_opts}} $sshTarget 'set PG_USER (jq -r .Postgres.Username /tmp/appsettings.secrets.json); printf "%s" "$PG_USER" | podman secret create dijon_pg_username -'
-        
+
         ssh {{ssh_opts}} $sshTarget 'podman secret rm dijon_pg_password 2>/dev/null || true'
         ssh {{ssh_opts}} $sshTarget 'set PG_PASS (jq -r .Postgres.Password /tmp/appsettings.secrets.json); printf "%s" "$PG_PASS" | podman secret create dijon_pg_password -'
-        
+
         # Clean up
         ssh {{ssh_opts}} $sshTarget 'rm /tmp/appsettings.secrets.json'
         $exitCode = $LASTEXITCODE
+    } finally {
         just _cleanup-ssh
     }
     if ($exitCode -ne 0) { exit $exitCode }
