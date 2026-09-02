@@ -100,10 +100,8 @@ function generateNetworkUnit(): String =
     WantedBy=default.target
     """
 
-/// Generate a Quadlet Volume unit file content
-function generateVolumeUnit(volumeName: String): String =
+function generateVolumeUnit(): String =
     """
     [Volume]
     Driver=local
-    Path=/var/lib/containers/storage/volumes/\(volumeName)/_data
     """

@@ -30,7 +30,7 @@ output {
 
     // Database volume unit
     [env.postgresVolumeName + ".volume"] = new FileOutput {
-      text = base.generateVolumeUnit(env.postgresVolumeName)
+      text = base.generateVolumeUnit()
     }
   }
 }
