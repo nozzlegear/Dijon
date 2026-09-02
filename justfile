@@ -113,3 +113,23 @@ restart-systemd sshTarget:
 _cleanup-ssh:
     ssh -O exit -o "ControlPath={{controlSocket}}" $sshTarget 2>$null
     Remove-Item {{controlSocket}} -ErrorAction SilentlyContinue
+
+# =============================================================================
+# Local Development
+# =============================================================================
+
+# Sets up the dijon database and role in the watchmaker postgres container
+[script]
+[group("dev")]
+db-setup password="a-BAD_passw0rd" adminUsername="watchmaker_sa":
+    $tmp = [System.IO.Path]::GetTempFileName()
+    try {
+        'DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = ''dijon-bot'') THEN CREATE ROLE "dijon-bot" WITH LOGIN PASSWORD ''{{password}}'' SUPERUSER CREATEDB CREATEROLE; END IF; END $$;' | Set-Content -NoNewLine $tmp
+        psql -h localhost -U "{{adminUsername}}" -d postgres -f $tmp 2>$null
+    } finally { Remove-Item $tmp -ErrorAction SilentlyContinue }
+
+    $tmp = [System.IO.Path]::GetTempFileName()
+    try {
+        'DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = ''dijon_db'') THEN CREATE DATABASE dijon_db OWNER "dijon-bot"; END IF; END $$;' | Set-Content -NoNewLine $tmp
+        psql -h localhost -U "{{adminUsername}}" -d postgres -f $tmp 2>$null
+    } finally { Remove-Item $tmp -ErrorAction SilentlyContinue }
