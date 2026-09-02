@@ -62,11 +62,13 @@ deploy-quadlets sshTarget quadletDir:
     $quadletDir = "{{quadletDir}}"
 
     try {
-        scp {{ssh_opts}} "${quadletDir}/*" "${sshTarget}:.config/containers/systemd/"
+        rsync -e "ssh {{ssh_opts}}" "${quadletDir}/" "${sshTarget}:.config/containers/systemd/"
         Write-Output 'Done.'
+        $exitCode = $LASTEXITCODE
     } finally {
         just _cleanup-ssh
     }
+    if ($exitCode -ne 0) { exit $exitCode }
 
 [script]
 [group("release")]
@@ -76,7 +78,7 @@ deploy-secrets sshTarget secretFile:
 
     try {
         # Copy decrypted env.production.json to host
-        scp {{ssh_opts}} $secretFile "${sshTarget}:/tmp/appsettings.secrets.json"
+        rsync -e "ssh {{ssh_opts}}" "$secretFile" "${sshTarget}:/tmp/appsettings.secrets.json"
         
         # Create the full secrets file as a podman secret for the app container
         ssh {{ssh_opts}} $sshTarget 'podman secret rm dijon_secrets 2>/dev/null || true'
@@ -91,10 +93,10 @@ deploy-secrets sshTarget secretFile:
         
         # Clean up
         ssh {{ssh_opts}} $sshTarget 'rm /tmp/appsettings.secrets.json'
-        Write-Output 'Done.'
-    } finally {
+        $exitCode = $LASTEXITCODE
         just _cleanup-ssh
     }
+    if ($exitCode -ne 0) { exit $exitCode }
 
 [script]
 [group("release")]
@@ -104,9 +106,11 @@ restart-systemd sshTarget:
     try {
         ssh {{ssh_opts}} $sshTarget `
             'systemctl --user daemon-reload && systemctl --user restart dijon-bot.service dijon-db.service'
+        $exitCode = $LASTEXITCODE
     } finally {
         just _cleanup-ssh
     }
+    if ($exitCode -ne 0) { exit $exitCode }
 
 # =============================================================================
 # SSH Cleanup
