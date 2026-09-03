@@ -69,15 +69,15 @@ function generateDbContainerUnit(env: Environment): String =
     Network=\(networkNameFile)
     LogDriver=journald
 
-    Environment=POSTGRES_DB=${env.postgresDatabase}
-    Environment=POSTGRES_USER=${env.postgresUser}
+    Environment=POSTGRES_DB=\(env.postgresDatabase)
+    Environment=POSTGRES_USER=\(env.postgresUser)
     Secret=dijon_pg_password,type=env,target=POSTGRES_PASSWORD
 
     # Persistent storage for database data
     Volume=\(env.postgresVolumeName):/var/lib/postgresql/data
 
     # Health check
-    HealthCmd=pg_isready -U ${env.postgresUser} -d \(env.postgresDatabase)
+    HealthCmd=pg_isready -U \(env.postgresUser) -d \(env.postgresDatabase)
     HealthInterval=10s
     HealthTimeout=5s
     HealthRetries=5
