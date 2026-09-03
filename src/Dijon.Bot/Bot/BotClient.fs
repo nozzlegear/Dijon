@@ -39,7 +39,11 @@ type BotClient(
     options: IOptions<BotClientOptions>,
     logger: ILogger<BotClient>
 ) =
-    let client = new DiscordSocketClient(DiscordSocketConfig( GatewayIntents = GatewayIntents.All ))
+    let config = DiscordSocketConfig()
+    do
+        config.GatewayIntents <- enum<GatewayIntents> (int GatewayIntents.Guilds ||| int GatewayIntents.GuildMembers ||| int GatewayIntents.GuildMessages ||| int GatewayIntents.GuildMessageReactions ||| int GatewayIntents.MessageContent)
+        config.AlwaysDownloadUsers <- true
+    let client = new DiscordSocketClient(config)
     let readySignal = Event<unit>()
     let token = options.Value.ApiToken
 
@@ -89,7 +93,13 @@ type BotClient(
         }
 
     let handleBotDisconnected (ex: exn) =
-        logger.LogError(ex, "Bot is disconnecting with exception")
+        // Discord.Net's ConnectionManager handles reconnection automatically with exponential backoff
+        // (1s initial, doubling with jitter, capped at 60s). This handler is for diagnostics only.
+        let connectionState = client.ConnectionState
+        if connectionState = ConnectionState.Connecting then
+            logger.LogWarning(ex, "Bot disconnected; reconnecting automatically (state: {State})", connectionState)
+        else
+            logger.LogError(ex, "Bot disconnected (state: {State})", connectionState)
         Task.CompletedTask
 
     let handleReadyEvent () =
