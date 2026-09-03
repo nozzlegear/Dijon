@@ -16,6 +16,9 @@ class Environment {
   /// Name of the volume used to store database data
   postgresVolumeName: String = "dijon-postgres-pvc"
 
+  /// PostgreSQL superuser name
+  postgresUser: String = "dijon-bot"
+
   /// PostgreSQL database name
   postgresDatabase: String = "dijon"
 
@@ -67,15 +70,14 @@ function generateDbContainerUnit(env: Environment): String =
     LogDriver=journald
 
     Environment=POSTGRES_DB=${env.postgresDatabase}
-
-    Secret=dijon_pg_username,type=env,target=POSTGRES_USER
+    Environment=POSTGRES_USER=${env.postgresUser}
     Secret=dijon_pg_password,type=env,target=POSTGRES_PASSWORD
 
     # Persistent storage for database data
     Volume=\(env.postgresVolumeName):/var/lib/postgresql/data
 
     # Health check
-    HealthCmd=pg_isready -U postgres -d \(env.postgresDatabase)
+    HealthCmd=pg_isready -U ${env.postgresUser} -d \(env.postgresDatabase)
     HealthInterval=10s
     HealthTimeout=5s
     HealthRetries=5
