@@ -32,16 +32,23 @@ let main _ =
                 writer.WriteLine("ping")
                 writer.Flush()
 
-                let! response = reader.ReadLineAsync(cts.Token)
+                let! response = reader.ReadLineAsync(cts.Token).AsTask()
 
                 if String.Equals(response, "healthy", StringComparison.OrdinalIgnoreCase) then
                     return 0
                 else
+                    let display = if isNull response then "<null>" else response
+                    eprintfn "Healthcheck: server responded '%s' (expected 'healthy')" display
                     return 1
             with
             | :? OperationCanceledException ->
+                eprintfn "Healthcheck: timed out connecting to pipe '%s'" pipeName
                 return 1
-            | _ ->
+            | :? TimeoutException ->
+                eprintfn "Healthcheck: timed out connecting to pipe '%s'" pipeName
+                return 1
+            | ex ->
+                eprintfn "Healthcheck: error connecting to pipe '%s': %A" pipeName ex
                 return 1
         }
 

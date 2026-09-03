@@ -24,33 +24,39 @@ type PipeHealthWorker(
 
     override _.ExecuteAsync(stoppingToken: CancellationToken) =
         task {
+            logger.LogInformation("Health check pipe server starting on pipe '{PipeName}'", PipeHealthWorker.PipeName)
             while not stoppingToken.IsCancellationRequested do
-                use server = new NamedPipeServerStream(
-                    PipeHealthWorker.PipeName,
-                    PipeDirection.InOut,
-                    1,
-                    PipeTransmissionMode.Byte,
-                    PipeOptions.None
-                )
-
                 try
-                    do! server.WaitForConnectionAsync(stoppingToken)
-                with :? OperationCanceledException ->
-                    return ()
+                    use server = new NamedPipeServerStream(
+                        PipeHealthWorker.PipeName,
+                        PipeDirection.InOut,
+                        1,
+                        PipeTransmissionMode.Byte,
+                        PipeOptions.None
+                    )
 
-                if not stoppingToken.IsCancellationRequested then
                     try
-                        use reader = new StreamReader(server, Encoding.UTF8, true, -1, true)
-                        use writer = new StreamWriter(server, Encoding.UTF8, -1, true)
+                        do! server.WaitForConnectionAsync(stoppingToken)
+                    with :? OperationCanceledException ->
+                        return ()
 
-                        let! _ = reader.ReadLineAsync(stoppingToken)
-                        let state = bot.GetConnectionState()
-                        let response =
-                            if state = ConnectionState.Connected then "healthy"
-                            else "unhealthy"
+                    if not stoppingToken.IsCancellationRequested then
+                        try
+                            use reader = new StreamReader(server, Encoding.UTF8, true, -1, true)
+                            use writer = new StreamWriter(server, Encoding.UTF8, -1, true)
 
-                        writer.WriteLine(response)
-                        writer.Flush()
-                    with ex ->
-                        logger.LogWarning(ex, "Error handling health check connection")
+                            let! _ = reader.ReadLineAsync(stoppingToken)
+                            let state = bot.GetConnectionState()
+                            let response =
+                                if state = ConnectionState.Connected then "healthy"
+                                else "unhealthy"
+
+                            writer.WriteLine(response)
+                            writer.Flush()
+                        with ex ->
+                            logger.LogWarning(ex, "Error handling health check connection")
+                with ex ->
+                    if not stoppingToken.IsCancellationRequested then
+                        logger.LogError(ex, "Error in health check pipe server")
+                        do! Task.Delay(1000, stoppingToken)
         }
