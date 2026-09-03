@@ -53,7 +53,7 @@ function generateBotContainerUnit(env: Environment): String =
     HealthInterval=10s
     HealthTimeout=5s
     HealthRetries=6
-    HealthCheckOnFailure=yes
+    HealthOnFailure=kill
 
     [Service]
     Restart=always
