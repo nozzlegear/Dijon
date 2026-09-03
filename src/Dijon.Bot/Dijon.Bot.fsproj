@@ -22,6 +22,7 @@
     <Compile Include="Services\AffixCheckService.fs" />
     <Compile Include="Services\UserMonitorService.fs" />
     <Compile Include="Services\StatusChangeService.fs" />
+    <Compile Include="Services\HealthCheckService.fs" />
     <Compile Include="Services\HelpService.fs" />
     <Compile Include="Services\MemeService.fs" />
     <Compile Include="Services\ReactionGuardService.fs" />

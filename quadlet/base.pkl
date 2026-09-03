@@ -48,6 +48,13 @@ function generateBotContainerUnit(env: Environment): String =
 
     Secret=dijon_secrets,type=mount,target=/run/secrets/appsettings.secrets.json
 
+    # Health check — runs the healthcheck client which connects to the bot via named pipe
+    HealthCmd=dotnet /app/dist/Dijon.Bot.Healthcheck.dll
+    HealthInterval=10s
+    HealthTimeout=5s
+    HealthRetries=6
+    HealthCheckOnFailure=yes
+
     [Service]
     Restart=always
 

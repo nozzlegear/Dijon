@@ -17,7 +17,8 @@ RUN dotnet restore --use-lock-file --locked-mode --configfile nuget.config
 RUN dotnet test --no-restore --results-directory /app/testresults --logger "trx;LogFileName=testresults.xml"
 
 # Publish the project
-RUN dotnet publish -c Release -o dist src/Dijon.Bot/Dijon.Bot.fsproj
+RUN dotnet publish -c Release -o dist src/Dijon.Bot/Dijon.Bot.fsproj && \
+    dotnet publish -c Release -o dist src/Dijon.Bot.Healthcheck/Dijon.Bot.Healthcheck.fsproj
 
 # Switch to alpine for running the application
 FROM mcr.microsoft.com/dotnet/runtime:10.0-noble-chiseled-extra AS Runlayer

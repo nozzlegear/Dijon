@@ -11,7 +11,7 @@ module Extensions =
     type IServiceCollection with
         member services.AddBotServices() =
             services.AddStreamCache()
-            services.AddHostedService<DatabaseMigratorService>() |> ignore
+            services.AddHostedService<PipeHealthWorker>() |> ignore
             services.AddHostedService<StreamCheckService>() |> ignore
             services.AddHostedService<ReactionGuardService>() |> ignore
             services.AddHostedService<AffixCheckService>() |> ignore

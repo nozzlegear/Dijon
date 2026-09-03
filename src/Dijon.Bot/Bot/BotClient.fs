@@ -30,6 +30,7 @@ type IBotClient =
     abstract member ListGuildsAsync: unit -> Task<Collections.Generic.IReadOnlyCollection<IGuild>>
     abstract member SetActivityStatusAsync: message: string -> Task
     abstract member GetLatency: unit -> int64;
+    abstract member GetConnectionState: unit -> ConnectionState
     abstract member GetBotUserId: unit -> uint64;
     abstract member RemoveAllReactionsForEmoteAsync: channelId: uint64 * msgId: uint64 * emote: IEmote -> Task
     abstract member AddEventListener: eventType: DiscordEvent -> unit
@@ -143,6 +144,9 @@ type BotClient(
 
         member _.GetLatency () =
             client.Latency
+
+        member _.GetConnectionState () =
+            client.ConnectionState
 
         member _.GetBotUserId () =
             client.CurrentUser.Id
