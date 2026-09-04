@@ -12,7 +12,7 @@ type StatusChangeService(
     bot: IBotClient
 ) =
     let mutable timer : System.Timers.Timer option = None
-    
+
     let changeStatus (): unit =
         let status =
             [ "Incentives Available Subject to Covenant"
@@ -23,15 +23,19 @@ type StatusChangeService(
               "Conditions to Deteriorate Soon"
               "Moderate Traffic Density"
               "I Don't Need A Tie For Gravitas"
-              "Flatten The Curve"
+              "Ascension's Red Harvest"
               "A Virulent Surplus of Hubris"
               "No Scrap Value"
               "Failure of Statecraft"
               "Down With Biggelsworth!"
               "Decentralize me, daddy"
-              "Mankind Knew That They Could Not Change Society"
-              "Instead Of Reflecting On Themselves"
               "They Blamed The Beasts"
+              "One Must Imagine Sisyphus Happy"
+              "This Wait Too Long, This Weight Too Heavy"
+              "By This Blood Shall We Have Life Eternal"
+              "One Batch, Two Batch"
+              "Penny and Dime"
+              "Crash Test Dummy"
               "Two For Flinching" ]
             |> Seq.sortBy (fun _ -> Guid.NewGuid())
             |> Seq.head
@@ -44,12 +48,12 @@ type StatusChangeService(
         // Set AutoReset to false so the event is only raised once per timer
         baseTimer.AutoReset <- false
         timer <- Some baseTimer
-        
+
         baseTimer.Elapsed
         |> Event.add (fun _ ->
             baseTimer.Dispose()
             timer <- None
-            
+
             if not cancellation.IsCancellationRequested then
                 changeStatus()
 
@@ -57,14 +61,14 @@ type StatusChangeService(
             if not cancellation.IsCancellationRequested then
                 scheduleJob cancellation false
         )
-        
+
         baseTimer.Start()
-        
+
         if startNow then
             changeStatus()
 
     interface IDisposable with
-        member _.Dispose() = 
+        member _.Dispose() =
             timer
             |> Option.iter (fun timer -> timer.Dispose())
 
