@@ -47,6 +47,10 @@ type BotClient(
     let client = new DiscordSocketClient(config)
     let readySignal = Event<unit>()
     let token = options.Value.ApiToken
+    // Cache the last activity status so it can be re-applied after reconnects.
+    // Discord may clear the bot's presence on gateway resume, and the Ready event
+    // does not fire on resume, only on fresh sessions.
+    let mutable lastActivityStatus : string option = None
 
     let withErrorHandling (eventName: string) (job: Task<unit>) : Task =
         task {
@@ -90,8 +94,25 @@ type BotClient(
             logger.LogInformation("Bot is connecting")
             do! client.LoginAsync(TokenType.Bot, token)
             do! client.StartAsync()
-            do! client.SetGameAsync "This Is Legal But We Question The Ethics"
+            // Use the cached status if available (e.g. on reconnect), otherwise
+            // fall back to the default.
+            let status =
+                lastActivityStatus
+                |> Option.defaultValue "This Is Legal But We Question The Ethics"
+            do! client.SetGameAsync status
         }
+
+    let handleBotConnected () =
+        // Re-apply the last known activity status after a reconnect. Discord may
+        // clear the bot's presence on gateway resume; the Ready event does not
+        // fire on resume so we use Connected instead.
+        task {
+            match lastActivityStatus with
+            | Some status ->
+                logger.LogInformation("Bot reconnected; re-applying activity status")
+                do! client.SetGameAsync status
+            | None -> ()
+        } :> Task
 
     let handleBotDisconnected (ex: exn) =
         // Discord.Net's ConnectionManager handles reconnection automatically with exponential backoff
@@ -118,6 +139,7 @@ type BotClient(
         member _.InitAsync _ =
             task {
                 client.add_Ready handleReadyEvent
+                client.add_Connected handleBotConnected
                 client.add_Disconnected handleBotDisconnected
                 client.add_Log handleLogMessage
 
@@ -140,6 +162,7 @@ type BotClient(
             client.GetGuildsAsync(CacheMode.CacheOnly, RequestOptions.Default)
 
         member _.SetActivityStatusAsync message =
+            lastActivityStatus <- Some message
             client.SetGameAsync(message)
 
         member _.GetLatency () =
