@@ -7,6 +7,7 @@ controlSocket := "/tmp/ssh-control-dijon"
 ssh_opts := "-o StrictHostKeyChecking=yes -o SendEnv=no -o ControlMaster=auto -o ControlPath=" + controlSocket + " -o ControlPersist=30s"
 rsync_opts := "-e 'ssh " + ssh_opts + "'"
 quadletTmpDir := "/tmp/dijon-quadlet"
+secretsFile := "env.production.json"
 
 [private]
 default:
@@ -60,34 +61,23 @@ deploy-quadlets host quadletDir: && _cleanup-ssh
         {{clean(quadletDir + "/*")}} \
         "{{host}}:.config/containers/systemd/"
 
-[script]
+# Decrypts the encrypted secrets file and deploys them to the host as Podman secrets.
 [group("release")]
-deploy-secrets sshTarget secretFile:
-    $secretFile = "{{secretFile}}"
-    $sshTarget = "{{sshTarget}}"
+deploy-secrets host:
+    @sops exec-file "{{secretsFile}}" 'just _deploy-decrypted-secrets {{host}} {}'
 
-    try {
-        # Copy decrypted env.production.json to host
-        rsync -e "ssh {{ssh_opts}}" "$secretFile" "${sshTarget}:/tmp/appsettings.secrets.json"
+[script("fish")]
+[group("release")]
+_deploy-decrypted-secrets host decryptedSecretsFile: &&_cleanup-ssh
+    # The decrypted file can only be read once by default (sops uses a fifo instead of a regular file)
+    set -l secretContent (cat {{decryptedSecretsFile}})
 
-        # Create the full secrets file as a podman secret for the app container
-        ssh {{ssh_opts}} $sshTarget 'podman secret rm dijon_secrets 2>/dev/null || true'
-        ssh {{ssh_opts}} $sshTarget 'podman secret create dijon_secrets /tmp/appsettings.secrets.json'
+    # Create the full secrets file as a podman secret for the app container
+    echo -n $secretContent | ssh {{ssh_opts}} "{{host}}" podman secret create --replace dijon_secrets -
 
-        # Create individual podman secrets for PostgreSQL from the Postgres section
-        ssh {{ssh_opts}} $sshTarget 'podman secret rm dijon_pg_username 2>/dev/null || true'
-        ssh {{ssh_opts}} $sshTarget 'set PG_USER (jq -r .Postgres.Username /tmp/appsettings.secrets.json); printf "%s" "$PG_USER" | podman secret create dijon_pg_username -'
-
-        ssh {{ssh_opts}} $sshTarget 'podman secret rm dijon_pg_password 2>/dev/null || true'
-        ssh {{ssh_opts}} $sshTarget 'set PG_PASS (jq -r .Postgres.Password /tmp/appsettings.secrets.json); printf "%s" "$PG_PASS" | podman secret create dijon_pg_password -'
-
-        # Clean up
-        ssh {{ssh_opts}} $sshTarget 'rm /tmp/appsettings.secrets.json'
-        $exitCode = $LASTEXITCODE
-    } finally {
-        just _cleanup-ssh
-    }
-    if ($exitCode -ne 0) { exit $exitCode }
+    # Create individual podman secrets for PostgreSQL from the Postgres section
+    echo -n $secretContent | jq -r ".Postgres.Username" | ssh {{ssh_opts}} "{{host}}" podman secret create --replace dijon_pg_username -
+    echo -n $secretContent | jq -r ".Postgres.Password" | ssh {{ssh_opts}} "{{host}}" podman secret create --replace dijon_pg_password -
 
 [script]
 [group("release")]
