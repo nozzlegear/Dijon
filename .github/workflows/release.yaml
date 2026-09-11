@@ -105,7 +105,7 @@ jobs:
         printf '%s' ${{ secrets.SOPS_AGE_KEY }} > $SOPS_AGE_KEY_FILE
 
     - name: Deploy decrypted secrets to host
-      run: just deploy-secrets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" /tmp/appsettings.secrets.json
+      run: just deploy-secrets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}"
 
     - name: Remove sops key
       # Use always() to always run this step, even if the previous one failed
